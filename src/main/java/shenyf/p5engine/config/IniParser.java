@@ -47,8 +47,6 @@ public class IniParser {
 
                     String fullKey = buildFullKey(currentSection, key);
                     result.put(fullKey, value);
-
-                    result.put(key, value);
                 }
             }
         } catch (IOException e) {
@@ -67,17 +65,19 @@ public class IniParser {
             String value = entry.getValue();
 
             int dotIndex = fullKey.lastIndexOf('.');
-            String section = dotIndex > 0 ? fullKey.substring(0, dotIndex) : "";
-            String key = dotIndex > 0 ? fullKey.substring(dotIndex + 1) : fullKey;
+            if (dotIndex <= 0) {
+                continue;
+            }
+
+            String section = fullKey.substring(0, dotIndex);
+            String key = fullKey.substring(dotIndex + 1);
 
             if (!section.equals(currentSection)) {
                 if (!currentSection.isEmpty()) {
                     sb.append('\n');
                 }
                 currentSection = section;
-                if (!currentSection.isEmpty()) {
-                    sb.append('[').append(currentSection).append(']').append('\n');
-                }
+                sb.append('[').append(currentSection).append(']').append('\n');
             }
 
             sb.append(key).append('=').append(value).append('\n');
