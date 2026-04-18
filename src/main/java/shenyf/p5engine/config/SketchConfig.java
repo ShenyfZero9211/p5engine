@@ -38,8 +38,8 @@ public class SketchConfig {
 
     public SketchConfig(PApplet applet) {
         this.applet = applet;
-        String sketchPath = applet.sketchPath();
-        this.configFile = Paths.get(sketchPath, FILE_NAME);
+        String basePath = getBasePath();
+        this.configFile = Paths.get(basePath, FILE_NAME);
         load();
     }
 
@@ -47,6 +47,14 @@ public class SketchConfig {
         this.applet = null;
         this.configFile = Paths.get(configPath);
         load();
+    }
+
+    private String getBasePath() {
+        String sketchPath = applet.sketchPath();
+        if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
+            return sketchPath;
+        }
+        return System.getProperty("user.dir");
     }
 
     private void load() {
@@ -59,14 +67,12 @@ public class SketchConfig {
     }
 
     private String getDefaultSketchName() {
-        if (applet != null) {
-            String sketchPath = applet.sketchPath();
-            if (sketchPath != null) {
-                Path path = Paths.get(sketchPath);
-                String fileName = path.getFileName().toString();
-                int dotIndex = fileName.lastIndexOf('.');
-                return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
-            }
+        String basePath = getBasePath();
+        if (basePath != null) {
+            Path path = Paths.get(basePath);
+            String fileName = path.getFileName().toString();
+            int dotIndex = fileName.lastIndexOf('.');
+            return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
         }
         return "p5engine";
     }
