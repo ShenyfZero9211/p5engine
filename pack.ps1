@@ -12,7 +12,6 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ProcessingExe = "D:\Processing\Processing.exe"
-$JdkBin = "D:\java\jdk-17.0.10+7\bin"
 
 function Get-DirectorySize {
     param([string]$Path)
@@ -74,84 +73,51 @@ Write-Host "Output: $OutputPath"
 Write-Host "Variant: $Variant"
 Write-Host ""
 
-$sizeBefore = Get-DirectorySize $OutputPath
-if ($sizeBefore -gt 0) {
-    Write-Host "[1/8] Removing old output... ($sizeBefore MB)" -ForegroundColor Cyan
-    Remove-Item -Path $OutputPath -Recurse -Force
-}
-
-Write-Host "[2/8] Exporting application..." -ForegroundColor Cyan
-Write-Host "  Command: $ProcessingExe cli --sketch=$SketchPath --output=$OutputPath --variant=$Variant --export" -ForegroundColor Gray
+Write-Host "[1/6] Exporting application..." -ForegroundColor Cyan
 $p = Start-Process -FilePath $ProcessingExe -ArgumentList "cli --sketch=`"$SketchPath`" --output=`"$OutputPath`" --variant=$Variant --export" -NoNewWindow -Wait -PassThru
 
-Write-Host "[3/8] Analyzing dependencies..." -ForegroundColor Cyan
-$coreJar = Join-Path $OutputPath "lib\core-4.5.2.jar"
-if (-not (Test-Path $coreJar)) {
-    $libDir = Join-Path $OutputPath "lib"
-    $coreJar = Get-ChildItem -Path $libDir -Filter "core-*.jar" | Select-Object -First 1 | ForEach-Object { $_.FullName }
-}
-
-if ($coreJar -and (Test-Path $coreJar)) {
-    $depsOutput = & (Join-Path $JdkBin "jdeps") --ignore-missing-deps --print-module-deps $coreJar 2>&1 | Out-String
-    $depsOutput = $depsOutput -replace "`n", "" -replace "`r", ""
-    $depsMatch = [regex]::Match($depsOutput, '([a-z.,]+)')
-    if ($depsMatch.Success) {
-        $deps = $depsMatch.Groups[1].Value
-    } else {
-        $deps = "java.base,java.desktop"
+Write-Host "[2/6] Cleaning up JRE (keeping essential files)..." -ForegroundColor Cyan
+$javaDir = Join-Path $OutputPath "java"
+if (Test-Path $javaDir) {
+    $cleanupItems = @(
+        (Join-Path $javaDir "src.zip"),
+        (Join-Path $javaDir "ct.sym"),
+        (Join-Path $javaDir "jmods")
+    )
+    foreach ($item in $cleanupItems) {
+        if (Test-Path $item) {
+            Remove-Item -Path $item -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  Removed: $item" -ForegroundColor Gray
+        }
     }
-} else {
-    $deps = "java.base,java.desktop"
-}
-Write-Host "  Modules: $deps" -ForegroundColor Gray
 
-Write-Host "[4/8] Generating slim JRE..." -ForegroundColor Cyan
-$javaJmods = Join-Path $OutputPath "java\jmods"
-$tempJre = Join-Path $OutputPath "java_slim"
-
-if (-not (Test-Path $javaJmods)) {
-    Write-Host "[ERROR] jmods directory not found. Cannot create slim JRE." -ForegroundColor Red
-    Write-Host "  Path: $javaJmods" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "  Command: jlink ..." -ForegroundColor Gray
-$jlinkArgs = "--no-header-files --no-man-pages --compress=2 --strip-debug --module-path `"$javaJmods`" --add-modules $deps --output `"$tempJre`""
-$p = Start-Process -FilePath (Join-Path $JdkBin "jlink.exe") -ArgumentList $jlinkArgs -NoNewWindow -Wait -PassThru
-
-if (-not (Test-Path $tempJre)) {
-    Write-Host "[ERROR] jlink failed to create slim JRE." -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "[5/8] Replacing JRE..." -ForegroundColor Cyan
-Remove-Item -Path (Join-Path $OutputPath "java") -Recurse -Force -ErrorAction SilentlyContinue
-Rename-Item -Path $tempJre -NewName "java" -Force
-
-Write-Host "[6/8] Cleaning up unnecessary files..." -ForegroundColor Cyan
-$cleanupItems = @(
-    (Join-Path $OutputPath "java\src.zip"),
-    (Join-Path $OutputPath "java\ct.sym"),
-    (Join-Path $OutputPath "java\legal"),
-    (Join-Path $OutputPath "java\conf"),
-    (Join-Path $OutputPath "java\jmods"),
-    (Join-Path $OutputPath "launch4j-build.xml")
-)
-foreach ($item in $cleanupItems) {
-    if (Test-Path $item) {
-        Remove-Item -Path $item -Recurse -Force -ErrorAction SilentlyContinue
+    $legalDir = Join-Path $javaDir "legal"
+    if (Test-Path $legalDir) {
+        Remove-Item -Path $legalDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  Removed: $legalDir" -ForegroundColor Gray
     }
 }
 
-$nativesToRemove = Get-ChildItem -Path (Join-Path $OutputPath "lib") -Filter "*natives-*" -ErrorAction SilentlyContinue
-foreach ($natives in $nativesToRemove) {
-    if ($natives.Name -notlike "*windows*") {
-        Remove-Item -Path $natives.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "  Removed: $($natives.Name)" -ForegroundColor Gray
+Write-Host "[3/6] Cleaning up non-Windows native libraries..." -ForegroundColor Cyan
+$libDir = Join-Path $OutputPath "lib"
+if (Test-Path $libDir) {
+    $nativesToRemove = Get-ChildItem -Path $libDir -Filter "*natives-*" -ErrorAction SilentlyContinue
+    foreach ($natives in $nativesToRemove) {
+        if ($natives.Name -notlike "*windows*") {
+            Remove-Item -Path $natives.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  Removed: $($natives.Name)" -ForegroundColor Gray
+        }
     }
 }
 
-Write-Host "[7/8] Copying config file..." -ForegroundColor Cyan
+Write-Host "[4/6] Cleaning up build artifacts..." -ForegroundColor Cyan
+$buildXml = Join-Path $OutputPath "launch4j-build.xml"
+if (Test-Path $buildXml) {
+    Remove-Item -Path $buildXml -Force -ErrorAction SilentlyContinue
+    Write-Host "  Removed: launch4j-build.xml" -ForegroundColor Gray
+}
+
+Write-Host "[5/6] Copying config file..." -ForegroundColor Cyan
 $iniSource = Join-Path $SketchPath "p5engine.ini"
 if (Test-Path $iniSource) {
     Copy-Item -Path $iniSource -Destination $OutputPath -Force
@@ -160,18 +126,18 @@ if (Test-Path $iniSource) {
     Write-Host "  Skipped: p5engine.ini not found" -ForegroundColor Gray
 }
 
-Write-Host "[8/8] Complete!" -ForegroundColor Cyan
+Write-Host "[6/6] Complete!" -ForegroundColor Cyan
 
 $sizeAfter = Get-DirectorySize $OutputPath
-$originalJava = 300
-$saved = $originalJava - $sizeAfter
+$originalSize = 300
+$saved = $originalSize - $sizeAfter
 
 Write-Host ""
 Write-Host "=== Result ===" -ForegroundColor Green
 Write-Host "  Output: $OutputPath" -ForegroundColor White
 Write-Host "  Size: $sizeAfter MB" -ForegroundColor White
 if ($saved -gt 0) {
-    Write-Host "  Saved: ~$saved MB (vs original ~$originalJava MB)" -ForegroundColor Green
+    Write-Host "  Saved: ~$saved MB (vs original ~$originalSize MB)" -ForegroundColor Green
 }
 
 $exePath = Get-ChildItem -Path $OutputPath -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
