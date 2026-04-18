@@ -34,14 +34,17 @@ public class SketchConfig {
 
     private final Path configFile;
     private Map<String, String> data;
+    private final PApplet applet;
 
     public SketchConfig(PApplet applet) {
+        this.applet = applet;
         String sketchPath = applet.sketchPath();
         this.configFile = Paths.get(sketchPath, FILE_NAME);
         load();
     }
 
     public SketchConfig(String configPath) {
+        this.applet = null;
         this.configFile = Paths.get(configPath);
         load();
     }
@@ -55,12 +58,27 @@ public class SketchConfig {
         }
     }
 
+    private String getDefaultSketchName() {
+        if (applet != null) {
+            String sketchPath = applet.sketchPath();
+            if (sketchPath != null) {
+                Path path = Paths.get(sketchPath);
+                String fileName = path.getFileName().toString();
+                int dotIndex = fileName.lastIndexOf('.');
+                return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+            }
+        }
+        return "p5engine";
+    }
+
     private void createDefaultConfig() {
-        set(SECTION_P5ENGINE, KEY_NAME, "p5engine");
+        String sketchName = getDefaultSketchName();
+
+        set(SECTION_P5ENGINE, KEY_NAME, sketchName);
         set(SECTION_P5ENGINE, KEY_VERSION, "0.1.0");
         set(SECTION_P5ENGINE, KEY_DEBUG, "true");
 
-        set(SECTION_WINDOW, KEY_TITLE, "p5engine");
+        set(SECTION_WINDOW, KEY_TITLE, sketchName);
 
         set(SECTION_WINDOW_SIZE, KEY_WIDTH, "800");
         set(SECTION_WINDOW_SIZE, KEY_HEIGHT, "600");
