@@ -61,6 +61,10 @@ public class SketchConfig {
     private void load() {
         if (Files.exists(configFile)) {
             data = IniParser.parse(configFile);
+            String savedName = get(SECTION_P5ENGINE, KEY_NAME);
+            if (savedName != null && !savedName.isEmpty()) {
+                set(SECTION_P5ENGINE, KEY_NAME, savedName);
+            }
         } else {
             data = new LinkedHashMap<>();
             createDefaultConfig();
