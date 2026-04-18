@@ -86,7 +86,6 @@ public class P5Engine {
     }
 
     private void syncConfigToFile() {
-        sketchConfig.setWindowTitle(config.getTitle());
         sketchConfig.setWindowSize(config.getWidth(), config.getHeight());
         sketchConfig.setDebugMode(config.isDebugMode());
         sketchConfig.save();
