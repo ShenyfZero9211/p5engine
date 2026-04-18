@@ -1,25 +1,32 @@
-import shenyf.p5engine.config.*;
-import shenyf.p5engine.config.annotation.*;
-import shenyf.p5engine.config.env.EnvironmentDetector;
-import shenyf.p5engine.config.WindowConfigSource;
 import shenyf.p5engine.core.*;
-import shenyf.p5engine.scene.*;
-import shenyf.p5engine.math.*;
+import shenyf.p5engine.config.SketchConfig;
 import processing.core.PSurface;
 import java.awt.Frame;
 
 P5Engine engine;
-WindowConfigSource winConfig;
+SketchConfig sketchConfig;
 
 public void setup() {
     size(800, 600);
 
     engine = P5Engine.create(this);
-
-    winConfig = new WindowConfigSource("window", 10);
+    sketchConfig = engine.getSketchConfig();
 
     println("=== Window Position Test ===");
-    println("Config file: " + winConfig.getConfigFile());
+    println("Config file: " + sketchConfig.getConfigFilePath());
+    println("");
+    println("Current config:");
+    println("  [p5engine] name=" + sketchConfig.get(SketchConfig.SECTION_P5ENGINE, SketchConfig.KEY_NAME));
+    println("  [p5engine] version=" + sketchConfig.get(SketchConfig.SECTION_P5ENGINE, SketchConfig.KEY_VERSION));
+    println("  [p5engine] debug=" + sketchConfig.get(SketchConfig.SECTION_P5ENGINE, SketchConfig.KEY_DEBUG));
+    println("  [window] width=" + sketchConfig.getWindowWidth());
+    println("  [window] height=" + sketchConfig.getWindowHeight());
+    println("  [window] title=" + sketchConfig.getWindowTitle());
+    println("  [cache] memory_mb=" + sketchConfig.getInt(SketchConfig.SECTION_CACHE, SketchConfig.KEY_MEMORY_MB, 0));
+    println("  [cache] enabled=" + sketchConfig.getBoolean(SketchConfig.SECTION_CACHE, SketchConfig.KEY_CACHE_ENABLED, false));
+    println("  [script] lua_path=" + sketchConfig.get(SketchConfig.SECTION_SCRIPT, SketchConfig.KEY_LUA_PATH));
+    println("  [script] hot_reload=" + sketchConfig.getBoolean(SketchConfig.SECTION_SCRIPT, SketchConfig.KEY_HOT_RELOAD, false));
+    println("");
     println("Press S to save current position");
     println("Press L to load saved position");
     println("Press C to center window");
@@ -35,6 +42,13 @@ public void draw() {
     text("Window Position Test", width / 2, 30);
     text("Press S to Save, L to Load, C to Center", width / 2, 60);
     text("FPS: " + (int) engine.getGameTime().getFrameRate(), width / 2, 90);
+
+    int[] pos = sketchConfig.getWindowPosition();
+    if (pos != null) {
+        text("Saved position: x=" + pos[0] + ", y=" + pos[1], width / 2, 120);
+    } else {
+        text("No saved position", width / 2, 120);
+    }
 }
 
 public void keyPressed() {
@@ -53,7 +67,6 @@ private Frame getFrameFromSurface(PSurface surface) {
     Object nativeObj = surface.getNative();
     if (nativeObj == null) return null;
 
-    // SmoothCanvas has getFrame() method
     if (nativeObj.getClass().getSimpleName().contains("SmoothCanvas")) {
         try {
             java.lang.reflect.Method method = nativeObj.getClass().getMethod("getFrame");
@@ -66,7 +79,6 @@ private Frame getFrameFromSurface(PSurface surface) {
         }
     }
 
-    // Fallback: nativeObj itself might be a Frame
     if (nativeObj instanceof Frame) {
         return (Frame) nativeObj;
     }
@@ -83,7 +95,7 @@ private void savePositionNow() {
             java.awt.Point loc = frame.getLocationOnScreen();
             int x = loc.x;
             int y = loc.y;
-            winConfig.savePosition(x, y);
+            sketchConfig.saveWindowPosition(x, y);
             println("Saved: x=" + x + ", y=" + y);
         } else {
             println("Could not get Frame from surface");
@@ -94,7 +106,7 @@ private void savePositionNow() {
 }
 
 private void loadPosition() {
-    int[] pos = winConfig.getSavedPosition();
+    int[] pos = sketchConfig.getWindowPosition();
     if (pos != null) {
         try {
             PSurface surface = getSurface();
@@ -116,7 +128,7 @@ private void centerWindow() {
         PSurface surface = getSurface();
         Frame frame = getFrameFromSurface(surface);
         if (frame != null) {
-            int[] center = WindowConfigSource.getCenterPosition(800, 600);
+            int[] center = SketchConfig.getCenterPosition(800, 600);
             frame.setLocation(center[0], center[1]);
             println("Centered window");
         }

@@ -2,7 +2,7 @@ package shenyf.p5engine.core;
 
 import processing.core.PApplet;
 import processing.core.PSurface;
-import shenyf.p5engine.config.WindowConfigSource;
+import shenyf.p5engine.config.SketchConfig;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
@@ -17,7 +17,7 @@ public class P5Engine {
     private final SceneManager sceneManager;
     private final P5GameTime gameTime;
     private final ProcessingRenderer renderer;
-    private final WindowConfigSource windowConfig;
+    private final SketchConfig sketchConfig;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -33,7 +33,7 @@ public class P5Engine {
         this.sceneManager = new SceneManager();
         this.gameTime = new P5GameTime();
         this.renderer = new ProcessingRenderer(applet, config.getWidth(), config.getHeight());
-        this.windowConfig = new WindowConfigSource("window", 10);
+        this.sketchConfig = new SketchConfig(applet);
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -110,12 +110,12 @@ public class P5Engine {
         try {
             Frame frame = getFrameFromSurface();
             if (frame != null) {
-                int[] pos = windowConfig.getSavedPosition();
+                int[] pos = sketchConfig.getWindowPosition();
                 if (pos != null) {
                     frame.setLocation(pos[0], pos[1]);
                     Logger.info("  Window position restored: " + pos[0] + ", " + pos[1]);
                 } else {
-                    int[] center = WindowConfigSource.getCenterPosition(config.getWidth(), config.getHeight());
+                    int[] center = SketchConfig.getCenterPosition(config.getWidth(), config.getHeight());
                     frame.setLocation(center[0], center[1]);
                     Logger.info("  Window centered on screen");
                 }
@@ -147,7 +147,7 @@ public class P5Engine {
                 java.awt.Point location = frame.getLocationOnScreen();
                 int x = location.x;
                 int y = location.y;
-                windowConfig.savePosition(x, y);
+                sketchConfig.saveWindowPosition(x, y);
             }
         } catch (Exception e) {
             Logger.warn("Could not save window position: " + e.getMessage());
@@ -211,6 +211,10 @@ public class P5Engine {
 
     public P5Config getConfig() {
         return config;
+    }
+
+    public SketchConfig getSketchConfig() {
+        return sketchConfig;
     }
 
     public PApplet getApplet() {
