@@ -72,13 +72,6 @@ public class SketchConfig {
     }
 
     private String getDefaultSketchName() {
-        String basePath = getBasePath();
-        if (basePath != null) {
-            Path path = Paths.get(basePath);
-            String fileName = path.getFileName().toString();
-            int dotIndex = fileName.lastIndexOf('.');
-            return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
-        }
         return "p5engine";
     }
 
