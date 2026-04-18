@@ -1,10 +1,13 @@
 package shenyf.p5engine.core;
 
 import processing.core.PApplet;
+import shenyf.p5engine.config.WindowConfigSource;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.util.Logger;
+import java.awt.Frame;
+import java.awt.Component;
 
 public class P5Engine {
     private static P5Engine instance;
@@ -14,6 +17,7 @@ public class P5Engine {
     private final SceneManager sceneManager;
     private final P5GameTime gameTime;
     private final ProcessingRenderer renderer;
+    private final WindowConfigSource windowConfig;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -28,6 +32,7 @@ public class P5Engine {
         this.sceneManager = new SceneManager();
         this.gameTime = new P5GameTime();
         this.renderer = new ProcessingRenderer(applet, config.getWidth(), config.getHeight());
+        this.windowConfig = new WindowConfigSource("window", 10);
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -71,8 +76,40 @@ public class P5Engine {
         renderer.initialize();
 
         applet.registerMethod("keyEvent", this);
+        applet.registerMethod("dispose", this);
+
+        restoreWindowPosition();
 
         Logger.info("P5Engine initialized successfully");
+    }
+
+    private Frame getFrame() {
+        try {
+            java.lang.reflect.Field frameField = PApplet.class.getDeclaredField("frame");
+            frameField.setAccessible(true);
+            Object frame = frameField.get(applet);
+            if (frame instanceof Frame) {
+                return (Frame) frame;
+            }
+        } catch (Exception e) {
+            // frame not available
+        }
+        return null;
+    }
+
+    private void restoreWindowPosition() {
+        Frame frame = getFrame();
+        if (frame != null) {
+            int[] pos = windowConfig.getSavedPosition();
+            if (pos != null) {
+                frame.setLocation(pos[0], pos[1]);
+                Logger.info("  Window position restored: " + pos[0] + ", " + pos[1]);
+            } else {
+                int[] center = WindowConfigSource.getCenterPosition(config.getWidth(), config.getHeight());
+                frame.setLocation(center[0], center[1]);
+                Logger.info("  Window centered on screen");
+            }
+        }
     }
 
     public void keyEvent(processing.event.KeyEvent event) {
@@ -82,6 +119,21 @@ public class P5Engine {
             keyPressedState = true;
         } else if (event.getAction() == processing.event.KeyEvent.RELEASE) {
             keyPressedState = false;
+        }
+    }
+
+    public void dispose() {
+        saveWindowPosition();
+        destroy();
+    }
+
+    private void saveWindowPosition() {
+        Frame frame = getFrame();
+        if (frame != null) {
+            java.awt.Point location = frame.getLocationOnScreen();
+            int x = location.x;
+            int y = location.y;
+            windowConfig.savePosition(x, y);
         }
     }
 
