@@ -14,6 +14,7 @@ public class SketchConfig {
 
     public static final String SECTION_P5ENGINE = "p5engine";
     public static final String SECTION_WINDOW = "window";
+    public static final String SECTION_WINDOW_SIZE = "window_size";
     public static final String SECTION_CACHE = "cache";
     public static final String SECTION_SCRIPT = "script";
     public static final String SECTION_WINDOW_POSITION = "window_position";
@@ -59,9 +60,10 @@ public class SketchConfig {
         set(SECTION_P5ENGINE, KEY_VERSION, "0.1.0");
         set(SECTION_P5ENGINE, KEY_DEBUG, "true");
 
-        set(SECTION_WINDOW, KEY_WIDTH, "800");
-        set(SECTION_WINDOW, KEY_HEIGHT, "600");
         set(SECTION_WINDOW, KEY_TITLE, "p5engine");
+
+        set(SECTION_WINDOW_SIZE, KEY_WIDTH, "800");
+        set(SECTION_WINDOW_SIZE, KEY_HEIGHT, "600");
 
         set(SECTION_CACHE, KEY_MEMORY_MB, "1024");
         set(SECTION_CACHE, KEY_CACHE_ENABLED, "true");
@@ -143,16 +145,16 @@ public class SketchConfig {
     }
 
     public int getWindowWidth() {
-        return getInt(SECTION_WINDOW, KEY_WIDTH, 800);
+        return getInt(SECTION_WINDOW_SIZE, KEY_WIDTH, 800);
     }
 
     public int getWindowHeight() {
-        return getInt(SECTION_WINDOW, KEY_HEIGHT, 600);
+        return getInt(SECTION_WINDOW_SIZE, KEY_HEIGHT, 600);
     }
 
     public void setWindowSize(int width, int height) {
-        set(SECTION_WINDOW, KEY_WIDTH, width);
-        set(SECTION_WINDOW, KEY_HEIGHT, height);
+        set(SECTION_WINDOW_SIZE, KEY_WIDTH, width);
+        set(SECTION_WINDOW_SIZE, KEY_HEIGHT, height);
         save();
     }
 
