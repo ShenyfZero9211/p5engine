@@ -23,6 +23,12 @@ Thumbs.db
 # Generated config
 p5engine.ini
 
+# Exported applications
+exported/
+
+# Lock files
+.p5engine_*.lock
+
 # Temporary files
 *.tmp
 *.swp
