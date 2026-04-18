@@ -22,6 +22,7 @@ public class SketchConfig {
     public static final String KEY_NAME = "name";
     public static final String KEY_VERSION = "version";
     public static final String KEY_DEBUG = "debug";
+    public static final String KEY_SINGLE_INSTANCE = "single_instance";
     public static final String KEY_WIDTH = "width";
     public static final String KEY_HEIGHT = "height";
     public static final String KEY_TITLE = "title";
@@ -83,6 +84,7 @@ public class SketchConfig {
         set(SECTION_P5ENGINE, KEY_NAME, sketchName);
         set(SECTION_P5ENGINE, KEY_VERSION, "0.1.0");
         set(SECTION_P5ENGINE, KEY_DEBUG, "true");
+        set(SECTION_P5ENGINE, KEY_SINGLE_INSTANCE, "false");
 
         set(SECTION_WINDOW, KEY_TITLE, sketchName);
 
@@ -197,6 +199,15 @@ public class SketchConfig {
 
     public void setDebugMode(boolean debug) {
         set(SECTION_P5ENGINE, KEY_DEBUG, debug);
+        save();
+    }
+
+    public boolean isSingleInstance() {
+        return getBoolean(SECTION_P5ENGINE, KEY_SINGLE_INSTANCE, false);
+    }
+
+    public void setSingleInstance(boolean singleInstance) {
+        set(SECTION_P5ENGINE, KEY_SINGLE_INSTANCE, singleInstance);
         save();
     }
 

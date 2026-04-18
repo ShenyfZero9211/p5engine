@@ -7,7 +7,9 @@ import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.util.Logger;
+import shenyf.p5engine.util.SingleInstanceGuard;
 import java.awt.Frame;
+import javax.swing.JOptionPane;
 
 public class P5Engine {
     private static P5Engine instance;
@@ -18,6 +20,7 @@ public class P5Engine {
     private final P5GameTime gameTime;
     private final ProcessingRenderer renderer;
     private final SketchConfig sketchConfig;
+    private final SingleInstanceGuard singleInstanceGuard;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -30,10 +33,11 @@ public class P5Engine {
     private P5Engine(PApplet applet, P5Config config) {
         this.applet = applet;
         this.config = config;
+        this.sketchConfig = new SketchConfig(applet);
+        this.singleInstanceGuard = new SingleInstanceGuard(sketchConfig.get(SketchConfig.SECTION_P5ENGINE, SketchConfig.KEY_NAME, "p5engine"));
         this.sceneManager = new SceneManager();
         this.gameTime = new P5GameTime();
         this.renderer = new ProcessingRenderer(applet, config.getWidth(), config.getHeight());
-        this.sketchConfig = new SketchConfig(applet);
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -72,6 +76,10 @@ public class P5Engine {
 
         syncConfigToFile();
 
+        if (checkSingleInstance()) {
+            return;
+        }
+
         if (config.isDebugMode()) {
             Logger.setDebugEnabled(true);
             Logger.info("  Debug mode: enabled");
@@ -89,6 +97,25 @@ public class P5Engine {
         sketchConfig.setWindowSize(config.getWidth(), config.getHeight());
         sketchConfig.setDebugMode(config.isDebugMode());
         sketchConfig.save();
+    }
+
+    private boolean checkSingleInstance() {
+        if (!sketchConfig.isSingleInstance()) {
+            return false;
+        }
+
+        if (singleInstanceGuard.isAnotherInstanceRunning()) {
+            JOptionPane.showMessageDialog(
+                null,
+                "Another instance of this application is already running.",
+                "Single Instance Mode",
+                JOptionPane.WARNING_MESSAGE
+            );
+            System.exit(0);
+            return true;
+        }
+
+        return false;
     }
 
     private Frame getFrameFromSurface() {
@@ -200,6 +227,7 @@ public class P5Engine {
     public void destroy() {
         Logger.info("P5Engine shutting down...");
         sceneManager.destroy();
+        singleInstanceGuard.releaseLock();
         isRunning = false;
         instance = null;
         Logger.info("P5Engine destroyed");
