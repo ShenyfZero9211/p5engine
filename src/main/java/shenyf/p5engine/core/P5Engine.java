@@ -80,6 +80,12 @@ public class P5Engine {
             return;
         }
 
+        String detectedTitle = detectWindowTitle();
+        if (detectedTitle != null && !detectedTitle.isEmpty()) {
+            sketchConfig.saveWindowTitle(detectedTitle);
+            Logger.info("  Window title: " + detectedTitle);
+        }
+
         if (config.isDebugMode()) {
             Logger.setDebugEnabled(true);
             Logger.info("  Debug mode: enabled");
@@ -116,6 +122,25 @@ public class P5Engine {
         }
 
         return false;
+    }
+
+    private String detectWindowTitle() {
+        try {
+            PSurface surface = applet.getSurface();
+            Object nativeObj = surface.getNative();
+            if (nativeObj == null) return null;
+
+            if (nativeObj.getClass().getSimpleName().contains("SmoothCanvas")) {
+                java.lang.reflect.Method method = nativeObj.getClass().getMethod("getFrame");
+                Object frame = method.invoke(nativeObj);
+                if (frame instanceof javax.swing.JFrame) {
+                    return ((javax.swing.JFrame) frame).getTitle();
+                }
+            }
+        } catch (Exception e) {
+            Logger.debug("detectWindowTitle failed: " + e.getMessage());
+        }
+        return null;
     }
 
     private Frame getFrameFromSurface() {

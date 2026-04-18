@@ -1,6 +1,7 @@
 package shenyf.p5engine.config;
 
 import processing.core.PApplet;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,6 +73,27 @@ public class SketchConfig {
     }
 
     private String getDefaultSketchName() {
+        String sketchPath = applet.sketchPath();
+        if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
+            Path path = Paths.get(sketchPath);
+            String fileName = path.getFileName().toString();
+            int dotIndex = fileName.lastIndexOf('.');
+            return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+        }
+
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null) {
+            File dir = new File(userDir);
+            File[] exeFiles = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".exe"));
+            if (exeFiles != null && exeFiles.length > 0) {
+                String exeName = exeFiles[0].getName();
+                int dotIndex = exeName.lastIndexOf('.');
+                return dotIndex > 0 ? exeName.substring(0, dotIndex) : exeName;
+            }
+            Path path = Paths.get(userDir);
+            return path.getFileName().toString();
+        }
+
         return "p5engine";
     }
 
@@ -182,10 +204,10 @@ public class SketchConfig {
     }
 
     public String getWindowTitle() {
-        return get(SECTION_WINDOW, KEY_TITLE, "p5engine");
+        return get(SECTION_WINDOW, KEY_TITLE);
     }
 
-    public void setWindowTitle(String title) {
+    public void saveWindowTitle(String title) {
         set(SECTION_WINDOW, KEY_TITLE, title);
         save();
     }
