@@ -20,6 +20,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Generated config
+p5engine.ini
+
 # Temporary files
 *.tmp
 *.swp
