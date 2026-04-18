@@ -1,13 +1,13 @@
 package shenyf.p5engine.core;
 
 import processing.core.PApplet;
+import processing.core.PSurface;
 import shenyf.p5engine.config.WindowConfigSource;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.util.Logger;
 import java.awt.Frame;
-import java.awt.Component;
 
 public class P5Engine {
     private static P5Engine instance;
@@ -21,6 +21,7 @@ public class P5Engine {
 
     private boolean isRunning;
     private long lastFrameTime;
+    private boolean windowPositionRestored;
 
     private boolean keyPressedState;
     private char keyChar;
@@ -64,6 +65,7 @@ public class P5Engine {
 
     private void init() {
         isRunning = false;
+        windowPositionRestored = false;
         Logger.info("P5Engine initializing...");
         Logger.info("  Version: " + shenyf.p5engine.Constants.ENGINE_VERSION);
         Logger.info("  Window: " + config.getWidth() + "x" + config.getHeight());
@@ -78,37 +80,48 @@ public class P5Engine {
         applet.registerMethod("keyEvent", this);
         applet.registerMethod("dispose", this);
 
-        restoreWindowPosition();
-
         Logger.info("P5Engine initialized successfully");
     }
 
-    private Frame getFrame() {
+    private Frame getFrameFromSurface() {
         try {
-            java.lang.reflect.Field frameField = PApplet.class.getDeclaredField("frame");
-            frameField.setAccessible(true);
-            Object frame = frameField.get(applet);
-            if (frame instanceof Frame) {
-                return (Frame) frame;
+            PSurface surface = applet.getSurface();
+            Object nativeObj = surface.getNative();
+            if (nativeObj == null) return null;
+
+            if (nativeObj.getClass().getSimpleName().contains("SmoothCanvas")) {
+                java.lang.reflect.Method method = nativeObj.getClass().getMethod("getFrame");
+                Object frame = method.invoke(nativeObj);
+                if (frame instanceof Frame) {
+                    return (Frame) frame;
+                }
+            }
+
+            if (nativeObj instanceof Frame) {
+                return (Frame) nativeObj;
             }
         } catch (Exception e) {
-            // frame not available
+            Logger.debug("getFrame failed: " + e.getMessage());
         }
         return null;
     }
 
     private void restoreWindowPosition() {
-        Frame frame = getFrame();
-        if (frame != null) {
-            int[] pos = windowConfig.getSavedPosition();
-            if (pos != null) {
-                frame.setLocation(pos[0], pos[1]);
-                Logger.info("  Window position restored: " + pos[0] + ", " + pos[1]);
-            } else {
-                int[] center = WindowConfigSource.getCenterPosition(config.getWidth(), config.getHeight());
-                frame.setLocation(center[0], center[1]);
-                Logger.info("  Window centered on screen");
+        try {
+            Frame frame = getFrameFromSurface();
+            if (frame != null) {
+                int[] pos = windowConfig.getSavedPosition();
+                if (pos != null) {
+                    frame.setLocation(pos[0], pos[1]);
+                    Logger.info("  Window position restored: " + pos[0] + ", " + pos[1]);
+                } else {
+                    int[] center = WindowConfigSource.getCenterPosition(config.getWidth(), config.getHeight());
+                    frame.setLocation(center[0], center[1]);
+                    Logger.info("  Window centered on screen");
+                }
             }
+        } catch (Exception e) {
+            Logger.warn("Could not restore window position: " + e.getMessage());
         }
     }
 
@@ -128,12 +141,16 @@ public class P5Engine {
     }
 
     private void saveWindowPosition() {
-        Frame frame = getFrame();
-        if (frame != null) {
-            java.awt.Point location = frame.getLocationOnScreen();
-            int x = location.x;
-            int y = location.y;
-            windowConfig.savePosition(x, y);
+        try {
+            Frame frame = getFrameFromSurface();
+            if (frame != null) {
+                java.awt.Point location = frame.getLocationOnScreen();
+                int x = location.x;
+                int y = location.y;
+                windowConfig.savePosition(x, y);
+            }
+        } catch (Exception e) {
+            Logger.warn("Could not save window position: " + e.getMessage());
         }
     }
 
@@ -141,6 +158,11 @@ public class P5Engine {
         if (!isRunning) {
             isRunning = true;
             lastFrameTime = System.nanoTime();
+        }
+
+        if (!windowPositionRestored) {
+            restoreWindowPosition();
+            windowPositionRestored = true;
         }
 
         long currentTime = System.nanoTime();
