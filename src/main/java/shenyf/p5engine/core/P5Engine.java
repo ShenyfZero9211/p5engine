@@ -70,6 +70,8 @@ public class P5Engine {
         Logger.info("  Version: " + shenyf.p5engine.Constants.ENGINE_VERSION);
         Logger.info("  Window: " + config.getWidth() + "x" + config.getHeight());
 
+        syncConfigToFile();
+
         if (config.isDebugMode()) {
             Logger.setDebugEnabled(true);
             Logger.info("  Debug mode: enabled");
@@ -81,6 +83,13 @@ public class P5Engine {
         applet.registerMethod("dispose", this);
 
         Logger.info("P5Engine initialized successfully");
+    }
+
+    private void syncConfigToFile() {
+        sketchConfig.setWindowTitle(config.getTitle());
+        sketchConfig.setWindowSize(config.getWidth(), config.getHeight());
+        sketchConfig.setDebugMode(config.isDebugMode());
+        sketchConfig.save();
     }
 
     private Frame getFrameFromSurface() {
