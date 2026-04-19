@@ -1,4 +1,4 @@
-# Compiled class files
+﻿# Compiled class files
 *.class
 
 # Build output & local tooling cache
@@ -37,3 +37,6 @@ examples/ImageLab_build/
 *.swp
 __pycache__/
 *.pyc
+
+# Processing CLI --build default output under sketch (regenerated)
+examples/*/_build_cli/

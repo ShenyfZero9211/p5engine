@@ -3,6 +3,7 @@ import shenyf.p5engine.ui.*;
 
 P5Engine engine;
 UIManager ui;
+SketchUiCoordinator sketchUi;
 ProgressBar progDemo;
 
 void settings() {
@@ -12,9 +13,12 @@ void settings() {
 
 void setup() {
   engine = P5Engine.create(this);
+  engine.setApplicationTitle("UIDemo");
+  engine.setSketchVersion("0.0.1");
 
   ui = new UIManager(this);
   ui.attach();
+  sketchUi = new SketchUiCoordinator(this, ui);
 
   buildUi();
 }
@@ -220,6 +224,7 @@ void draw() {
   poolBtn.setAction(() -> println("[UIDemo] pooled button (beginFrame/endFrame)"));
   ui.endFrame();
 
-  ui.update(engine.getGameTime().getDeltaTime());
-  ui.render();
+  float dt = engine.getGameTime().getDeltaTime();
+  sketchUi.updateFrame(dt);
+  sketchUi.renderFrame();
 }

@@ -19,6 +19,7 @@ final int UNDO_MAX = 24;
 
 P5Engine engine;
 UIManager ui;
+SketchUiCoordinator sketchUi;
 
 PImage baseImage;
 PGraphics editLayer;
@@ -58,11 +59,22 @@ void settings() {
 }
 
 void setup() {
-  surface.setTitle("ImageLab (p5engine)");
-
   engine = P5Engine.create(this);
+  engine.setApplicationTitle("ImageLab");
+  engine.setSketchVersion("0.0.1");
   ui = new UIManager(this);
   ui.attach();
+  sketchUi = new SketchUiCoordinator(this, ui);
+  sketchUi.setPreRenderHook(() -> {
+    topChrome.setBounds(0, 0, width, TOP_CHROME_H);
+    if (westStrip != null) {
+      westStrip.setBounds(0, TOP_CHROME_H, WEST_W, height - TOP_CHROME_H);
+    }
+    topChrome.layout(this);
+    if (westStrip != null) {
+      westStrip.layout(this);
+    }
+  });
 
   initPpak();
   buildUi();
@@ -229,16 +241,8 @@ void draw() {
   drawImageStack(cx, cy);
 
   engine.update();
-  ui.update(engine.getGameTime().getDeltaTime());
-  topChrome.setBounds(0, 0, width, TOP_CHROME_H);
-  if (westStrip != null) {
-    westStrip.setBounds(0, TOP_CHROME_H, WEST_W, height - TOP_CHROME_H);
-  }
-  topChrome.layout(this);
-  if (westStrip != null) {
-    westStrip.layout(this);
-  }
-  ui.render();
+  sketchUi.updateFrame(engine.getGameTime().getDeltaTime());
+  sketchUi.renderFrame();
 }
 
 void readZoomFromSlider() {

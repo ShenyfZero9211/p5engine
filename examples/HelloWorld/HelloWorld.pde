@@ -10,6 +10,8 @@ public void setup() {
     size(800, 600);
 
     engine = P5Engine.create(this);
+    engine.setApplicationTitle("HelloWorld");
+    engine.setSketchVersion("0.0.1");
 
     player = GameObject.create("Player");
     player.getTransform().setPosition(width / 2, height / 2);

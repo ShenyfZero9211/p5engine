@@ -6,6 +6,7 @@ import shenyf.p5engine.config.SketchConfig;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
+import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
 import shenyf.p5engine.util.SingleInstanceGuard;
 import java.awt.Frame;
@@ -29,6 +30,12 @@ public class P5Engine {
     private boolean keyPressedState;
     private char keyChar;
     private int keyCode;
+
+    /** Human-readable window title prefix (no FPS / version suffix). */
+    private String applicationTitleBase;
+    /** Sketch release string shown as {@code | v …}; null omits that segment. */
+    private String sketchVersion;
+    private String lastComposedWindowTitle;
 
     private P5Engine(PApplet applet, P5Config config) {
         this.applet = applet;
@@ -117,8 +124,11 @@ public class P5Engine {
 
         String detectedTitle = detectWindowTitle();
         if (detectedTitle != null && !detectedTitle.isEmpty()) {
-            sketchConfig.saveWindowTitle(detectedTitle);
-            Logger.info("  Window title: " + detectedTitle);
+            applicationTitleBase = normalizeTitleBase(detectedTitle);
+            if (applicationTitleBase != null) {
+                sketchConfig.saveWindowTitle(applicationTitleBase);
+                Logger.info("  Window title: " + applicationTitleBase);
+            }
         }
 
         if (config.isDebugMode()) {
@@ -275,6 +285,94 @@ public class P5Engine {
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
             activeScene.update(gameTime.getDeltaTime());
+        }
+
+        refreshNativeWindowTitle();
+    }
+
+    /**
+     * Sets the static part of the native window title (before {@code | v … | fps … | p5engine v …}).
+     * Persists to sketch config as the window title (without dynamic suffix).
+     */
+    public void setApplicationTitle(String base) {
+        applicationTitleBase = normalizeTitleBase(base);
+        if (applicationTitleBase != null && !applicationTitleBase.isEmpty()) {
+            sketchConfig.saveWindowTitle(applicationTitleBase);
+        }
+    }
+
+    /**
+     * Sketch version shown in the title as {@code | v {version}}; pass {@code null} or blank to omit.
+     */
+    public void setSketchVersion(String version) {
+        if (version == null) {
+            this.sketchVersion = null;
+            return;
+        }
+        String t = version.trim();
+        this.sketchVersion = t.isEmpty() ? null : t;
+    }
+
+    private static String normalizeTitleBase(String title) {
+        if (title == null) {
+            return null;
+        }
+        String s = title.trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        String lower = s.toLowerCase();
+        String suffix = " (p5engine)";
+        if (lower.endsWith(suffix)) {
+            s = s.substring(0, s.length() - suffix.length()).trim();
+        }
+        return s.isEmpty() ? null : s;
+    }
+
+    private String resolveApplicationTitleBase() {
+        if (applicationTitleBase != null && !applicationTitleBase.isEmpty()) {
+            return applicationTitleBase;
+        }
+        String fromConfig = sketchConfig.getWindowTitle();
+        if (fromConfig != null && !fromConfig.trim().isEmpty()) {
+            String n = normalizeTitleBase(fromConfig);
+            if (n != null) {
+                return n;
+            }
+        }
+        return applet.getClass().getSimpleName();
+    }
+
+    private String composeWindowTitle() {
+        String base = resolveApplicationTitleBase();
+        StringBuilder sb = new StringBuilder(base);
+        if (sketchVersion != null && !sketchVersion.isEmpty()) {
+            sb.append(" | v ").append(sketchVersion);
+        }
+        int fps = Math.round(gameTime.getFrameRate());
+        sb.append(" | fps - ").append(fps);
+        sb.append(" | p5engine v ").append(Constants.ENGINE_VERSION);
+        return sb.toString();
+    }
+
+    private void refreshNativeWindowTitle() {
+        try {
+            String composed = composeWindowTitle();
+            if (composed.equals(lastComposedWindowTitle)) {
+                return;
+            }
+            lastComposedWindowTitle = composed;
+            PSurface surface = applet.getSurface();
+            if (surface != null) {
+                surface.setTitle(composed);
+                return;
+            }
+            Frame frame = getFrameFromSurface();
+            if (frame != null) {
+                frame.setTitle(composed);
+            }
+        } catch (Exception e) {
+            Logger.debug("refreshNativeWindowTitle failed: " + e.getMessage());
         }
     }
 

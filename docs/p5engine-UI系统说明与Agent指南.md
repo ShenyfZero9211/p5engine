@@ -145,6 +145,12 @@ draw:   background(...);
 
 - 若同时使用 **`P5Engine`**：在 **`settings()`** 里 **`size(...)` 之后** 调用 **`P5Engine.applyRecommendedPixelDensity(this)`**（§3.7），再于 `setup()` 中 `P5Engine.create(this)`。
 
+### 5.1.1 `UIManager.setUiFont`（P2D 与中文等）
+
+- 在 **`P2D`** 渲染器下，若 `Theme` 实现里只调用 `textSize`、未设置 `textFont`，Processing 默认位图字体往往 **不含 CJK**，`Button` / `Label` 等可能出现 **只见边框不见字**。
+- 在 `setup()` 中创建矢量字体并交给管理器即可，例如：`PFont f = createFont("Microsoft YaHei UI", 18, true); ui.setUiFont(f);`
+- **`UIManager.render()`** 会在根面板 `paint` 之前 **`pushStyle`**，若 `setUiFont` 非空则 **`textFont(uiFont)`**，绘制结束后 **`popStyle`**，与旧行为兼容（未设置时等价于原先直接 `root.paint`）。
+
 ### 5.2 在 sketch 中修改树之后
 
 - 调用 **`someContainer.invalidateLayout()`**（勿在 sketch 中调用 `protected` 方法）。

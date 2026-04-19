@@ -10,6 +10,8 @@ public void setup() {
     size(800, 600);
 
     engine = P5Engine.create(this);
+    engine.setApplicationTitle("SingleInstanceTest");
+    engine.setSketchVersion("0.0.1");
     sketchConfig = engine.getSketchConfig();
 
     println("=== Single Instance Test ===");

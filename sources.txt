@@ -56,6 +56,7 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\ProgressBar.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\RadioButton.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\ScrollBar.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\ScrollPane.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\SketchUiCoordinator.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Slider.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\TabPane.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\TextInput.java

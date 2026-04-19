@@ -1,6 +1,7 @@
 package shenyf.p5engine.ui;
 
 import processing.core.PApplet;
+import processing.core.PFont;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
 
@@ -27,6 +28,8 @@ public final class UIManager {
     private final PApplet applet;
     private final Panel root;
     private Theme theme = new DefaultTheme();
+    /** When non-null, applied at the start of each {@link #render()} (after {@code pushStyle}) for P2D/CJK-safe text. */
+    private PFont uiFont;
     private final FocusManager focusManager = new FocusManager();
     private final DragManager dragManager = new DragManager();
     private final Map<String, UIComponent> pool = new HashMap<>();
@@ -184,6 +187,18 @@ public final class UIManager {
         this.theme = theme != null ? theme : new DefaultTheme();
     }
 
+    /**
+     * Sets a font applied around the UI paint pass. Use with {@code createFont(...)} on the sketch
+     * so themes that only set {@code textSize} still render CJK under {@code P2D}. Pass {@code null} to disable.
+     */
+    public void setUiFont(PFont font) {
+        this.uiFont = font;
+    }
+
+    public PFont getUiFont() {
+        return uiFont;
+    }
+
     public Panel getRoot() {
         return root;
     }
@@ -199,9 +214,14 @@ public final class UIManager {
 
     public void render() {
         paintingUi = this;
+        applet.pushStyle();
         try {
+            if (uiFont != null) {
+                applet.textFont(uiFont);
+            }
             root.paint(applet, theme);
         } finally {
+            applet.popStyle();
             paintingUi = null;
         }
     }

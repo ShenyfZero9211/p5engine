@@ -11,6 +11,8 @@ public void setup() {
     size(800, 600);
 
     engine = P5Engine.create(this);
+    engine.setApplicationTitle("ConfigTest");
+    engine.setSketchVersion("0.0.1");
 
     ConfigManager cm = ConfigManager.getInstance();
 

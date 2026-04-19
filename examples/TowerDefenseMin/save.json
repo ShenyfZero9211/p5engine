@@ -1,0 +1,17 @@
+{
+  "lostOrbs": 0,
+  "toSpawn": 6,
+  "interWaveDelay": -0.0012712236493825912,
+  "baseOrbs": 3,
+  "version": 1,
+  "wave": 2,
+  "towers": [],
+  "spawnCooldown": 0.3332921266555786,
+  "money": 420,
+  "allWavesSpawned": 0,
+  "betweenWaves": 0,
+  "targetFps": 60,
+  "sliderEnemyMult": 0.5,
+  "matchElapsed": 10.204736709594727,
+  "sliderTargetFps": 0.3333333432674408
+}
