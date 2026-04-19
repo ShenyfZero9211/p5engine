@@ -34,7 +34,9 @@
 3. **管理器**：`FocusManager`、`DragManager`、`UIManager`（注册 `mouseEvent` / `keyEvent`，驱动布局脏检测与池化帧）。
 4. **容器**：`Panel`、`Frame`、`Window`、`ScrollPane`、`TabPane`。
 5. **控件**：交互类与展示类；其中 `List` 为控件类名（与 `java.util.List` 区分，代码中集合类型多写全限定名或 `ArrayList`）。
-6. **示例**：`examples/UIDemo/UIDemo.pde` 覆盖主要控件与布局；后续迭代增加第二窗口、布局 Tab、池化按钮等。
+6. **菜单条**：`MenuBar` / `Menu` / `MenuPopup`（单下拉、单开菜单），见 [3.5 MenuBar 与 MenuPopup](#35-menubar-与-menupopup)。
+7. **HiDPI**：`P5Engine.applyRecommendedPixelDensity(this)` 仅在 `settings()`、`size` 之后，见 [3.7 HiDPI 与像素密度](#37-hidpi-与像素密度文字--细线清晰度)。
+8. **示例**：`examples/UIDemo/UIDemo.pde` 覆盖主要控件与布局；后续迭代增加第二窗口、布局 Tab、池化按钮等。
 
 ### 2.3 迭代中修复的典型问题
 
@@ -74,10 +76,34 @@
 - **Window** 标题栏命中 + 左键拖拽走 `DragManager`。
 - **ScrollPane / List** 可消费滚轮事件。
 
-### 3.5 绘制与焦点高亮
+**与 `P5Engine` 的键盘竞争**：`P5Engine` 与 `UIManager` 都会在 `PApplet` 上注册 `keyEvent`，引擎层尚未规定统一消费顺序。工具类 sketch（如画布快捷键 + `TextInput`）需在 sketch 层约定策略；示例与说明见 [`docs/ImageLab-README.md`](ImageLab-README.md) 与 `examples/ImageLab/DEFECTS.md`（D-UI-001）。
+
+### 3.5 MenuBar 与 MenuPopup
+
+- **`MenuBar`**：横向一排 `Menu`；内部共享一个 **`MenuPopup`**（高 `zOrder`），任意时刻最多展开一个菜单。`addMenu(String title)` 返回 `Menu`，链式 `menu.addItem("Label", runnable)` 或 `addItem(..., false)` 禁用项。
+- **`UIManager.menuBar(id)`**：与 `button`/`panel` 相同池化语义；也可在 sketch 中 `new MenuBar(id)` 后手动 `parent.add(menuBar)`。
+- **主题**：`Theme` 提供 `default` 的 `drawMenuTitle` / `drawMenuPopupBackground` / `drawMenuItem`（委托 `drawButton`/`drawPanel`）；`DefaultTheme` 可覆盖以微调菜单顶钮「打开」态等。
+- **布局**：`MenuBar` 在 `layout` 阶段根据当前打开菜单的标题按钮 `getAbsoluteX/Y` 放置 `MenuPopup`，并对右、下边界用 `PApplet.width/height` 做简单夹紧。根布局为 `null` 时，请在本帧已对 `MenuBar` 调用 `setBounds` 之后再进入 `UIManager.update`（与 `examples/ImageLab/ImageLab.pde` 一致），否则绝对坐标不准。
+- **与同级工具条的叠绘**：下拉画在菜单栏子树里，会伸到父容器内其它兄弟区域（例如 `BorderLayout` 里 NORTH 菜单 + CENTER 工具条）。兄弟间 `zOrder` 相同时后添加的子控件后绘制，会盖住弹出层。**首次打开**菜单时 `MenuBar` 会把自身 `zOrder` 提到高于当前父节点下所有兄弟，**关闭弹出**后恢复原 `zOrder`（绘制与 `hitTest` 一致）。
+- **命中**：下拉在几何上常超出 `MenuBar` 自身高度（面板只包住标题行）。`MenuBar` 对可见的 `MenuPopup` **先于**本栏 `containsPoint` 做 `hitTest`；否则点击会落到下层兄弟（如第二行工具条），项上的 `Runnable` 不会执行。
+- **在 sketch 中关闭菜单**：`MenuBar.closePopupsIfClickOutside(mx, my)` 在点击落在弹出层与所有菜单标题之外时关闭并返回 `true`；典型用法是在 `mousePressed` 开头调用，若返回 `true` 则 `return` 以避免同帧画布逻辑与菜单竞争。
+- **与侧栏叠绘**：若根下既有全宽 `topChrome` 又有左侧 `west` 条，且下拉会延伸到两者重叠的竖条区域，请为 **`topChrome` 设置高于 `westStrip` 的 `zOrder`**，避免侧栏盖住下拉（见 ImageLab）。
+
+### 3.6 绘制与焦点高亮
 
 - `UIManager.render()` 设置静态绘制上下文，供 `TextInput`、`List`、`TabPane` 等通过 **`UIManager.isPaintingContext(component)`** 判断是否「当前键盘焦点在此控件」，以绘制高亮边框或插入符。
 - 主题方法接收几何与状态参数，避免 `Theme` 与具体控件类型强耦合。
+
+### 3.7 HiDPI 与像素密度（文字 / 细线清晰度）
+
+在 **125%/150% Windows 缩放** 或 **macOS Retina** 上，若未匹配物理像素，整帧（含 UI 文字与 1px 边框）可能被系统放大而显得发糊。
+
+- **做法**：在 sketch 的 **`settings()`** 里、**`size(...)` / `fullScreen(...)` 之后** 调用 **`P5Engine.applyRecommendedPixelDensity(this)`**（等价于 `pixelDensity(max(displayDensity(), 1))`）。**不要**放在 `setup()` 或 `P5Engine.create(this)` 之后——Processing 要求此时机，晚调常无效。
+- **仍糊（尤其 Windows 125%/150%）**：可先试 **`size(..., P2D)`** 与在 **`settings()`** 里 **`smooth(...)`**（勿把 **`smooth()`** 放在 **`setup()`**，否则预处理器会再生成一个 **`settings()`** 导致重复方法错误）。**`pixelDensity` 不得超过 `displayDensity()`**：若系统报 **`pixelDensity(2) is not available for this display`**，说明当前显示器/驱动只接受密度 1，勿再强制 2（会缩小窗口）。两参数 **`applyRecommendedPixelDensity(this, n)`** 在 **`n > displayDensity()`** 时会退回单参数行为并打 **`WARN`**。
+- **坐标**：`width` / `height` 与 `mouseX` / `mouseY`、`UIManager` 的 `hitTest` 仍按 **逻辑像素** 工作；缓冲区分辨率由 `pixelWidth` / `pixelHeight` 体现。可在 `setup()` 里 **`println(pixelWidth, width)`** 自查：`pixelWidth` 应约为 **`width * pixelDensity`**。
+- **代价**：帧缓冲约为 `pixelDensity²` 倍内存；超大 `size()` 时自行权衡。
+- **多屏**：`displayDensity()` 与窗口所在显示器可能不完全一致，属 Processing/OS 行为。
+- **渲染器**：主画布用 **`P2D`/`P3D`** 时文字/线框常比默认 **JAVA2D** 更利落，但与显卡驱动相关；`smooth()` 可在 `setup()` 中调节。离屏 `PGraphics` 仍可单独选 `JAVA2D`（见 ImageLab 编辑层）。
 
 ---
 
@@ -97,10 +123,12 @@
 | | `ScrollPane` | 视口 + 竖条滚动 + 裁剪 |
 | | `TabPane` | 页签头 + 单页可见 |
 | 交互控件 | `Button`、`Checkbox`、`RadioButton`、`Slider`、`ScrollBar`、`TextInput`、`List` | 各自 `onEvent`/`update` |
+| | `MenuBar`、`Menu`（+ 内部 `MenuPopup`） | 顶栏菜单与单例下拉 |
 | 展示 | `Label`、`Image`、`ProgressBar` | 轻量绘制 |
 | 管理 | `UIManager` | 根面板、主题、焦点、拖拽、池、Processing 事件桥 |
 | | `FocusManager`、`DragManager` | 焦点链与标题栏拖拽位移 |
 | 主题 | `Theme`、`DefaultTheme` | 所有控件的默认外观 |
+| 核心（非 UI 包） | `P5Engine` | `create` / 时间 / 渲染；HiDPI 用 `applyRecommendedPixelDensity`，见 §3.7 |
 
 ---
 
@@ -114,6 +142,8 @@ draw:   background(...);
         ui.update(deltaTime);   // 例如 engine.getGameTime().getDeltaTime()
         ui.render();
 ```
+
+- 若同时使用 **`P5Engine`**：在 **`settings()`** 里 **`size(...)` 之后** 调用 **`P5Engine.applyRecommendedPixelDensity(this)`**（§3.7），再于 `setup()` 中 `P5Engine.create(this)`。
 
 ### 5.2 在 sketch 中修改树之后
 

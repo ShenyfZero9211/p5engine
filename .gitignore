@@ -26,6 +26,9 @@ p5engine.ini
 # Exported applications
 exported/
 
+# Processing CLI --output build folder (regenerated)
+examples/ImageLab_build/
+
 # Lock files
 .p5engine_*.lock
 

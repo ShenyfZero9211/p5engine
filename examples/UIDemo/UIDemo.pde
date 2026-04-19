@@ -5,9 +5,12 @@ P5Engine engine;
 UIManager ui;
 ProgressBar progDemo;
 
-void setup() {
+void settings() {
   size(920, 640);
+  P5Engine.applyRecommendedPixelDensity(this);
+}
 
+void setup() {
   engine = P5Engine.create(this);
 
   ui = new UIManager(this);

@@ -72,4 +72,12 @@ public class ProcessingRenderer implements IRenderer {
     public PApplet getApplet() {
         return applet;
     }
+
+    public void syncSizeFromApplet() {
+        if (applet == null) {
+            return;
+        }
+        this.width = applet.width;
+        this.height = applet.height;
+    }
 }

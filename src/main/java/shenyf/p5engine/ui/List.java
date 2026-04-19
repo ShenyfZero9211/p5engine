@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class List extends UIComponent {
 
-    private static final float ROW_H = 22;
+    private static final float ROW_H = 26;
 
     private final ArrayList<String> items = new ArrayList<>();
     private int selectedIndex = -1;

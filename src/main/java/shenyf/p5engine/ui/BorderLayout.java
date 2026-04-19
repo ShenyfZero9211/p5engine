@@ -22,6 +22,14 @@ public final class BorderLayout implements LayoutManager {
         this(4, 4);
     }
 
+    public int getHgap() {
+        return hgap;
+    }
+
+    public int getVgap() {
+        return vgap;
+    }
+
     @Override
     public void layout(Container parent, PApplet applet) {
         float cw = parent.getContentWidth();

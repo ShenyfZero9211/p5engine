@@ -57,6 +57,12 @@ if (-not $NoCopy) {
     Copy-Item -Path $outJar -Destination $processingJar -Force
     Write-Host "[compile-jar] replaced Processing library jar -> $processingJar" -ForegroundColor Green
     Write-Host "[compile-jar] 已用新 jar 覆盖 Processing 库: $processingJar" -ForegroundColor Green
+    $props = Join-Path $RepoRoot "library.properties"
+    $libRoot = Split-Path $ProcessingLibDest -Parent
+    if (Test-Path $props) {
+        Copy-Item -Path $props -Destination (Join-Path $libRoot "library.properties") -Force
+        Write-Host "[compile-jar] copied library.properties -> $(Join-Path $libRoot 'library.properties')" -ForegroundColor Green
+    }
 } else {
     Write-Host "[compile-jar] skipped Processing library replace (-NoCopy); repo jar only: $outJar" -ForegroundColor Yellow
 }

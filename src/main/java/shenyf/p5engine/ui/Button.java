@@ -6,8 +6,8 @@ public class Button extends UIComponent {
 
     private String label = "";
     private Runnable action;
-    private boolean hover;
-    private boolean pressedVisual;
+    protected boolean hover;
+    protected boolean pressedVisual;
 
     public Button(String id) {
         super(id);

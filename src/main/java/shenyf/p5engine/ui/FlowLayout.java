@@ -2,6 +2,8 @@ package shenyf.p5engine.ui;
 
 import processing.core.PApplet;
 
+import java.util.ArrayList;
+
 public final class FlowLayout implements LayoutManager {
 
     private final int hgap;
@@ -18,12 +20,25 @@ public final class FlowLayout implements LayoutManager {
         this(6, 6, true);
     }
 
+    public int getHgap() {
+        return hgap;
+    }
+
+    public int getVgap() {
+        return vgap;
+    }
+
+    public boolean isWrap() {
+        return wrap;
+    }
+
     @Override
     public void layout(Container parent, PApplet applet) {
         float maxW = parent.getContentWidth();
         float x = 0;
         float y = 0;
         float rowH = 0;
+        ArrayList<UIComponent> row = wrap ? null : new ArrayList<>();
         for (UIComponent c : parent.getChildren()) {
             if (!c.isVisible()) continue;
             c.measure(applet);
@@ -39,8 +54,20 @@ public final class FlowLayout implements LayoutManager {
             }
             c.setPosition(x, y);
             c.setSize(prefW, prefH);
+            if (row != null) {
+                row.add(c);
+            }
             x += prefW;
             rowH = Math.max(rowH, prefH);
+        }
+        if (!wrap && row != null && rowH > 0) {
+            float contentH = parent.getContentHeight();
+            if (contentH > rowH + 0.5f) {
+                float dy = (contentH - rowH) * 0.5f;
+                for (UIComponent c : row) {
+                    c.setPosition(c.getX(), c.getY() + dy);
+                }
+            }
         }
     }
 }

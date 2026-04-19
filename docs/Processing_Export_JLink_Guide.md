@@ -18,12 +18,11 @@ The version number for the ���p5engine��� library is not a number.
 Please contact the library author to fix it according to guidelines.
 ```
 
-### 原因
-`library.properties` 的 `version` 字段为 `0.1.0-M1`，Processing 无法解析非纯数字版本号。
+### 原因（历史）
+Processing 将 `library.properties` 的 **`version`** 按**整数**解析；曾使用 `0.1.0` 或带后缀的 semver 会触发 “not a number” 警告。
 
-### 解决方案
-- 降低 `p5engine` 库版本号为纯数字（如 `1`）
-- 或忽略该警告，不影响正常导出
+### 解决方案（当前仓库）
+- 使用 **`version=1`**（递增的发布号）与 **`prettyVersion=0.1.0-M1`**（给人看的版本）。见仓库根 [`library.properties`](../../library.properties)。
 
 ---
 

@@ -39,6 +39,7 @@ public final class UIManager {
         this.applet = applet;
         this.root = new Panel("ui_root");
         this.root.setLayoutManager(null);
+        this.root.setPaintBackground(false);
         this.root.markLayoutDirtyUp();
         lastInstance = this;
     }
@@ -157,6 +158,10 @@ public final class UIManager {
 
     public List list(String id) {
         return poolGet(id, () -> new List(id));
+    }
+
+    public MenuBar menuBar(String id) {
+        return poolGet(id, () -> new MenuBar(id));
     }
 
     public Image image(String id) {

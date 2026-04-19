@@ -31,4 +31,18 @@ public interface Theme {
     void drawTabHeader(PApplet g, float x, float y, float w, float h, String[] titles, int selected, boolean focused);
 
     void drawImage(PApplet g, float x, float y, float w, float h, processing.core.PImage img, boolean disabled);
+
+    default void drawMenuTitle(PApplet g, float x, float y, float w, float h, String title,
+                               boolean hover, boolean pressed, boolean open, boolean disabled) {
+        drawButton(g, x, y, w, h, title, hover, pressed || open, disabled);
+    }
+
+    default void drawMenuPopupBackground(PApplet g, float x, float y, float w, float h, boolean focused) {
+        drawPanel(g, x, y, w, h, focused);
+    }
+
+    default void drawMenuItem(PApplet g, float x, float y, float w, float h, String label,
+                              boolean hover, boolean pressed, boolean disabled) {
+        drawButton(g, x, y, w, h, label, hover, pressed, disabled);
+    }
 }

@@ -67,6 +67,41 @@ public class P5Engine {
         return instance != null;
     }
 
+    /**
+     * Sets the sketch framebuffer pixel density to match the primary display (HiDPI / Retina).
+     * Call from {@code settings()} immediately after {@code size(...)} or {@code fullScreen(...)}.
+     * Calling from {@code setup()} or after {@link #create(PApplet)} is too late and may have no effect.
+     *
+     * @param applet the sketch (typically {@code this} from the sketch class)
+     */
+    public static void applyRecommendedPixelDensity(PApplet applet) {
+        applyRecommendedPixelDensity(applet, 1);
+    }
+
+    /**
+     * Same as {@link #applyRecommendedPixelDensity(PApplet)}, with a requested minimum density.
+     * The value actually applied is never greater than {@link PApplet#displayDensity()}: many
+     * displays reject {@code pixelDensity(2)} when the OS reports {@code 1}, which shrinks the
+     * window and prints {@code pixelDensity(N) is not available for this display}.
+     *
+     * @param minDensity ignored when greater than {@code displayDensity()}; otherwise same as single-arg
+     */
+    public static void applyRecommendedPixelDensity(PApplet applet, int minDensity) {
+        if (applet == null) {
+            return;
+        }
+        int d = applet.displayDensity();
+        if (d < 1) {
+            d = 1;
+        }
+        int floor = Math.max(1, minDensity);
+        if (floor > d) {
+            Logger.warn("applyRecommendedPixelDensity: minDensity=" + floor + " > displayDensity()="
+                + d + "; using pixelDensity(" + d + "). Forcing a higher density is not supported on this display.");
+        }
+        applet.pixelDensity(d);
+    }
+
     private void init() {
         isRunning = false;
         windowPositionRestored = false;
@@ -234,6 +269,8 @@ public class P5Engine {
         }
 
         gameTime.update(deltaTime);
+
+        renderer.syncSizeFromApplet();
 
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {

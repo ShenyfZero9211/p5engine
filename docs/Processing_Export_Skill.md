@@ -97,11 +97,9 @@ powershell -ExecutionPolicy Bypass -File "E:\projects\kilo\p5engine\build.ps1" -
 - 正确: `processing cli --force --sketch=... --output=...`
 - 错误: `processing cli --sketch=... --force --output=...`
 
-### 3. PDE 项目的 library.properties 警告
-- 错误: `The version number for the p5engine library is not a number`
-- 原因: `library.properties` 的 `version` 字段为 `0.1.0-M1`（非纯数字）
-- **影响**: 仅是警告，不影响导出功能，可忽略
-- 如需消除警告: 修改 `library.properties` 的 `version` 为纯数字（如 `1`）
+### 3. PDE 项目的 library.properties 版本号
+- Processing 要求 **`version` 为可解析的整数**（发布计数）；展示用 semver 放在 **`prettyVersion`**（字符串）。
+- 仓库根目录 [`library.properties`](../../library.properties) 已采用 `version=1` 与 `prettyVersion=0.1.0-M1`；`compile-jar.ps1` 在覆盖 jar 时会同步复制到 Processing 库目录下的 `p5engine/library.properties`。
 
 ### 4. jdeps 模块依赖偏少
 - jdeps 分析结果通常只有 4 个模块: `java.base,java.desktop,java.management,java.sql`

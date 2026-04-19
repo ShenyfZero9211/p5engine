@@ -53,6 +53,12 @@ public final class DefaultTheme implements Theme {
     }
 
     @Override
+    public void drawMenuTitle(PApplet g, float x, float y, float w, float h, String title,
+                               boolean hover, boolean pressed, boolean open, boolean disabled) {
+        drawButton(g, x, y, w, h, title, hover, pressed || open, disabled);
+    }
+
+    @Override
     public void drawButton(PApplet g, float x, float y, float w, float h, String label, boolean hover, boolean pressed, boolean disabled) {
         int fill = disabled ? 0xFF444444 : (pressed ? 0xFF2A5A8A : (hover ? 0xFF3D5F80 : 0xFF333333));
         g.noStroke();
@@ -196,7 +202,7 @@ public final class DefaultTheme implements Theme {
         g.rect(x, y, w, h);
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(13);
-        float rowH = 22;
+        float rowH = 26;
         int idx = 0;
         for (int i = firstIndex; i < items.size(); i++) {
             float ry = y + idx * rowH;
