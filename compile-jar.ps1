@@ -1,0 +1,64 @@
+# Compile p5engine sources with JDK 17, pack library\p5engine.jar, then replace the
+# Processing-installed library jar (so sketches pick up the new build).
+#
+# Default: after a successful build, overwrites:
+#   E:\projects\processing_env\libraries\p5engine\library\p5engine.jar
+# with the newly built jar (same as repo library\p5engine.jar).
+# To skip that copy (only keep repo library\p5engine.jar): .\compile-jar.ps1 -NoCopy
+#
+# 默认：编译成功后，用新生成的 jar 覆盖 Processing 库目录下的 p5engine.jar（路径见上）。
+# 若本次不覆盖 Processing 库：加上 -NoCopy
+#
+# Usage: .\compile-jar.ps1   (from repo root, or pass -RepoRoot)
+
+param(
+    [string]$RepoRoot = "E:\projects\kilo\p5engine",
+    [string]$JdkPath = "D:\java\jdk-17.0.10+7",
+    [string]$ProcessingLibDest = "E:\projects\processing_env\libraries\p5engine\library",
+    [switch]$NoCopy
+)
+
+$ErrorActionPreference = "Stop"
+$javac = Join-Path $JdkPath "bin\javac.exe"
+$jar = Join-Path $JdkPath "bin\jar.exe"
+$core = Join-Path $RepoRoot "library\core-4.5.2.jar"
+$sources = Join-Path $RepoRoot "sources.txt"
+$classes = Join-Path $RepoRoot "build\classes"
+$outJar = Join-Path $RepoRoot "library\p5engine.jar"
+
+if (-not (Test-Path $javac)) { throw "javac not found: $javac" }
+if (-not (Test-Path $core)) { throw "core jar not found: $core" }
+if (-not (Test-Path $sources)) { throw "sources.txt not found: $sources" }
+
+New-Item -ItemType Directory -Path $classes -Force | Out-Null
+$shenyfOut = Join-Path $classes "shenyf"
+if (Test-Path $shenyfOut) {
+    Remove-Item -Recurse -Force $shenyfOut
+}
+
+Write-Host "[compile-jar] javac @sources.txt" -ForegroundColor Cyan
+& $javac --release 17 -encoding UTF-8 -cp $core -d $classes "@$sources"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[compile-jar] jar cf p5engine.jar" -ForegroundColor Cyan
+Push-Location $classes
+try {
+    & $jar cf $outJar shenyf
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+} finally {
+    Pop-Location
+}
+
+if (-not $NoCopy) {
+    if (-not (Test-Path $ProcessingLibDest)) {
+        New-Item -ItemType Directory -Path $ProcessingLibDest -Force | Out-Null
+    }
+    $processingJar = Join-Path $ProcessingLibDest "p5engine.jar"
+    Copy-Item -Path $outJar -Destination $processingJar -Force
+    Write-Host "[compile-jar] replaced Processing library jar -> $processingJar" -ForegroundColor Green
+    Write-Host "[compile-jar] 已用新 jar 覆盖 Processing 库: $processingJar" -ForegroundColor Green
+} else {
+    Write-Host "[compile-jar] skipped Processing library replace (-NoCopy); repo jar only: $outJar" -ForegroundColor Yellow
+}
+
+Write-Host "[compile-jar] done: $outJar" -ForegroundColor Green

@@ -1,17 +1,17 @@
 # Compiled class files
 *.class
 
-# Gradle
-.gradle/
-
-# Build output
+# Build output & local tooling cache
 build/
 out/
+.gradle/
 
-# IDE
+# IDE / local agent
 .idea/
 *.iml
 .vscode/
+.cursor/
+.kilo/
 
 # OS
 .DS_Store
@@ -32,3 +32,5 @@ exported/
 # Temporary files
 *.tmp
 *.swp
+__pycache__/
+*.pyc
