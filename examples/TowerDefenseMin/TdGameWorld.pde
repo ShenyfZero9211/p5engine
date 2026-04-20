@@ -16,8 +16,9 @@ static final class TdGameWorld {
   final ArrayList<TdFxBolt> fxBolts = new ArrayList<TdFxBolt>();
   final ArrayList<TdSlowRipple> fxSlowRipples = new ArrayList<TdSlowRipple>();
 
-  int money = TdConfig.INITIAL_MONEY;
-  int baseOrbs = TdConfig.INITIAL_ORBS;
+  int currentLevel = 1;
+  int money = 420;
+  int baseOrbs = 3;
   int lostOrbs = 0;
   int currentWave = 0;
   int toSpawnInWave = 0;
@@ -37,21 +38,13 @@ static final class TdGameWorld {
   }
 
   void configurePath() {
-    int pw = app.width - TdConfig.RIGHT_W;
-    int ph = app.height - TdConfig.TOP_HUD;
-    path = new TdPath(new Vector2[] {
-      new Vector2(48, ph * 0.12f),
-      new Vector2(pw * 0.18f, ph * 0.22f),
-      new Vector2(pw * 0.32f, ph * 0.38f),
-      new Vector2(pw * 0.44f, ph * 0.52f),
-      new Vector2(pw * 0.52f, ph * 0.48f),
-      new Vector2(pw * 0.66f, ph * 0.62f),
-      new Vector2(pw * 0.82f, ph * 0.78f),
-      new Vector2(pw - 40, ph - 36)
-    });
+    // 使用当前关卡的路径配置
+    Vector2[] levelWaypoints = TdLevelPath.getPath(currentLevel);
+    path = new TdPath(levelWaypoints);
     vertexDist = path.vertexDistances();
     pathTotal = path.totalLength;
-    baseVertexIndex = min(4, path.points.length - 2);
+    // 基地位置大约在路径的40%处
+    baseVertexIndex = min((int)(path.points.length * 0.4f), path.points.length - 2);
   }
 
   void setEnemyHpMultFromSlider(float slider01) {
@@ -59,8 +52,8 @@ static final class TdGameWorld {
   }
 
   void resetEconomyForNewMatch() {
-    money = TdConfig.INITIAL_MONEY;
-    baseOrbs = TdConfig.INITIAL_ORBS;
+    money = TdLevelConfig.getInitialMoney(currentLevel);
+    baseOrbs = TdLevelConfig.getInitialOrbs(currentLevel);
     lostOrbs = 0;
     matchElapsed = 0;
     betweenWaves = false;
@@ -69,6 +62,11 @@ static final class TdGameWorld {
     nextTowerId = 1;
     beginWave(1);
     spawnCooldown = 1.2f;
+  }
+
+  /** 设置当前关卡 */
+  void setLevel(int level) {
+    currentLevel = constrain(level, 1, TdLevelConfig.TOTAL_LEVELS);
   }
 
   void resetTowerNaming() {
@@ -84,16 +82,20 @@ static final class TdGameWorld {
 
   void beginWave(int w) {
     currentWave = w;
-    toSpawnInWave = 4 + w * 2;
+    toSpawnInWave = TdLevelConfig.getEnemyCountBase(currentLevel) + w * TdLevelConfig.getEnemyCountPerWave(currentLevel);
     spawnCooldown = 1.5f;
   }
 
   void applyEconomyAndWavesFromJson(JSONObject o) {
-    money = o.getInt("money", TdConfig.INITIAL_MONEY);
-    baseOrbs = o.getInt("baseOrbs", TdConfig.INITIAL_ORBS);
+    // 读取关卡信息（如果没有保存过关卡信息，默认使用第一关）
+    currentLevel = o.hasKey("level") ? o.getInt("level", 1) : 1;
+    currentLevel = constrain(currentLevel, 1, TdLevelConfig.TOTAL_LEVELS);
+    
+    money = o.getInt("money", TdLevelConfig.getInitialMoney(currentLevel));
+    baseOrbs = o.getInt("baseOrbs", TdLevelConfig.getInitialOrbs(currentLevel));
     lostOrbs = o.getInt("lostOrbs", 0);
     matchElapsed = o.getFloat("matchElapsed", 0);
-    currentWave = max(1, min(TdConfig.TOTAL_WAVES, o.getInt("wave", 1)));
+    currentWave = max(1, min(TdLevelConfig.getTotalWaves(currentLevel), o.getInt("wave", 1)));
     if (o.hasKey("toSpawn")) {
       toSpawnInWave = max(0, o.getInt("toSpawn", 0));
       betweenWaves = o.getInt("betweenWaves", 0) != 0;
@@ -110,6 +112,7 @@ static final class TdGameWorld {
   }
 
   void fillSaveJson(JSONObject o) {
+    o.setInt("level", currentLevel);
     o.setInt("money", money);
     o.setInt("baseOrbs", baseOrbs);
     o.setInt("lostOrbs", lostOrbs);
@@ -153,7 +156,7 @@ static final class TdGameWorld {
   /** @return 0 = playing, 1 = lose, 2 = win */
   int tick(float dt, Label lblHudLine) {
     matchElapsed += dt;
-    if (lostOrbs >= TdConfig.INITIAL_ORBS) {
+    if (lostOrbs >= TdLevelConfig.getInitialOrbs(currentLevel)) {
       return 1;
     }
 
@@ -169,11 +172,11 @@ static final class TdGameWorld {
 
     if (lblHudLine != null) {
       lblHudLine.setText(String.format(Locale.US,
-        "时间 %.0fs  |  波次 %d/%d  |  敌人 %d  |  基地球 %d  |  已失 %d  |  $%d",
-        matchElapsed, currentWave, TdConfig.TOTAL_WAVES, alive, baseOrbs, lostOrbs, money));
+        "%s | 时间 %.0fs  |  波次 %d/%d  |  敌人 %d  |  基地球 %d  |  已失 %d  |  $%d",
+        TdLevelConfig.getLevelName(currentLevel), matchElapsed, currentWave, TdLevelConfig.getTotalWaves(currentLevel), alive, baseOrbs, lostOrbs, money));
     }
 
-    if (allWavesSpawned && alive == 0 && lostOrbs < TdConfig.INITIAL_ORBS) {
+    if (allWavesSpawned && alive == 0 && lostOrbs < TdLevelConfig.getInitialOrbs(currentLevel)) {
       return 2;
     }
     return 0;
@@ -397,15 +400,15 @@ static final class TdGameWorld {
     if (toSpawnInWave > 0) {
       spawnCooldown -= dt;
       if (spawnCooldown <= 0) {
-        enemies.add(new TdEnemy(currentWave, enemyHpMult));
+        enemies.add(new TdEnemy(currentWave, currentLevel, enemyHpMult));
         toSpawnInWave--;
-        spawnCooldown = 1.1f / enemyHpMult;
+        spawnCooldown = TdLevelConfig.getSpawnCooldown(currentLevel) / enemyHpMult;
         if (toSpawnInWave == 0) {
-          if (currentWave >= TdConfig.TOTAL_WAVES) {
+          if (currentWave >= TdLevelConfig.getTotalWaves(currentLevel)) {
             allWavesSpawned = true;
           } else {
             betweenWaves = true;
-            interWaveDelay = 2.4f;
+            interWaveDelay = TdLevelConfig.getInterWaveDelay(currentLevel);
           }
         }
       }

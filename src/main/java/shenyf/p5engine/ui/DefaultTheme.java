@@ -116,12 +116,20 @@ public final class DefaultTheme implements Theme {
     }
 
     @Override
-    public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled) {
+    public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
         g.fill(disabled ? TEXT_DIM : TEXT);
         g.noStroke();
-        g.textAlign(PApplet.LEFT, PApplet.CENTER);
+        g.textAlign(textAlign, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.5f));
-        g.text(text != null ? text : "", x + 4, y + h * 0.5f);
+        float tx;
+        if (textAlign == PApplet.LEFT) {
+            tx = x + 4;
+        } else if (textAlign == PApplet.RIGHT) {
+            tx = x + w - 4;
+        } else {
+            tx = x + w * 0.5f;
+        }
+        g.text(text != null ? text : "", tx, y + h * 0.5f);
     }
 
     @Override

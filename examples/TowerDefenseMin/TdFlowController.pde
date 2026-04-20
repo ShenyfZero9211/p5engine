@@ -25,6 +25,14 @@ static final class TdFlowController {
     app.panelMenu.setVisible(!on);
   }
 
+  void enterLevelSelect(boolean on) {
+    app.panelLevelSelect.setVisible(on);
+    app.panelMenu.setVisible(!on);
+    if (!on) {
+      app.panelMenu.setVisible(true);
+    }
+  }
+
   void applySettingsMultipliers() {
     float t = app.sliderEnemyMult != null ? app.sliderEnemyMult.getValue() : 0.5f;
     app.world.setEnemyHpMultFromSlider(t);
@@ -36,16 +44,35 @@ static final class TdFlowController {
   }
 
   void startNewGame(boolean fromLoad) {
+    startNewGameWithLevel(1, fromLoad);
+  }
+
+  void startNewGameWithLevel(int level) {
+    startNewGameWithLevel(level, false);
+  }
+
+  void startNewGameWithLevel(int level, boolean fromLoad) {
     app.showTowerRangeOverlay = false;
     app.buildArmed = false;
     app.lblLoadMsg.setText("");
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setVisible(false);
     }
+    
+    // 记录当前关卡
+    app.lastPlayedLevel = level;
+    
+    // 初始化关卡路径配置
+    TdLevelPath.initPaths(app);
+    
     app.engine.getSceneManager().loadScene("Game");
     Scene g = app.engine.getSceneManager().getActiveScene();
     g.clear();
     app.world.clearEntities();
+    
+    // 设置关卡并初始化路径
+    app.world.setLevel(level);
+    
     if (!fromLoad) {
       applySettingsMultipliers();
       app.world.resetEconomyForNewMatch();
@@ -54,10 +81,27 @@ static final class TdFlowController {
     app.world.configurePath();
     app.appMode = 2;
     app.panelMenu.setVisible(false);
+    app.panelLevelSelect.setVisible(false);
     app.panelSettings.setVisible(false);
     app.panelTopHud.setVisible(true);
     app.panelRight.setVisible(true);
     updateTowerHint();
+  }
+
+  /** 进入下一关 */
+  void goNextLevel() {
+    int nextLevel = app.lastPlayedLevel + 1;
+    if (nextLevel <= TdLevelConfig.TOTAL_LEVELS) {
+      startNewGameWithLevel(nextLevel);
+    } else {
+      // 已经通关所有关卡，返回主菜单
+      goMenuFromGame();
+    }
+  }
+
+  /** 重玩当前关卡 */
+  void replayCurrentLevel() {
+    startNewGameWithLevel(app.lastPlayedLevel);
   }
 
   void goMenuFromGame() {
@@ -67,6 +111,7 @@ static final class TdFlowController {
     app.panelTopHud.setVisible(false);
     app.panelRight.setVisible(false);
     app.panelMenu.setVisible(true);
+    app.panelLevelSelect.setVisible(false);
     app.panelSettings.setVisible(false);
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setVisible(false);

@@ -27,6 +27,7 @@ int appMode;
 
 Panel panelMenu;
 Panel panelSettings;
+Panel panelLevelSelect;
 Panel panelEndOverlay;
 Label lblMenuHint;
 Label lblEndMsg;
@@ -54,12 +55,17 @@ Button btnTowerSlow;
 Button btnSave;
 Button btnToMenu;
 Button btnEndMenu;
+Button btnNextLevel;
+Button btnReplayLevel;
 
 TowerKind buildSelected = TowerKind.MG;
 /** After clicking a tower build button; false = not placing (no map preview / no LMB place). */
 boolean buildArmed;
 /** Toggle with Q: draw attack / slow radii for all operational towers. */
 boolean showTowerRangeOverlay;
+
+/** 上一次游玩的关卡编号，用于胜利/失败后重玩或进入下一关 */
+int lastPlayedLevel = 1;
 
 void settings() {
   size(1280, 720, P2D);
@@ -81,6 +87,9 @@ void setup() {
   sm.loadScene("Menu");
 
   world = new TdGameWorld(this, engine);
+  
+  // 初始化关卡路径配置
+  TdLevelPath.initPaths(this);
   world.configurePath();
 
   flow = new TdFlowController(this);

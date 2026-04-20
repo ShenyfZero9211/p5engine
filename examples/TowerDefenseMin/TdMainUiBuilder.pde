@@ -21,7 +21,7 @@ static final class TdMainUiBuilder {
     app.btnStart = new Button("m_start");
     app.btnStart.setLabel("开始游戏");
     app.btnStart.setSize(220, 40);
-    app.btnStart.setAction(() -> flow.startNewGame(false));
+    app.btnStart.setAction(() -> flow.enterLevelSelect(true));
     app.panelMenu.add(app.btnStart);
 
     app.btnLoad = new Button("m_load");
@@ -48,6 +48,46 @@ static final class TdMainUiBuilder {
     app.panelMenu.add(app.lblLoadMsg);
 
     root.add(app.panelMenu);
+
+    // 关卡选择面板
+    app.panelLevelSelect = new Panel("level_select");
+    app.panelLevelSelect.setLayoutManager(null);
+    app.panelLevelSelect.setPaintBackground(true);
+    app.panelLevelSelect.setVisible(false);
+
+    Label lblSelectTitle = new Label("select_title");
+    lblSelectTitle.setText("选择关卡");
+    lblSelectTitle.setSize(280, 28);
+    app.panelLevelSelect.add(lblSelectTitle);
+
+    // 关卡1按钮
+    Button btnLevel1 = new Button("level_1");
+    btnLevel1.setLabel(TdLevelConfig.LEVEL_NAMES[0]);
+    btnLevel1.setSize(300, 44);
+    btnLevel1.setAction(() -> flow.startNewGameWithLevel(1));
+    app.panelLevelSelect.add(btnLevel1);
+
+    // 关卡2按钮
+    Button btnLevel2 = new Button("level_2");
+    btnLevel2.setLabel(TdLevelConfig.LEVEL_NAMES[1]);
+    btnLevel2.setSize(300, 44);
+    btnLevel2.setAction(() -> flow.startNewGameWithLevel(2));
+    app.panelLevelSelect.add(btnLevel2);
+
+    // 关卡3按钮
+    Button btnLevel3 = new Button("level_3");
+    btnLevel3.setLabel(TdLevelConfig.LEVEL_NAMES[2]);
+    btnLevel3.setSize(300, 44);
+    btnLevel3.setAction(() -> flow.startNewGameWithLevel(3));
+    app.panelLevelSelect.add(btnLevel3);
+
+    Button btnLevelBack = new Button("level_back");
+    btnLevelBack.setLabel("返回");
+    btnLevelBack.setSize(160, 36);
+    btnLevelBack.setAction(() -> flow.enterLevelSelect(false));
+    app.panelLevelSelect.add(btnLevelBack);
+
+    root.add(app.panelLevelSelect);
 
     app.panelSettings = new Panel("settings_root");
     app.panelSettings.setLayoutManager(null);
@@ -154,13 +194,33 @@ static final class TdMainUiBuilder {
     app.panelEndOverlay.add(app.lblEndMsg);
 
     app.btnEndMenu = new Button("end_menu");
-    app.btnEndMenu.setLabel("回主菜单");
-    app.btnEndMenu.setSize(200, 40);
+    app.btnEndMenu.setLabel("返回主菜单");
+    app.btnEndMenu.setSize(160, 40);
     app.btnEndMenu.setAction(() -> {
       app.panelEndOverlay.setVisible(false);
       flow.goMenuFromGame();
     });
     app.panelEndOverlay.add(app.btnEndMenu);
+
+    // 下一关按钮（胜利时显示）
+    app.btnNextLevel = new Button("next_level");
+    app.btnNextLevel.setLabel("下一关");
+    app.btnNextLevel.setSize(160, 40);
+    app.btnNextLevel.setAction(() -> {
+      app.panelEndOverlay.setVisible(false);
+      flow.goNextLevel();
+    });
+    app.panelEndOverlay.add(app.btnNextLevel);
+
+    // 重玩当前关卡按钮（失败时显示）
+    app.btnReplayLevel = new Button("replay_level");
+    app.btnReplayLevel.setLabel("重玩当前关卡");
+    app.btnReplayLevel.setSize(160, 40);
+    app.btnReplayLevel.setAction(() -> {
+      app.panelEndOverlay.setVisible(false);
+      flow.replayCurrentLevel();
+    });
+    app.panelEndOverlay.add(app.btnReplayLevel);
     app.panelEndOverlay.setZOrder(200);
     root.add(app.panelEndOverlay);
 

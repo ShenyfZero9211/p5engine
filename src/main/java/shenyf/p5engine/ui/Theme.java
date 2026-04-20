@@ -16,7 +16,11 @@ public interface Theme {
 
     void drawRadio(PApplet g, float x, float y, float w, float h, String label, boolean selected, boolean hover, boolean disabled);
 
-    void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled);
+    void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled, int textAlign);
+
+    default void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled) {
+        drawLabel(g, x, y, w, h, text, disabled, PApplet.CENTER);
+    }
 
     void drawTextField(PApplet g, float x, float y, float w, float h, String text, int caretIndex, boolean focused, boolean disabled);
 

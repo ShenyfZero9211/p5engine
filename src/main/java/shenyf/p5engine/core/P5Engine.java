@@ -6,11 +6,16 @@ import shenyf.p5engine.config.SketchConfig;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.time.*;
 import shenyf.p5engine.rendering.*;
+import shenyf.p5engine.input.InputManager;
+import shenyf.p5engine.event.EventSystem;
+import shenyf.p5engine.pool.ObjectPool;
 import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
 import shenyf.p5engine.util.SingleInstanceGuard;
 import java.awt.Frame;
 import javax.swing.JOptionPane;
+
+import shenyf.p5engine.GameState;
 
 public class P5Engine {
     private static P5Engine instance;
@@ -20,6 +25,10 @@ public class P5Engine {
     private final SceneManager sceneManager;
     private final P5GameTime gameTime;
     private final ProcessingRenderer renderer;
+    private final InputManager inputManager;
+    private final shenyf.p5engine.time.Scheduler scheduler;
+    private final EventSystem eventSystem;
+    private final ObjectPool objectPool;
     private final SketchConfig sketchConfig;
     private final SingleInstanceGuard singleInstanceGuard;
 
@@ -30,6 +39,9 @@ public class P5Engine {
     private boolean keyPressedState;
     private char keyChar;
     private int keyCode;
+
+    private int defaultBackgroundColor = 0xFF000000;
+    private GameState gameState = GameState.READY;
 
     /** Human-readable window title prefix (no FPS / version suffix). */
     private String applicationTitleBase;
@@ -45,6 +57,10 @@ public class P5Engine {
         this.sceneManager = new SceneManager();
         this.gameTime = new P5GameTime();
         this.renderer = new ProcessingRenderer(applet, config.getWidth(), config.getHeight());
+        this.inputManager = new InputManager();
+        this.scheduler = new shenyf.p5engine.time.Scheduler();
+        this.eventSystem = new EventSystem();
+        this.objectPool = new ObjectPool();
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -139,6 +155,7 @@ public class P5Engine {
         renderer.initialize();
 
         applet.registerMethod("keyEvent", this);
+        applet.registerMethod("mouseEvent", this);
         applet.registerMethod("dispose", this);
 
         Logger.info("P5Engine initialized successfully");
@@ -231,12 +248,61 @@ public class P5Engine {
     }
 
     public void keyEvent(processing.event.KeyEvent event) {
-        if (event.getAction() == processing.event.KeyEvent.PRESS) {
+        inputManager.onKeyEvent(event);
+        int action = event.getAction();
+        int code = event.getKeyCode();
+
+        if (action == processing.event.KeyEvent.PRESS) {
             keyChar = event.getKey();
-            keyCode = event.getKeyCode();
+            keyCode = code;
             keyPressedState = true;
-        } else if (event.getAction() == processing.event.KeyEvent.RELEASE) {
+            dispatchKeyEventToComponents(code, true);
+        } else if (action == processing.event.KeyEvent.RELEASE) {
             keyPressedState = false;
+            dispatchKeyEventToComponents(code, false);
+        }
+    }
+
+    public void mouseEvent(processing.event.MouseEvent event) {
+        int action = event.getAction();
+        int button = event.getButton();
+
+        if (action == processing.event.MouseEvent.PRESS) {
+            dispatchMouseEventToComponents(button, true);
+        } else if (action == processing.event.MouseEvent.RELEASE) {
+            dispatchMouseEventToComponents(button, false);
+        }
+    }
+
+    private void dispatchKeyEventToComponents(int keyCode, boolean pressed) {
+        Scene scene = sceneManager.getActiveScene();
+        if (scene == null) return;
+        for (shenyf.p5engine.scene.GameObject go : scene.getGameObjects()) {
+            if (!go.isActive()) continue;
+            for (shenyf.p5engine.scene.Component c : go.getComponents()) {
+                if (!c.isEnabled()) continue;
+                if (pressed) {
+                    c.onKeyPressed(keyCode);
+                } else {
+                    c.onKeyReleased(keyCode);
+                }
+            }
+        }
+    }
+
+    private void dispatchMouseEventToComponents(int button, boolean pressed) {
+        Scene scene = sceneManager.getActiveScene();
+        if (scene == null) return;
+        for (shenyf.p5engine.scene.GameObject go : scene.getGameObjects()) {
+            if (!go.isActive()) continue;
+            for (shenyf.p5engine.scene.Component c : go.getComponents()) {
+                if (!c.isEnabled()) continue;
+                if (pressed) {
+                    c.onMousePressed(button);
+                } else {
+                    c.onMouseReleased(button);
+                }
+            }
         }
     }
 
@@ -286,6 +352,10 @@ public class P5Engine {
         if (activeScene != null) {
             activeScene.update(gameTime.getDeltaTime());
         }
+
+        inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
+        inputManager.postUpdate();
+        scheduler.update(deltaTime);
 
         refreshNativeWindowTitle();
     }
@@ -376,10 +446,34 @@ public class P5Engine {
         }
     }
 
+    /**
+     * Renders the active scene with the default background color.
+     * Automatically clears the background before rendering.
+     */
     public void render() {
+        render(defaultBackgroundColor);
+    }
+
+    /**
+     * Renders the active scene with a custom background color.
+     * Automatically clears the background before rendering.
+     */
+    public void render(int backgroundColor) {
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
-            renderer.clear(200);
+            renderer.clear(backgroundColor);
+            activeScene.render(renderer);
+        }
+    }
+
+    /**
+     * Renders the active scene without clearing the background.
+     * Use this when you want to handle background clearing yourself
+     * (e.g. for trail effects, multi-layer rendering, etc.)
+     */
+    public void renderSkipBackground() {
+        Scene activeScene = sceneManager.getActiveScene();
+        if (activeScene != null) {
             activeScene.render(renderer);
         }
     }
@@ -451,7 +545,72 @@ public class P5Engine {
         return applet.mouseY;
     }
 
+    public InputManager getInput() {
+        return inputManager;
+    }
+
+    public shenyf.p5engine.time.Scheduler getScheduler() {
+        return scheduler;
+    }
+
+    public EventSystem getEventSystem() {
+        return eventSystem;
+    }
+
+    public ObjectPool getObjectPool() {
+        return objectPool;
+    }
+
     public boolean isRunning() {
         return isRunning;
+    }
+
+    // ===== Background Color =====
+
+    public int getBackgroundColor() {
+        return defaultBackgroundColor;
+    }
+
+    public void setBackgroundColor(int color) {
+        this.defaultBackgroundColor = color;
+    }
+
+    // ===== Scene Manager shortcuts =====
+
+    public Scene createScene(String name) {
+        return sceneManager.createScene(name);
+    }
+
+    public void loadScene(String name) {
+        sceneManager.loadScene(name);
+    }
+
+    public Scene getActiveScene() {
+        return sceneManager.getActiveScene();
+    }
+
+    public Scene getScene(String name) {
+        return sceneManager.getScene(name);
+    }
+
+    // ===== GameState =====
+
+    public GameState getGameState() {
+        return gameState;
+    }
+
+    public void setGameState(GameState state) {
+        this.gameState = state;
+    }
+
+    // ===== Static config loading utilities =====
+
+    public static String[] loadStrings(String filename) {
+        return getInstance().getApplet().loadStrings(filename);
+    }
+
+    public static String loadConfig(String filename) {
+        String[] lines = loadStrings(filename);
+        return lines != null ? String.join("\n", lines) : null;
     }
 }

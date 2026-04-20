@@ -18,6 +18,18 @@ static final class TdUiLayout {
     a.btnQuit.setBounds((a.width - 220) / 2, a.height / 2 + 56, 220, 40);
     a.lblLoadMsg.setBounds((a.width - 400) / 2, a.height / 2 + 108, 400, 24);
 
+    // 关卡选择面板布局
+    a.panelLevelSelect.setBounds(0, 0, a.width, a.height);
+    int lsx = (a.width - 320) / 2;
+    int lsy = a.height / 2 - 120;
+    a.panelLevelSelect.getChildren().get(0).setBounds(lsx, lsy, 280, 28);
+    lsy += 40;
+    for (int i = 1; i <= 3; i++) {
+      a.panelLevelSelect.getChildren().get(i).setBounds(lsx, lsy, 300, 44);
+      lsy += 52;
+    }
+    a.panelLevelSelect.getChildren().get(4).setBounds(lsx + 70, lsy, 160, 36);
+
     a.panelSettings.setBounds(0, 0, a.width, a.height);
 
     a.panelTopHud.setBounds(0, 0, a.width - TdConfig.RIGHT_W, TdConfig.TOP_HUD);
@@ -39,10 +51,27 @@ static final class TdUiLayout {
 
     if (a.panelEndOverlay != null) {
       a.panelEndOverlay.setBounds(0, 0, a.width, a.height);
+      int cx = a.width / 2;
+      int cy = a.height / 2;
       if (a.lblEndMsg != null) {
-        a.lblEndMsg.setBounds((a.width - 400) / 2, a.height / 2 - 40, 400, 40);
+        a.lblEndMsg.setBounds(cx - 200, cy - 60, 400, 40);
       }
-      a.btnEndMenu.setBounds((a.width - 200) / 2, a.height / 2 + 10, 200, 40);
+      // 根据当前状态显示/隐藏按钮
+      boolean isWin = (a.appMode == 3);
+      boolean isLastLevel = (a.lastPlayedLevel >= TdLevelConfig.TOTAL_LEVELS);
+      
+      // 胜利时显示下一关按钮（不是最后一关），失败时显示重玩按钮
+      if (a.btnNextLevel != null) {
+        a.btnNextLevel.setVisible(isWin && !isLastLevel);
+        a.btnNextLevel.setBounds(cx - 80, cy + 10, 160, 40);
+      }
+      if (a.btnReplayLevel != null) {
+        a.btnReplayLevel.setVisible(!isWin);
+        a.btnReplayLevel.setBounds(cx - 80, cy + 10, 160, 40);
+      }
+      if (a.btnEndMenu != null) {
+        a.btnEndMenu.setBounds(cx - 80, cy + 60, 160, 40);
+      }
     }
 
     int sxs = (a.width - 280) / 2;

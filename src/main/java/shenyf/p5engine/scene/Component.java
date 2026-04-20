@@ -27,6 +27,20 @@ public abstract class Component {
     public void onDestroy() {
     }
 
+    // ===== Input event callbacks (auto-dispatched by P5Engine) =====
+
+    public void onKeyPressed(int keyCode) {
+    }
+
+    public void onKeyReleased(int keyCode) {
+    }
+
+    public void onMousePressed(int button) {
+    }
+
+    public void onMouseReleased(int button) {
+    }
+
     public String getInstanceId() {
         return instanceId;
     }

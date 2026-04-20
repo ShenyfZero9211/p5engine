@@ -9,11 +9,13 @@ import java.util.*;
 public class GameObject implements Iterable<Component> {
     private final String guid;
     private String name;
+    private String tag = "";
     Scene scene;
     private final Transform transform;
     private final Map<Class<? extends Component>, Component> components;
     private final List<Component> componentList;
     private boolean active;
+    private boolean markedForDestroy;
 
     public GameObject(String name) {
         this.guid = UUID.randomUUID().toString();
@@ -29,13 +31,24 @@ public class GameObject implements Iterable<Component> {
         return new GameObject(name);
     }
 
+    public void addComponent(Component component) {
+        if (component == null) return;
+        Class<? extends Component> clazz = component.getClass();
+        components.put(clazz, component);
+        componentList.add(component);
+        component.setGameObject(this);
+        component.start();
+        Logger.debug("Component " + clazz.getSimpleName() + " added to " + name);
+    }
+
     public <T extends Component> T addComponent(Class<T> componentClass) {
         T component;
         try {
             component = componentClass.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new RuntimeException("Failed to create component: " + componentClass.getName() + 
-                ". Make sure the class has a public no-arg constructor and is not a non-static inner class.", e);
+                ". Make sure the class has a public no-arg constructor and is not a non-static inner class. " +
+                "For PDE inner classes, use addComponent(new MyComponent()) instead.", e);
         }
 
         components.put(componentClass, component);
@@ -104,6 +117,25 @@ public class GameObject implements Iterable<Component> {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag != null ? tag : "";
+    }
+
+    public boolean isMarkedForDestroy() {
+        return markedForDestroy;
+    }
+
+    public void markForDestroy() {
+        this.markedForDestroy = true;
+        if (scene != null) {
+            scene.markForDestroy(this);
+        }
     }
 
     public Scene getScene() {
