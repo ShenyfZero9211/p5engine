@@ -26,6 +26,9 @@ p5engine.ini
 # Exported applications
 exported/
 
+#Backup Examples
+examples/_backup/
+
 # Processing CLI --output build folder (regenerated)
 examples/ImageLab_build/
 

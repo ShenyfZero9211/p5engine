@@ -406,7 +406,7 @@ public class P5Engine {
 
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
         inputManager.postUpdate();
-        scheduler.update(deltaTime);
+        scheduler.update(gameTime.getDeltaTime(), deltaTime);
         tweenManager.update(gameTime.getDeltaTime());
 
         refreshNativeWindowTitle();

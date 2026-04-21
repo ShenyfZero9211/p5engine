@@ -49,6 +49,8 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\scene\Transform.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\time\P5GameTime.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\time\Scheduler.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\time\Timer.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\time\PulseTimer.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\time\Sequence.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\AbsoluteLayout.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\BorderLayout.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Button.java
