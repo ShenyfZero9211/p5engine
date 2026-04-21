@@ -87,6 +87,7 @@ public class TabPane extends Container {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         paintSelf(applet, theme);
         if (selectedIndex >= 0 && selectedIndex < pages.size()) {
             pages.get(selectedIndex).paint(applet, theme);

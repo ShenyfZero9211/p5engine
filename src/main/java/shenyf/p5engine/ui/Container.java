@@ -136,6 +136,7 @@ public class Container extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         paintSelf(applet, theme);
         paintChildren(applet, theme);
     }

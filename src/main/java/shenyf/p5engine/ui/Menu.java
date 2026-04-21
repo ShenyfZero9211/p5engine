@@ -92,6 +92,7 @@ public final class Menu extends Panel {
 
         @Override
         public void paint(PApplet applet, Theme theme) {
+            theme.setCurrentAlpha(getEffectiveAlpha());
             theme.drawMenuTitle(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(),
                 getLabel(), hover, pressedVisual, menu.isOpen(), !isEnabled());
         }

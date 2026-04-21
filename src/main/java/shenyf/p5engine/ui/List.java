@@ -60,6 +60,7 @@ public class List extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         boolean focused = UIManager.isPaintingContext(this);
         theme.drawList(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), items, firstVisibleIndex, selectedIndex, focused, !isEnabled());
     }

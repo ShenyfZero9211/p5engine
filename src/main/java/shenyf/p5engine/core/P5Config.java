@@ -6,6 +6,10 @@ public class P5Config {
     private String title;
     private float targetFrameRate;
     private boolean debugMode;
+    private boolean debugOverlay;
+    private shenyf.p5engine.util.Logger.Level logLevel = shenyf.p5engine.util.Logger.Level.INFO;
+    private boolean logToFile = false;
+    private String logDir = "logs";
 
     private P5Config() {
         this.width = 800;
@@ -13,6 +17,7 @@ public class P5Config {
         this.title = "p5engine";
         this.targetFrameRate = 60f;
         this.debugMode = false;
+        this.debugOverlay = false;
     }
 
     public static P5Config defaults() {
@@ -44,6 +49,11 @@ public class P5Config {
         return this;
     }
 
+    public P5Config debugOverlay(boolean debugOverlay) {
+        this.debugOverlay = debugOverlay;
+        return this;
+    }
+
     public int getWidth() {
         return width;
     }
@@ -62,5 +72,36 @@ public class P5Config {
 
     public boolean isDebugMode() {
         return debugMode;
+    }
+
+    public boolean isDebugOverlay() {
+        return debugOverlay;
+    }
+
+    public P5Config logLevel(shenyf.p5engine.util.Logger.Level logLevel) {
+        this.logLevel = logLevel;
+        return this;
+    }
+
+    public shenyf.p5engine.util.Logger.Level getLogLevel() {
+        return logLevel;
+    }
+
+    public P5Config logToFile(boolean logToFile) {
+        this.logToFile = logToFile;
+        return this;
+    }
+
+    public boolean isLogToFile() {
+        return logToFile;
+    }
+
+    public P5Config logDir(String logDir) {
+        this.logDir = logDir;
+        return this;
+    }
+
+    public String getLogDir() {
+        return logDir;
     }
 }

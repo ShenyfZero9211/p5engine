@@ -12,6 +12,7 @@ public class Scene {
     private final List<GameObject> addQueue;
     private final List<GameObject> destroyQueue;
     private boolean running;
+    private int collisionCheckCount;
 
     public Scene(String name) {
         this.name = name;
@@ -33,6 +34,7 @@ public class Scene {
 
     public void update(float deltaTime) {
         if (!running) return;
+        collisionCheckCount = 0;
         for (GameObject go : gameObjects) {
             if (go.isActive()) {
                 go.update(deltaTime);
@@ -162,6 +164,14 @@ public class Scene {
 
     public int getObjectCount() {
         return gameObjects.size();
+    }
+
+    public int getCollisionCheckCount() {
+        return collisionCheckCount;
+    }
+
+    public void incrementCollisionCheckCount() {
+        collisionCheckCount++;
     }
 
     public void clear() {

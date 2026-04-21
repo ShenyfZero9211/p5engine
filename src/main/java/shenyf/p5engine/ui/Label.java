@@ -5,7 +5,7 @@ import processing.core.PApplet;
 public class Label extends UIComponent {
 
     private String text = "";
-    private int textAlign = PApplet.CENTER;
+    private int textAlign = PApplet.LEFT;
 
     public Label(String id) {
         super(id);
@@ -40,6 +40,7 @@ public class Label extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawLabel(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);
     }
 }

@@ -49,4 +49,13 @@ public interface Theme {
                               boolean hover, boolean pressed, boolean disabled) {
         drawButton(g, x, y, w, h, label, hover, pressed, disabled);
     }
+
+    /**
+     * Called by {@link UIComponent#paint} before rendering this component.
+     * Themes that support per-component alpha should store this value and apply
+     * it to all colors drawn. Default implementation is a no-op.
+     */
+    default void setCurrentAlpha(float alpha) {
+        // no-op by default for backward compatibility
+    }
 }

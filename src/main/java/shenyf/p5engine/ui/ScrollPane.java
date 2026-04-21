@@ -72,6 +72,7 @@ public class ScrollPane extends Container {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         float ax = getAbsoluteX();
         float ay = getAbsoluteY();
         float w = getWidth();

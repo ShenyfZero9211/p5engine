@@ -17,6 +17,7 @@ static final class TdFlowController {
     TdUiFonts.init(app, app.ui);
     TdMainUiBuilder.build(app, app.ui, this);
     app.ui.setTheme(new TdSciFiTheme());
+    animateMenuFadeIn();
   }
 
   void enterSettings(boolean on) {
@@ -26,10 +27,29 @@ static final class TdFlowController {
   }
 
   void enterLevelSelect(boolean on) {
+    println("[TweenDebug] enterLevelSelect(" + on + ")");
     app.panelLevelSelect.setVisible(on);
     app.panelMenu.setVisible(!on);
+    if (on) {
+      app.panelLevelSelect.setAlpha(0f);
+      TweenManager tm = P5Engine.getInstance().getTweenManager();
+      tm.toAlpha(app.panelLevelSelect, 1f, 0.8f)
+        .ease(shenyf.p5engine.tween.Ease::outQuad)
+        .start();
+      // 子元素依次淡入
+      java.util.List<UIComponent> children = app.panelLevelSelect.getChildren();
+      for (int i = 0; i < children.size(); i++) {
+        UIComponent c = children.get(i);
+        c.setAlpha(0f);
+        tm.toAlpha(c, 1f, 0.5f)
+          .ease(shenyf.p5engine.tween.Ease::outQuad)
+          .delay(0.2f + i * 0.12f)
+          .start();
+      }
+    }
     if (!on) {
       app.panelMenu.setVisible(true);
+      animateMenuFadeIn();
     }
   }
 
@@ -116,6 +136,7 @@ static final class TdFlowController {
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setVisible(false);
     }
+    animateMenuFadeIn();
   }
 
   void tryLoadGame() {
@@ -246,6 +267,7 @@ static final class TdFlowController {
       updateTowerHint();
     }
     sketchUi.renderFrame();
+    app.engine.renderDebugOverlay();
   }
 
   void drawHudBackdrop() {
@@ -262,14 +284,89 @@ static final class TdFlowController {
     app.popStyle();
   }
 
+  private void animateMenuFadeIn() {
+    println("[TweenDebug] animateMenuFadeIn called");
+    if (app.panelMenu == null) return;
+    TweenManager tm = P5Engine.getInstance().getTweenManager();
+
+    // 先把所有元素设为透明
+    app.panelMenu.setAlpha(0f);
+    if (app.lblMenuHint != null) app.lblMenuHint.setAlpha(0f);
+    UIComponent[] menuButtons = {app.btnStart, app.btnLoad, app.btnSettings, app.btnQuit};
+    for (UIComponent btn : menuButtons) {
+      if (btn != null) btn.setAlpha(0f);
+    }
+    if (app.lblLoadMsg != null) app.lblLoadMsg.setAlpha(0f);
+
+    // 面板背景立即开始淡入（快速铺底）
+    tm.toAlpha(app.panelMenu, 1f, 0.6f)
+      .ease(shenyf.p5engine.tween.Ease::outQuad)
+      .start();
+
+    // 标题立即开始缓慢显现（1.2s）
+    if (app.lblMenuHint != null) {
+      tm.toAlpha(app.lblMenuHint, 1f, 1.2f)
+        .ease(shenyf.p5engine.tween.Ease::outQuad)
+        .start();
+    }
+
+    // 等标题显现完毕后，按钮依次淡入（整体 1.5s）
+    float titleDur = 1.2f;
+    float btnDur = 1.5f;
+    float btnStagger = 0.15f;
+    for (int i = 0; i < menuButtons.length; i++) {
+      if (menuButtons[i] != null) {
+        tm.toAlpha(menuButtons[i], 1f, btnDur)
+          .ease(shenyf.p5engine.tween.Ease::outQuad)
+          .delay(titleDur + i * btnStagger)
+          .start();
+      }
+    }
+
+    // 载入提示在按钮之后淡入
+    if (app.lblLoadMsg != null) {
+      tm.toAlpha(app.lblLoadMsg, 1f, 0.5f)
+        .ease(shenyf.p5engine.tween.Ease::outQuad)
+        .delay(titleDur + btnDur + 0.2f)
+        .start();
+    }
+  }
+
   void showEnd(boolean win) {
+    println("[TweenDebug] showEnd(" + win + ")");
     app.buildArmed = false;
     app.appMode = win ? 3 : 4;
     if (app.lblEndMsg != null) {
       app.lblEndMsg.setText(win ? "胜利 — 仍有能量球在控制下" : "失败 — 全部能量球已撤离");
     }
     if (app.panelEndOverlay != null) {
+      app.panelEndOverlay.setAlpha(0f);
       app.panelEndOverlay.setVisible(true);
+      TweenManager tm = P5Engine.getInstance().getTweenManager();
+      tm.toAlpha(app.panelEndOverlay, 1f, 0.8f)
+        .ease(shenyf.p5engine.tween.Ease::outSine)
+        .start();
+
+      // 文字先淡入
+      if (app.lblEndMsg != null) {
+        app.lblEndMsg.setAlpha(0f);
+        tm.toAlpha(app.lblEndMsg, 1f, 0.6f)
+          .ease(shenyf.p5engine.tween.Ease::outQuad)
+          .delay(0.2f)
+          .start();
+      }
+
+      // 可见按钮延迟淡入
+      UIComponent[] endButtons = {app.btnNextLevel, app.btnReplayLevel, app.btnEndMenu};
+      for (int i = 0; i < endButtons.length; i++) {
+        if (endButtons[i] != null && endButtons[i].isVisible()) {
+          endButtons[i].setAlpha(0f);
+          tm.toAlpha(endButtons[i], 1f, 0.5f)
+            .ease(shenyf.p5engine.tween.Ease::outQuad)
+            .delay(0.5f + i * 0.15f)
+            .start();
+        }
+      }
     }
   }
 

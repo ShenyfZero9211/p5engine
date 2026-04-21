@@ -35,6 +35,7 @@ public class CircleCollider extends Component implements Collider {
         float ax = getCenterX();
         float ay = getCenterY();
         float ar = getCollisionRadius();
+        shenyf.p5engine.scene.Scene scene = getGameObject().getScene();
 
         for (GameObject other : allObjects) {
             if (other == getGameObject() || !other.isActive()) continue;
@@ -50,6 +51,10 @@ public class CircleCollider extends Component implements Collider {
                     float dy = ay - by;
                     float distSq = dx * dx + dy * dy;
                     float minDist = ar + br;
+
+                    if (scene != null) {
+                        scene.incrementCollisionCheckCount();
+                    }
 
                     if (distSq < minDist * minDist) {
                         onCollision(other);

@@ -54,6 +54,7 @@ public class RadioButton extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawRadio(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), label, isSelected(), hover, !isEnabled());
     }
 

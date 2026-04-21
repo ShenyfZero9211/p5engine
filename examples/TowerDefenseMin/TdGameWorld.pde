@@ -151,6 +151,12 @@ static final class TdGameWorld {
     tc.kind = k;
     tc.buildAccum = fullyBuilt ? TdConfig.TOWER_BUILD_SECONDS : 0f;
     scene.addGameObject(go);
+    // 建造出生缩放动画
+    go.getTransform().setScale(0.01f, 0.01f);
+    engine.getTweenManager()
+      .toScale(go, new Vector2(1f, 1f), 0.3f)
+      .ease(shenyf.p5engine.tween.Ease::outBack)
+      .start();
   }
 
   /** @return 0 = playing, 1 = lose, 2 = win */

@@ -16,6 +16,7 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\config\annotation\Config
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\config\env\EnvironmentDetector.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\config\util\ConfigUtils.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\core\P5Config.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\debug\DebugOverlay.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\event\EventListener.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\event\EventSystem.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\event\GameEvent.java
@@ -81,3 +82,8 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\UIManager.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Window.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\Logger.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\SingleInstanceGuard.java
+
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Ease.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\EaseFunction.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Tween.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\TweenManager.java

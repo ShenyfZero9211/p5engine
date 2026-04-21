@@ -79,6 +79,7 @@ public final class MenuPopup extends Panel {
 
         @Override
         public void paint(PApplet applet, Theme theme) {
+            theme.setCurrentAlpha(getEffectiveAlpha());
             theme.drawMenuItem(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(),
                 getLabel(), hover, pressedVisual, !isEnabled());
         }

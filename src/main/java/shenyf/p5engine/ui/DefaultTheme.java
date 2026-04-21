@@ -4,6 +4,8 @@ import processing.core.PApplet;
 
 public final class DefaultTheme implements Theme {
 
+    private float currentAlpha = 1f;
+
     private static final int BG = 0xFF2B2B2B;
     private static final int PANEL = 0xFF3A3A3A;
     private static final int BORDER = 0xFF555555;
@@ -14,9 +16,9 @@ public final class DefaultTheme implements Theme {
     @Override
     public void drawPanel(PApplet g, float x, float y, float w, float h, boolean focused) {
         g.noStroke();
-        g.fill(PANEL);
+        g.fill(a(PANEL));
         g.rect(x, y, w, h);
-        g.stroke(focused ? ACCENT : BORDER);
+        g.stroke(a(focused ? ACCENT : BORDER));
         g.strokeWeight(1);
         g.noFill();
         g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
@@ -25,9 +27,9 @@ public final class DefaultTheme implements Theme {
     @Override
     public void drawFrame(PApplet g, float x, float y, float w, float h) {
         g.noStroke();
-        g.fill(PANEL);
+        g.fill(a(PANEL));
         g.rect(x, y, w, h);
-        g.stroke(BORDER);
+        g.stroke(a(BORDER));
         g.strokeWeight(2);
         g.noFill();
         g.rect(x + 1, y + 1, w - 2, h - 2);
@@ -36,15 +38,15 @@ public final class DefaultTheme implements Theme {
     @Override
     public void drawWindowChrome(PApplet g, float x, float y, float w, float h, float titleH, String title, boolean focused) {
         g.noStroke();
-        g.fill(0xFF1E1E1E);
+        g.fill(a(0xFF1E1E1E));
         g.rect(x, y, w, titleH);
-        g.fill(PANEL);
+        g.fill(a(PANEL));
         g.rect(x, y + titleH, w, h - titleH);
-        g.stroke(focused ? ACCENT : BORDER);
+        g.stroke(a(focused ? ACCENT : BORDER));
         g.strokeWeight(1);
         g.noFill();
         g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
-        g.fill(TEXT);
+        g.fill(a(TEXT));
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(Math.min(14, titleH * 0.55f));
         float tx = x + 8;
@@ -62,13 +64,13 @@ public final class DefaultTheme implements Theme {
     public void drawButton(PApplet g, float x, float y, float w, float h, String label, boolean hover, boolean pressed, boolean disabled) {
         int fill = disabled ? 0xFF444444 : (pressed ? 0xFF2A5A8A : (hover ? 0xFF3D5F80 : 0xFF333333));
         g.noStroke();
-        g.fill(fill);
+        g.fill(a(fill));
         g.rect(x, y, w, h);
-        g.stroke(disabled ? BORDER : (hover ? ACCENT : BORDER));
+        g.stroke(a(disabled ? BORDER : (hover ? ACCENT : BORDER)));
         g.strokeWeight(1);
         g.noFill();
         g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
-        g.fill(disabled ? TEXT_DIM : TEXT);
+        g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.45f));
         g.text(label != null ? label : "", x + w * 0.5f, y + h * 0.5f);
@@ -79,16 +81,16 @@ public final class DefaultTheme implements Theme {
         float box = Math.min(h - 6, 16);
         float bx = x + 4;
         float by = y + (h - box) * 0.5f;
-        g.stroke(disabled ? BORDER : (hover ? ACCENT : BORDER));
+        g.stroke(a(disabled ? BORDER : (hover ? ACCENT : BORDER)));
         g.strokeWeight(1);
-        g.fill(disabled ? 0xFF333333 : BG);
+        g.fill(a(disabled ? 0xFF333333 : BG));
         g.rect(bx, by, box, box);
         if (checked) {
-            g.stroke(ACCENT);
+            g.stroke(a(ACCENT));
             g.line(bx + 3, by + box * 0.5f, bx + box * 0.35f, by + box - 3);
             g.line(bx + box * 0.35f, by + box - 3, bx + box - 2, by + 2);
         }
-        g.fill(disabled ? TEXT_DIM : TEXT);
+        g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.noStroke();
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.45f));
@@ -100,16 +102,16 @@ public final class DefaultTheme implements Theme {
         float r = Math.min(h - 6, 14) * 0.5f;
         float cx = x + 4 + r;
         float cy = y + h * 0.5f;
-        g.stroke(disabled ? BORDER : (hover ? ACCENT : BORDER));
+        g.stroke(a(disabled ? BORDER : (hover ? ACCENT : BORDER)));
         g.strokeWeight(1);
-        g.fill(disabled ? 0xFF333333 : BG);
+        g.fill(a(disabled ? 0xFF333333 : BG));
         g.ellipse(cx, cy, r * 2, r * 2);
         if (selected) {
             g.noStroke();
-            g.fill(ACCENT);
+            g.fill(a(ACCENT));
             g.ellipse(cx, cy, r * 1.1f, r * 1.1f);
         }
-        g.fill(disabled ? TEXT_DIM : TEXT);
+        g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.45f));
         g.text(label != null ? label : "", x + 4 + r * 2 + 10, y + h * 0.5f);
@@ -117,28 +119,20 @@ public final class DefaultTheme implements Theme {
 
     @Override
     public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
-        g.fill(disabled ? TEXT_DIM : TEXT);
+        g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.noStroke();
         g.textAlign(textAlign, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.5f));
-        float tx;
-        if (textAlign == PApplet.LEFT) {
-            tx = x + 4;
-        } else if (textAlign == PApplet.RIGHT) {
-            tx = x + w - 4;
-        } else {
-            tx = x + w * 0.5f;
-        }
-        g.text(text != null ? text : "", tx, y + h * 0.5f);
+        g.text(text != null ? text : "", x, y, w, h);
     }
 
     @Override
     public void drawTextField(PApplet g, float x, float y, float w, float h, String text, int caretIndex, boolean focused, boolean disabled) {
-        g.stroke(disabled ? BORDER : (focused ? ACCENT : BORDER));
+        g.stroke(a(disabled ? BORDER : (focused ? ACCENT : BORDER)));
         g.strokeWeight(1);
-        g.fill(disabled ? 0xFF333333 : BG);
+        g.fill(a(disabled ? 0xFF333333 : BG));
         g.rect(x, y, w, h);
-        g.fill(disabled ? TEXT_DIM : TEXT);
+        g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.noStroke();
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         float textSize = Math.min(14, h * 0.45f);
@@ -155,7 +149,7 @@ public final class DefaultTheme implements Theme {
             }
             String prefix = t.substring(0, ci);
             float tw = g.textWidth(prefix);
-            g.stroke(ACCENT);
+            g.stroke(a(ACCENT));
             g.line(x + 6 + tw, y + 6, x + 6 + tw, y + h - 6);
         }
     }
@@ -164,23 +158,23 @@ public final class DefaultTheme implements Theme {
     public void drawSliderTrack(PApplet g, float x, float y, float w, float h, float value01, boolean hover, boolean disabled) {
         float v = clamp01(value01);
         g.noStroke();
-        g.fill(disabled ? 0xFF333333 : 0xFF252525);
+        g.fill(a(disabled ? 0xFF333333 : 0xFF252525));
         g.rect(x, y + h * 0.35f, w, h * 0.3f);
-        g.fill(disabled ? BORDER : ACCENT);
+        g.fill(a(disabled ? BORDER : ACCENT));
         g.rect(x, y + h * 0.35f, w * v, h * 0.3f);
         float knobX = x + w * v;
-        g.stroke(hover && !disabled ? ACCENT : BORDER);
+        g.stroke(a(hover && !disabled ? ACCENT : BORDER));
         g.strokeWeight(1);
-        g.fill(disabled ? 0xFF555555 : 0xFFCCCCCC);
+        g.fill(a(disabled ? 0xFF555555 : 0xFFCCCCCC));
         g.ellipse(knobX, y + h * 0.5f, h * 0.55f, h * 0.55f);
     }
 
     @Override
     public void drawScrollBar(PApplet g, float x, float y, float w, float h, float thumbStart, float thumbLen, boolean vertical, boolean hover, boolean disabled) {
         g.noStroke();
-        g.fill(0xFF222222);
+        g.fill(a(0xFF222222));
         g.rect(x, y, w, h);
-        g.fill(disabled ? 0xFF555555 : (hover ? 0xFF777777 : 0xFF666666));
+        g.fill(a(disabled ? 0xFF555555 : (hover ? 0xFF777777 : 0xFF666666)));
         if (vertical) {
             g.rect(x + 1, y + thumbStart, w - 2, Math.max(8, thumbLen));
         } else {
@@ -192,11 +186,11 @@ public final class DefaultTheme implements Theme {
     public void drawProgressBar(PApplet g, float x, float y, float w, float h, float value01, boolean disabled) {
         float v = clamp01(value01);
         g.noStroke();
-        g.fill(disabled ? 0xFF333333 : 0xFF252525);
+        g.fill(a(disabled ? 0xFF333333 : 0xFF252525));
         g.rect(x, y, w, h);
-        g.fill(disabled ? BORDER : ACCENT);
+        g.fill(a(disabled ? BORDER : ACCENT));
         g.rect(x, y, w * v, h);
-        g.stroke(BORDER);
+        g.stroke(a(BORDER));
         g.strokeWeight(1);
         g.noFill();
         g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
@@ -204,9 +198,9 @@ public final class DefaultTheme implements Theme {
 
     @Override
     public void drawList(PApplet g, float x, float y, float w, float h, java.util.List<String> items, int firstIndex, int selectedIndex, boolean focused, boolean disabled) {
-        g.stroke(disabled ? BORDER : (focused ? ACCENT : BORDER));
+        g.stroke(a(disabled ? BORDER : (focused ? ACCENT : BORDER)));
         g.strokeWeight(1);
-        g.fill(BG);
+        g.fill(a(BG));
         g.rect(x, y, w, h);
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(13);
@@ -217,10 +211,10 @@ public final class DefaultTheme implements Theme {
             if (ry + rowH > y + h) break;
             if (i == selectedIndex) {
                 g.noStroke();
-                g.fill(0xFF2A4A6A);
+                g.fill(a(0xFF2A4A6A));
                 g.rect(x + 1, ry, w - 2, rowH);
             }
-            g.fill(disabled ? TEXT_DIM : TEXT);
+            g.fill(a(disabled ? TEXT_DIM : TEXT));
             g.noStroke();
             g.text(items.get(i), x + 6, ry + rowH * 0.5f);
             idx++;
@@ -235,13 +229,13 @@ public final class DefaultTheme implements Theme {
             float tx = x + i * tw;
             boolean sel = i == selected;
             g.noStroke();
-            g.fill(sel ? PANEL : 0xFF2A2A2A);
+            g.fill(a(sel ? PANEL : 0xFF2A2A2A));
             g.rect(tx, y, tw, h);
-            g.stroke(focused && sel ? ACCENT : BORDER);
+            g.stroke(a(focused && sel ? ACCENT : BORDER));
             g.strokeWeight(1);
             g.noFill();
             g.rect(tx + 0.5f, y + 0.5f, tw - 1, h - 1);
-            g.fill(TEXT);
+            g.fill(a(TEXT));
             g.textAlign(PApplet.CENTER, PApplet.CENTER);
             g.textSize(Math.min(13, h * 0.45f));
             g.text(titles[i], tx + tw * 0.5f, y + h * 0.5f);
@@ -252,16 +246,31 @@ public final class DefaultTheme implements Theme {
     public void drawImage(PApplet g, float x, float y, float w, float h, processing.core.PImage img, boolean disabled) {
         if (img == null) {
             g.noStroke();
-            g.fill(0xFF333333);
+            g.fill(a(0xFF333333));
             g.rect(x, y, w, h);
             return;
         }
         g.pushStyle();
+        int baseAlpha = Math.round(255 * currentAlpha);
         if (disabled) {
-            g.tint(255, 120);
+            g.tint(255, Math.round(baseAlpha * 120f / 255f));
+        } else if (currentAlpha < 1f) {
+            g.tint(255, baseAlpha);
         }
         g.image(img, x, y, w, h);
         g.popStyle();
+    }
+
+    @Override
+    public void setCurrentAlpha(float alpha) {
+        this.currentAlpha = Math.max(0f, Math.min(1f, alpha));
+    }
+
+    private int a(int color) {
+        if (currentAlpha >= 1f) return color;
+        int origA = (color >>> 24) & 0xFF;
+        int newA = Math.round(origA * currentAlpha);
+        return (newA << 24) | (color & 0x00FFFFFF);
     }
 
     private static float clamp01(float v) {

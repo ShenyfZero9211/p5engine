@@ -5,6 +5,19 @@
 static final class TdSciFiTheme implements Theme {
 
   private final DefaultTheme base = new DefaultTheme();
+  private float currentAlpha = 1.0f;
+
+  @Override
+  public void setCurrentAlpha(float alpha) {
+    this.currentAlpha = alpha;
+  }
+
+  private int ca(PApplet g, int r, int gr, int b) {
+    return g.color(r, gr, b, (int)(255 * currentAlpha));
+  }
+  private int ca(PApplet g, int r, int gr, int b, int a) {
+    return g.color(r, gr, b, (int)(a * currentAlpha));
+  }
 
   private static void font(PApplet g) {
     if (TdUiFonts.UI_FONT != null) {
@@ -17,9 +30,9 @@ static final class TdSciFiTheme implements Theme {
     font(g);
     g.pushStyle();
     g.noStroke();
-    g.fill(10, 18, 34, 218);
+    g.fill(ca(g, 10, 18, 34, 218));
     g.rect(x, y, w, h);
-    int border = focused ? g.color(72, 220, 255) : g.color(70, 140, 168);
+    int border = focused ? ca(g, 72, 220, 255) : ca(g, 70, 140, 168);
     g.stroke(border);
     g.strokeWeight(1);
     g.noFill();
@@ -31,18 +44,18 @@ static final class TdSciFiTheme implements Theme {
   public void drawButton(PApplet g, float x, float y, float w, float h, String label, boolean hover, boolean pressed, boolean disabled) {
     font(g);
     g.pushStyle();
-    int fillBg = disabled ? g.color(28, 28, 32, 200)
-      : (pressed ? g.color(24, 48, 72, 240) : (hover ? g.color(18, 36, 58, 235) : g.color(14, 24, 44, 228)));
+    int fillBg = disabled ? ca(g, 28, 28, 32, 200)
+      : (pressed ? ca(g, 24, 48, 72, 240) : (hover ? ca(g, 18, 36, 58, 235) : ca(g, 14, 24, 44, 228)));
     g.noStroke();
     g.fill(fillBg);
     g.rect(x, y, w, h);
-    int strokeCol = disabled ? g.color(80, 90, 100)
-      : (hover || pressed ? g.color(255, 130, 55) : g.color(72, 190, 215));
+    int strokeCol = disabled ? ca(g, 80, 90, 100)
+      : (hover || pressed ? ca(g, 255, 130, 55) : ca(g, 72, 190, 215));
     g.stroke(strokeCol);
     g.strokeWeight(hover ? 2 : 1);
     g.noFill();
     g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
-    int tx = disabled ? g.color(140, 145, 155) : (hover ? g.color(255, 248, 235) : g.color(232, 238, 245));
+    int tx = disabled ? ca(g, 140, 145, 155) : (hover ? ca(g, 255, 248, 235) : ca(g, 232, 238, 245));
     g.fill(tx);
     g.textAlign(PApplet.CENTER, PApplet.CENTER);
     float ts = Math.max(13f, Math.min(17f, h * 0.48f));
@@ -52,19 +65,33 @@ static final class TdSciFiTheme implements Theme {
   }
 
   @Override
-  public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled) {
+  public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
     font(g);
     g.pushStyle();
-    g.fill(disabled ? g.color(130, 135, 145) : g.color(255, 135, 70));
+    g.fill(disabled ? ca(g, 130, 135, 145) : ca(g, 255, 135, 70));
     g.noStroke();
     boolean centerTitle = text != null && text.startsWith("p5engine");
-    g.textAlign(centerTitle ? PApplet.CENTER : PApplet.LEFT, PApplet.CENTER);
     float ts = Math.max(13f, Math.min(22f, h * 0.55f));
     g.textSize(ts);
     if (centerTitle) {
+      g.textAlign(PApplet.CENTER, PApplet.CENTER);
       g.text(text, x + w * 0.5f, y + h * 0.5f);
+    } else if (text != null && text.indexOf('\n') >= 0) {
+      // 多行文本：使用文本框模式，在限定宽高内自动换行
+      g.textAlign(textAlign, PApplet.TOP);
+      g.textLeading(ts * 1.25f);
+      g.text(text, x + 4, y + 4, w - 8, h - 8);
     } else {
-      g.text(text != null ? text : "", x + 6, y + h * 0.5f);
+      g.textAlign(textAlign, PApplet.CENTER);
+      float tx;
+      if (textAlign == PApplet.LEFT) {
+        tx = x + 6;
+      } else if (textAlign == PApplet.RIGHT) {
+        tx = x + w - 6;
+      } else {
+        tx = x + w * 0.5f;
+      }
+      g.text(text != null ? text : "", tx, y + h * 0.5f);
     }
     g.popStyle();
   }
@@ -77,14 +104,14 @@ static final class TdSciFiTheme implements Theme {
     if (v < 0) v = 0;
     if (v > 1) v = 1;
     g.noStroke();
-    g.fill(disabled ? 30 : 18, disabled ? 30 : 26, disabled ? 32 : 40, 220);
+    g.fill(ca(g, disabled ? 30 : 18, disabled ? 30 : 26, disabled ? 32 : 40, 220));
     g.rect(x, y + h * 0.35f, w, h * 0.3f);
-    g.fill(disabled ? 80 : 0, disabled ? 80 : 200, disabled ? 90 : 220, disabled ? 120 : 200);
+    g.fill(ca(g, disabled ? 80 : 0, disabled ? 80 : 200, disabled ? 90 : 220, disabled ? 120 : 200));
     g.rect(x, y + h * 0.35f, w * v, h * 0.3f);
     float knobX = x + w * v;
-    g.stroke(hover && !disabled ? g.color(255, 140, 60) : g.color(100, 180, 205));
+    g.stroke(hover && !disabled ? ca(g, 255, 140, 60) : ca(g, 100, 180, 205));
     g.strokeWeight(1);
-    g.fill(disabled ? 90 : 220, disabled ? 90 : 240, disabled ? 95 : 255);
+    g.fill(ca(g, disabled ? 90 : 220, disabled ? 90 : 240, disabled ? 95 : 255));
     g.ellipse(knobX, y + h * 0.5f, h * 0.55f, h * 0.55f);
     g.popStyle();
   }
@@ -102,15 +129,15 @@ static final class TdSciFiTheme implements Theme {
     font(g);
     g.pushStyle();
     g.noStroke();
-    g.fill(12, 20, 38, 245);
+    g.fill(ca(g, 12, 20, 38, 245));
     g.rect(x, y, w, titleH);
-    g.fill(10, 16, 30, 230);
+    g.fill(ca(g, 10, 16, 30, 230));
     g.rect(x, y + titleH, w, h - titleH);
-    g.stroke(focused ? g.color(72, 220, 255) : g.color(70, 130, 155));
+    g.stroke(focused ? ca(g, 72, 220, 255) : ca(g, 70, 130, 155));
     g.strokeWeight(1);
     g.noFill();
     g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1);
-    g.fill(255, 125, 55);
+    g.fill(ca(g, 255, 125, 55));
     g.textAlign(PApplet.LEFT, PApplet.CENTER);
     g.textSize(Math.min(15f, titleH * 0.55f));
     g.text(title != null ? title : "", x + 8, y + titleH * 0.5f);

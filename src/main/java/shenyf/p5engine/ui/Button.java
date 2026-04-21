@@ -38,6 +38,7 @@ public class Button extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawButton(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), label, hover, pressedVisual, !isEnabled());
     }
 

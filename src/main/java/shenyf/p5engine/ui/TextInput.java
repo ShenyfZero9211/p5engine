@@ -36,6 +36,7 @@ public class TextInput extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         lastAppletForMeasure = applet;
         boolean focused = UIManager.isPaintingContext(this);
         theme.drawTextField(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text.toString(), caretIndex, focused, !isEnabled());

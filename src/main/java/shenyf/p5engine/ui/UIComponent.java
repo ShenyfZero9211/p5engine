@@ -14,6 +14,7 @@ public abstract class UIComponent {
     private boolean enabled = true;
     private int zOrder;
     private boolean focusable;
+    private float alpha = 1.0f;
     private Object layoutConstraint;
     private boolean layoutDirty = true;
 
@@ -104,6 +105,25 @@ public abstract class UIComponent {
 
     public void setFocusable(boolean focusable) {
         this.focusable = focusable;
+    }
+
+    public float getAlpha() {
+        return alpha;
+    }
+
+    public void setAlpha(float alpha) {
+        this.alpha = Math.max(0f, Math.min(1f, alpha));
+    }
+
+    /**
+     * Returns the effective alpha by multiplying this component's alpha
+     * with all parent alphas, allowing child components to fade with their parent.
+     */
+    public float getEffectiveAlpha() {
+        if (parent == null) {
+            return alpha;
+        }
+        return alpha * parent.getEffectiveAlpha();
     }
 
     public Object getLayoutConstraint() {

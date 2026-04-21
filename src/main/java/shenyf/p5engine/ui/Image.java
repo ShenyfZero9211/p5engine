@@ -23,6 +23,7 @@ public class Image extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawImage(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), image, !isEnabled());
     }
 }

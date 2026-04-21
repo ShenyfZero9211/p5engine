@@ -21,6 +21,7 @@ public class ProgressBar extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawProgressBar(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), value01, !isEnabled());
     }
 

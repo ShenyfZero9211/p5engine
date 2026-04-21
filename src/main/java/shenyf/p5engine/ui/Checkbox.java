@@ -37,6 +37,7 @@ public class Checkbox extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawCheckbox(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), label, checked, hover, !isEnabled());
     }
 

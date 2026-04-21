@@ -29,6 +29,7 @@ public class Slider extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
+        theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawSliderTrack(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), value01, hover, !isEnabled());
     }
 

@@ -9,9 +9,11 @@ import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.input.InputManager;
 import shenyf.p5engine.event.EventSystem;
 import shenyf.p5engine.pool.ObjectPool;
+import shenyf.p5engine.tween.TweenManager;
 import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
 import shenyf.p5engine.util.SingleInstanceGuard;
+import shenyf.p5engine.debug.DebugOverlay;
 import java.awt.Frame;
 import javax.swing.JOptionPane;
 
@@ -29,8 +31,10 @@ public class P5Engine {
     private final shenyf.p5engine.time.Scheduler scheduler;
     private final EventSystem eventSystem;
     private final ObjectPool objectPool;
+    private final TweenManager tweenManager;
     private final SketchConfig sketchConfig;
     private final SingleInstanceGuard singleInstanceGuard;
+    private final DebugOverlay debugOverlay;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -61,13 +65,19 @@ public class P5Engine {
         this.scheduler = new shenyf.p5engine.time.Scheduler();
         this.eventSystem = new EventSystem();
         this.objectPool = new ObjectPool();
+        this.tweenManager = new TweenManager();
+        this.debugOverlay = new DebugOverlay();
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
     }
 
     public static P5Engine create(PApplet applet) {
-        return create(applet, P5Config.defaults());
+        P5Config config = P5Config.defaults();
+        if (applet.width > 0 && applet.height > 0) {
+            config.width(applet.width).height(applet.height);
+        }
+        return create(applet, config);
     }
 
     public static P5Engine create(PApplet applet, P5Config config) {
@@ -150,6 +160,18 @@ public class P5Engine {
         if (config.isDebugMode()) {
             Logger.setDebugEnabled(true);
             Logger.info("  Debug mode: enabled");
+        }
+        if (config.isDebugOverlay()) {
+            debugOverlay.toggle();
+            Logger.info("  Debug overlay: enabled");
+        }
+
+        // Initialize logging
+        Logger.setLevel(config.getLogLevel());
+        if (config.isLogToFile()) {
+            Logger.setFileLogging(true);
+            Logger.setLogDirectory(applet.sketchPath(config.getLogDir()));
+            Logger.info("  File logging: enabled -> " + config.getLogDir());
         }
 
         renderer.initialize();
@@ -256,6 +278,21 @@ public class P5Engine {
             keyChar = event.getKey();
             keyCode = code;
             keyPressedState = true;
+
+            // Debug overlay shortcuts
+            char k = event.getKey();
+            if (k == '`' || k == '~' || code == java.awt.event.KeyEvent.VK_BACK_QUOTE) {
+                debugOverlay.toggle();
+            } else if (code == java.awt.event.KeyEvent.VK_F2 || k == '1') {
+                debugOverlay.toggleGizmos();
+            } else if (code == java.awt.event.KeyEvent.VK_F3 || k == '2') {
+                debugOverlay.toggleTree();
+            } else if (code == java.awt.event.KeyEvent.VK_F4 || k == '3') {
+                debugOverlay.toggleHud();
+            } else if (code == java.awt.event.KeyEvent.VK_F5 || k == '4') {
+                Logger.cycleLevel();
+            }
+
             dispatchKeyEventToComponents(code, true);
         } else if (action == processing.event.KeyEvent.RELEASE) {
             keyPressedState = false;
@@ -356,6 +393,7 @@ public class P5Engine {
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
         inputManager.postUpdate();
         scheduler.update(deltaTime);
+        tweenManager.update(gameTime.getDeltaTime());
 
         refreshNativeWindowTitle();
     }
@@ -464,6 +502,9 @@ public class P5Engine {
             renderer.clear(backgroundColor);
             activeScene.render(renderer);
         }
+        if (debugOverlay != null) {
+            debugOverlay.render(applet, this);
+        }
     }
 
     /**
@@ -559,6 +600,24 @@ public class P5Engine {
 
     public ObjectPool getObjectPool() {
         return objectPool;
+    }
+
+    public TweenManager getTweenManager() {
+        return tweenManager;
+    }
+
+    public DebugOverlay getDebugOverlay() {
+        return debugOverlay;
+    }
+
+    /**
+     * Renders the debug overlay on top of the current frame.
+     * Call this at the end of your sketch's {@code draw()} if you are not using {@link #render()}.
+     */
+    public void renderDebugOverlay() {
+        if (debugOverlay != null) {
+            debugOverlay.render(applet, this);
+        }
     }
 
     public boolean isRunning() {
