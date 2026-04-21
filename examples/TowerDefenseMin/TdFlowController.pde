@@ -17,6 +17,8 @@ static final class TdFlowController {
     TdUiFonts.init(app, app.ui);
     TdMainUiBuilder.build(app, app.ui, this);
     app.ui.setTheme(new TdSciFiTheme());
+    loadSettings();
+    playBgmMenu();
     animateMenuFadeIn();
   }
 
@@ -24,6 +26,9 @@ static final class TdFlowController {
     app.appMode = on ? 1 : 0;
     app.panelSettings.setVisible(on);
     app.panelMenu.setVisible(!on);
+    if (!on) {
+      saveSettings();
+    }
   }
 
   void enterLevelSelect(boolean on) {
@@ -50,6 +55,24 @@ static final class TdFlowController {
     if (!on) {
       app.panelMenu.setVisible(true);
       animateMenuFadeIn();
+    }
+  }
+
+  void applyAudioSettings() {
+    if (app.sliderMasterVol != null) {
+      float v = app.sliderMasterVol.getValue();
+      app.lblMasterVal.setText(Math.round(v * 100) + "%");
+      app.engine.getAudio().setMasterVolume(v);
+    }
+    if (app.sliderBgmVol != null) {
+      float v = app.sliderBgmVol.getValue();
+      app.lblBgmVal.setText(Math.round(v * 100) + "%");
+      app.engine.getAudio().setGroupVolume("bgm", v);
+    }
+    if (app.sliderSfxVol != null) {
+      float v = app.sliderSfxVol.getValue();
+      app.lblSfxVal.setText(Math.round(v * 100) + "%");
+      app.engine.getAudio().setGroupVolume("sfx", v);
     }
   }
 
@@ -154,13 +177,6 @@ static final class TdFlowController {
         return;
       }
       app.world.applyEconomyAndWavesFromJson(o);
-      if (o.hasKey("sliderEnemyMult") && app.sliderEnemyMult != null) {
-        app.sliderEnemyMult.setValue(o.getFloat("sliderEnemyMult", 0.5f));
-      }
-      if (o.hasKey("sliderTargetFps") && app.sliderTargetFps != null) {
-        app.sliderTargetFps.setValue(o.getFloat("sliderTargetFps", 0.33f));
-      }
-      applySettingsMultipliers();
       startNewGame(true);
       app.world.loadTowersFromJson(o.getJSONArray("towers"));
       app.lblLoadMsg.setText("已载入");
@@ -170,14 +186,58 @@ static final class TdFlowController {
     }
   }
 
+  // ===== Settings persistence (separate from game progress) =====
+
+  void saveSettings() {
+    try {
+      JSONObject o = new JSONObject();
+      o.setFloat("sliderEnemyMult", app.sliderEnemyMult != null ? app.sliderEnemyMult.getValue() : 0.5f);
+      o.setFloat("sliderTargetFps", app.sliderTargetFps != null ? app.sliderTargetFps.getValue() : 0.33f);
+      o.setFloat("sliderMasterVol", app.sliderMasterVol != null ? app.sliderMasterVol.getValue() : 1.0f);
+      o.setFloat("sliderBgmVol", app.sliderBgmVol != null ? app.sliderBgmVol.getValue() : 0.8f);
+      o.setFloat("sliderSfxVol", app.sliderSfxVol != null ? app.sliderSfxVol.getValue() : 1.0f);
+      app.saveJSONObject(o, app.sketchPath("settings.json"));
+    } catch (Exception e) {
+      println("[TD] save settings failed: " + e.getMessage());
+    }
+  }
+
+  void loadSettings() {
+    File f = new File(app.sketchPath("settings.json"));
+    if (!f.exists()) return;
+    try {
+      JSONObject o = app.loadJSONObject(f);
+      if (o == null) return;
+      if (o.hasKey("sliderEnemyMult") && app.sliderEnemyMult != null) {
+        app.sliderEnemyMult.setValue(o.getFloat("sliderEnemyMult", 0.5f));
+      }
+      if (o.hasKey("sliderTargetFps") && app.sliderTargetFps != null) {
+        app.sliderTargetFps.setValue(o.getFloat("sliderTargetFps", 0.33f));
+      }
+      if (o.hasKey("sliderMasterVol") && app.sliderMasterVol != null) {
+        app.sliderMasterVol.setValue(o.getFloat("sliderMasterVol", 1.0f));
+      }
+      if (o.hasKey("sliderBgmVol") && app.sliderBgmVol != null) {
+        app.sliderBgmVol.setValue(o.getFloat("sliderBgmVol", 0.8f));
+      }
+      if (o.hasKey("sliderSfxVol") && app.sliderSfxVol != null) {
+        app.sliderSfxVol.setValue(o.getFloat("sliderSfxVol", 1.0f));
+      }
+      applyAudioSettings();
+      applySettingsMultipliers();
+    } catch (Exception e) {
+      println("[TD] load settings failed: " + e.getMessage());
+    }
+  }
+
+  // ===== Game progress save/load (to be expanded later) =====
+
   void saveGame() {
     if (app.appMode != 2 && app.appMode != 3 && app.appMode != 4) return;
     try {
       JSONObject o = new JSONObject();
       o.setInt("version", 1);
       app.world.fillSaveJson(o);
-      o.setFloat("sliderEnemyMult", app.sliderEnemyMult != null ? app.sliderEnemyMult.getValue() : 0.5f);
-      o.setFloat("sliderTargetFps", app.sliderTargetFps != null ? app.sliderTargetFps.getValue() : 0.33f);
       o.setFloat("targetFps", settingsTargetFps());
       JSONArray ta = new JSONArray();
       Scene g = app.engine.getSceneManager().getActiveScene();
@@ -241,6 +301,8 @@ static final class TdFlowController {
     }
   }
 
+  int bgmRestartAt = -1;
+
   void drawFrame() {
     float dt = app.engine.getGameTime().getDeltaTime();
     app.background(14, 18, 30);
@@ -262,6 +324,12 @@ static final class TdFlowController {
       && app.mouseX < app.width - TdConfig.RIGHT_W
       && app.mouseY >= TdConfig.TOP_HUD;
     app.world.drawBattlefield(app.buildSelected, app.appMode, app.showTowerRangeOverlay || ghostPreview, app.buildArmed);
+
+    // 延迟重启 BGM（设置面板调完音量后）
+    if (bgmRestartAt > 0 && app.millis() >= bgmRestartAt) {
+      bgmRestartAt = -1;
+      playBgmMenu();
+    }
 
     TdUiLayout.layout(app);
     sketchUi.updateFrame(dt);
@@ -338,7 +406,7 @@ static final class TdFlowController {
     println("[TweenDebug] showEnd(" + win + ")");
     app.buildArmed = false;
     app.appMode = win ? 3 : 4;
-    playSfx(win ? "sounds/resonant-flute.wav" : "sounds/vocal-boo.wav");
+    playSfx(win ? "data/sounds/resonant-flute.wav" : "data/sounds/vocal-boo.wav");
     if (app.lblEndMsg != null) {
       app.lblEndMsg.setText(win ? "胜利 — 仍有能量球在控制下" : "失败 — 全部能量球已撤离");
     }
@@ -399,13 +467,24 @@ static final class TdFlowController {
     }
   }
 
+  void restartBgmMenuDelayed() {
+    // 只移除当前 BGM GameObject，不要 shutdown 整个 TinySound
+    //（stopAll 会关闭音频系统，导致 sfxCache 里的 Sound 对象全部失效）
+    app.sceneMenu.removeGameObjects("bgm_menu");
+    bgmRestartAt = app.millis() + 800;
+  }
+
   void playBgmMenu() {
     try {
-      app.engine.getAudio().stopAll();
-      BackgroundMusic bgm = new BackgroundMusic("sounds/keybloop.wav");
+      // 清理旧的 BGM GameObject，避免重复
+      // （removeGameObjects 会触发 BackgroundMusic.onDestroy 停止旧 BGM，不需要 stopAll）
+      app.sceneMenu.removeGameObjects("bgm_menu");
+      GameObject bgmGo = GameObject.create("bgm_menu");
+      BackgroundMusic bgm = bgmGo.addComponent(BackgroundMusic.class);
+      bgm.clipPath = "data/music/TopGun.ogg";
       bgm.loop = true;
-      bgm.volume = 0.6f;
-      app.sceneMenu.addComponent(bgm);
+      bgm.volume = 0.4f;
+      app.sceneMenu.addGameObject(bgmGo);
     } catch (Exception e) {
       // ignore
     }
@@ -413,11 +492,9 @@ static final class TdFlowController {
 
   void playBgmGame() {
     try {
-      app.engine.getAudio().stopAll();
-      BackgroundMusic bgm = new BackgroundMusic("music/TopGun.ogg");
-      bgm.loop = true;
-      bgm.volume = 0.5f;
-      app.sceneGame.addComponent(bgm);
+      // 停止菜单 BGM，不要 shutdown 整个音频系统（避免 sfxCache 失效）
+      app.sceneMenu.removeGameObjects("bgm_menu");
+      // 游戏 BGM 暂不播放
     } catch (Exception e) {
       // ignore
     }

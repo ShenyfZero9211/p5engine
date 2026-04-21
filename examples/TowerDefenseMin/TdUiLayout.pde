@@ -75,19 +75,36 @@ static final class TdUiLayout {
     }
 
     int sxs = (a.width - 280) / 2;
-    int sys = a.height / 2 - 140;
+    int sys = a.height / 2 - 180;
     if (a.settingsTitle != null) a.settingsTitle.setBounds(sxs, sys, 280, 28);
+    sys += 32;
+    // Master volume
+    if (a.lblMasterTitle != null) a.lblMasterTitle.setBounds(sxs, sys, 100, 22);
+    if (a.sliderMasterVol != null) a.sliderMasterVol.setBounds(sxs + 100, sys + 2, 140, 28);
+    if (a.lblMasterVal != null) a.lblMasterVal.setBounds(sxs + 248, sys, 60, 22);
+    sys += 32;
+    // BGM volume
+    if (a.lblBgmTitle != null) a.lblBgmTitle.setBounds(sxs, sys, 100, 22);
+    if (a.sliderBgmVol != null) a.sliderBgmVol.setBounds(sxs + 100, sys + 2, 140, 28);
+    if (a.lblBgmVal != null) a.lblBgmVal.setBounds(sxs + 248, sys, 60, 22);
+    sys += 32;
+    // SFX volume
+    if (a.lblSfxTitle != null) a.lblSfxTitle.setBounds(sxs, sys, 100, 22);
+    if (a.sliderSfxVol != null) a.sliderSfxVol.setBounds(sxs + 100, sys + 2, 140, 28);
+    if (a.lblSfxVal != null) a.lblSfxVal.setBounds(sxs + 248, sys, 60, 22);
     sys += 40;
+    // Enemy mult
     if (a.settingsLblEnemy != null) a.settingsLblEnemy.setBounds(sxs, sys, 280, 22);
     sys += 26;
     if (a.sliderEnemyMult != null) a.sliderEnemyMult.setBounds(sxs, sys, 260, 28);
-    sys += 38;
+    sys += 32;
+    // Target FPS
     if (a.settingsLblFps != null) a.settingsLblFps.setBounds(sxs, sys, 280, 22);
     sys += 26;
     if (a.sliderTargetFps != null) a.sliderTargetFps.setBounds(sxs, sys, 260, 28);
-    sys += 40;
-    if (a.lblSettingsNote != null) a.lblSettingsNote.setBounds(sxs, sys, 420, 44);
-    sys += 52;
+    sys += 32;
+    if (a.lblSettingsNote != null) a.lblSettingsNote.setBounds(sxs, sys, 420, 20);
+    sys += 28;
     if (a.btnSettingsBack != null) a.btnSettingsBack.setBounds((a.width - 160) / 2, sys, 160, 36);
 
     root.invalidateLayout();

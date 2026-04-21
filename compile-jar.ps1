@@ -36,10 +36,9 @@ if (-not (Test-Path $tinySound)) { throw "TinySound jar not found: $tinySound" }
 if (-not (Test-Path $sources)) { throw "sources.txt not found: $sources" }
 
 New-Item -ItemType Directory -Path $classes -Force | Out-Null
-$shenyfOut = Join-Path $classes "shenyf"
-if (Test-Path $shenyfOut) {
-    Remove-Item -Recurse -Force $shenyfOut
-}
+# Clean all previous class files to avoid stale bundled deps
+Get-ChildItem -Path $classes -Recurse | Remove-Item -Recurse -Force
+New-Item -ItemType Directory -Path $classes -Force | Out-Null
 
 Write-Host "[compile-jar] javac @sources.txt" -ForegroundColor Cyan
 $cp = "$core;$tinySound"
@@ -59,9 +58,11 @@ function Unpack-Jar($jarPath, $label) {
     Remove-Item -Path $zipCopy -Force
 }
 Unpack-Jar $tinySound "TinySound"
-Unpack-Jar $jorbis "jorbis"
-Unpack-Jar $tritonus "tritonus"
-Unpack-Jar $vorbisspi "vorbisspi"
+# OGG decoder jars are kept separate (not packed into fat jar) so Java Sound SPI
+# can discover them correctly from the classpath. Copy them to sketch code/ instead.
+# Unpack-Jar $jorbis "jorbis"
+# Unpack-Jar $tritonus "tritonus"
+# Unpack-Jar $vorbisspi "vorbisspi"
 
 Write-Host "[compile-jar] jar cf p5engine.jar" -ForegroundColor Cyan
 Push-Location $classes

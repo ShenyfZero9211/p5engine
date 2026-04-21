@@ -24,7 +24,7 @@ public static class TowerController extends Component {
       if (cooldown > 0) return;
       world.addSlowRipple(pos.x, pos.y);
       cooldown = d.firePeriod > 0.05f ? d.firePeriod : 0.72f;
-      if (world.app.flow != null) world.app.flow.playSfx("sounds/ambient-swoosh.wav");
+      if (world.app.flow != null) world.app.flow.playSfx("data/sounds/ambient-swoosh.wav");
       return;
     }
 
@@ -41,15 +41,15 @@ public static class TowerController extends Component {
     if (kind == TowerKind.MISSILE) {
       world.addBoltFx(TowerKind.MISSILE, pos.x, pos.y, ep.x, ep.y);
       world.damageEnemyNearest(pos, d.range, d.damage, d.aoeRadius, true);
-      if (world.app.flow != null) world.app.flow.playSfx("sounds/synthetic-honk.wav");
+      if (world.app.flow != null) world.app.flow.playSfx("data/sounds/synthetic-honk.wav");
     } else if (kind == TowerKind.LASER) {
       world.addBoltFx(TowerKind.LASER, pos.x, pos.y, ep.x, ep.y);
       world.damageEnemyNearest(pos, d.range, d.damage, 0, false);
-      if (world.app.flow != null) world.app.flow.playSfx("sounds/synthetic-rave.wav");
+      if (world.app.flow != null) world.app.flow.playSfx("data/sounds/synthetic-rave.wav");
     } else {
       world.addBoltFx(TowerKind.MG, pos.x, pos.y, ep.x, ep.y);
       world.damageEnemyNearest(pos, d.range, d.damage, 0, false);
-      if (world.app.flow != null) world.app.flow.playSfx("sounds/synthetic-spike.wav");
+      if (world.app.flow != null) world.app.flow.playSfx("data/sounds/synthetic-spike.wav");
     }
     cooldown = d.firePeriod;
   }

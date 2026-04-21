@@ -35,6 +35,15 @@ Label lblEndMsg;
 Label settingsTitle;
 Label settingsLblEnemy;
 Label settingsLblFps;
+Slider sliderMasterVol;
+Slider sliderBgmVol;
+Slider sliderSfxVol;
+Label lblMasterTitle;
+Label lblBgmTitle;
+Label lblSfxTitle;
+Label lblMasterVal;
+Label lblBgmVal;
+Label lblSfxVal;
 Button btnStart;
 Button btnLoad;
 Button btnSettings;
@@ -76,7 +85,7 @@ void settings() {
 
 void setup() {
   inst = this;
-  engine = P5Engine.create(this);
+  engine = P5Engine.create(this, P5Config.defaults().logToFile(true));
   engine.setApplicationTitle("TowerDefenseMin");
   engine.setSketchVersion("0.0.1");
   ui = new UIManager(this);

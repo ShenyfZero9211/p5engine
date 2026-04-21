@@ -7,6 +7,7 @@ public class Slider extends UIComponent {
     private float value01;
     private boolean hover;
     private boolean dragging;
+    private Runnable onChange;
 
     public Slider(String id) {
         super(id);
@@ -20,6 +21,14 @@ public class Slider extends UIComponent {
 
     public void setValue(float value01) {
         this.value01 = clamp(value01);
+    }
+
+    public void setOnChange(Runnable r) {
+        this.onChange = r;
+    }
+
+    public Runnable getOnChange() {
+        return onChange;
     }
 
     @Override
@@ -65,7 +74,13 @@ public class Slider extends UIComponent {
         float ax = getAbsoluteX();
         float w = getWidth();
         if (w <= 1) return;
-        value01 = clamp((absMouseX - ax) / w);
+        float newVal = clamp((absMouseX - ax) / w);
+        if (newVal != value01) {
+            value01 = newVal;
+            if (onChange != null) {
+                onChange.run();
+            }
+        }
     }
 
     private static float clamp(float v) {

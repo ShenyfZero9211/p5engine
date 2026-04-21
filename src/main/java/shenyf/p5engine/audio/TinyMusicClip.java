@@ -1,6 +1,7 @@
 package shenyf.p5engine.audio;
 
 import kuusisto.tinysound.Music;
+import shenyf.p5engine.util.Logger;
 
 /**
  * Wraps a TinySound Music object for background music playback.
@@ -17,11 +18,13 @@ public class TinyMusicClip implements IAudioClip {
 
     @Override
     public void play() {
+        Logger.info("Audio", "TinyMusicClip.play() looping=" + looping);
         applyVolume();
         music.play(looping);
     }
 
     public void loop() {
+        Logger.info("Audio", "TinyMusicClip.loop()");
         this.looping = true;
         applyVolume();
         music.play(true);

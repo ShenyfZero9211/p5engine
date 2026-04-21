@@ -44,3 +44,10 @@ __pycache__/
 
 # Processing CLI --build default output under sketch (regenerated)
 examples/*/_build_cli/
+
+# Examples binaries & assets (not tracked)
+examples/**/*.jar
+examples/**/data/
+examples/**/logs/
+examples/**/save.json
+examples/**/settings.json

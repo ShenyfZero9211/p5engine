@@ -84,7 +84,7 @@ static final class TdGameWorld {
     currentWave = w;
     toSpawnInWave = TdLevelConfig.getEnemyCountBase(currentLevel) + w * TdLevelConfig.getEnemyCountPerWave(currentLevel);
     spawnCooldown = 1.5f;
-    if (app.flow != null) app.flow.playSfx("sounds/percussive-gong.wav");
+    if (app.flow != null) app.flow.playSfx("data/sounds/percussive-gong.wav");
   }
 
   void applyEconomyAndWavesFromJson(JSONObject o) {
@@ -158,7 +158,7 @@ static final class TdGameWorld {
       .toScale(go, new Vector2(1f, 1f), 0.3f)
       .ease(shenyf.p5engine.tween.Ease::outBack)
       .start();
-    if (app.flow != null) app.flow.playSfx("sounds/synthetic-select.wav");
+    if (app.flow != null) app.flow.playSfx("data/sounds/synthetic-select.wav");
   }
 
   /** @return 0 = playing, 1 = lose, 2 = win */
@@ -436,7 +436,7 @@ static final class TdGameWorld {
           if (baseOrbs > 0) {
             baseOrbs--;
             e.carriedOrb = true;
-            if (app.flow != null) app.flow.playSfx("sounds/ambient-glass.wav");
+            if (app.flow != null) app.flow.playSfx("data/sounds/ambient-glass.wav");
           }
           e.phase = 1;
         }
@@ -477,7 +477,7 @@ static final class TdGameWorld {
       r.s -= TdConfig.ROLL_SPEED * dt;
       if (r.s <= dBase) {
         baseOrbs++;
-        if (app.flow != null) app.flow.playSfx("sounds/ambient-splash.wav");
+        if (app.flow != null) app.flow.playSfx("data/sounds/ambient-splash.wav");
         it.remove();
       }
     }
@@ -538,7 +538,7 @@ static final class TdGameWorld {
       e.carriedOrb = false;
       rolling.add(new TdRollingOrb(min(e.s, pathTotal - 0.1f)));
     }
-    if (app.flow != null) app.flow.playSfx("sounds/vocal-hah.wav");
+    if (app.flow != null) app.flow.playSfx("data/sounds/vocal-hah.wav");
   }
 
   void damageEnemyNearest(Vector2 from, float range, float dmg, float aoe, boolean aoeMode) {

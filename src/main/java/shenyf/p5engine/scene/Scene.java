@@ -76,6 +76,41 @@ public class Scene {
         gameObject.setScene(null);
     }
 
+    /** Remove the first GameObject with the given name. Returns true if found and removed. */
+    public boolean removeGameObject(String name) {
+        Iterator<GameObject> it = gameObjects.iterator();
+        while (it.hasNext()) {
+            GameObject go = it.next();
+            if (go.getName().equals(name)) {
+                it.remove();
+                go.setScene(null);
+                for (Component c : go.getComponents()) {
+                    c.onDestroy();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Remove all GameObjects with the given name. Returns the number removed. */
+    public int removeGameObjects(String name) {
+        int count = 0;
+        Iterator<GameObject> it = gameObjects.iterator();
+        while (it.hasNext()) {
+            GameObject go = it.next();
+            if (go.getName().equals(name)) {
+                it.remove();
+                go.setScene(null);
+                for (Component c : go.getComponents()) {
+                    c.onDestroy();
+                }
+                count++;
+            }
+        }
+        return count;
+    }
+
     public void markForDestroy(GameObject gameObject) {
         if (!destroyQueue.contains(gameObject)) {
             destroyQueue.add(gameObject);

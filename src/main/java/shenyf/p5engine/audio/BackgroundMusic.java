@@ -2,6 +2,7 @@ package shenyf.p5engine.audio;
 
 import shenyf.p5engine.core.P5Engine;
 import shenyf.p5engine.scene.Component;
+import shenyf.p5engine.util.Logger;
 
 /**
  * Component that manages background music with optional fade-in.
@@ -34,38 +35,39 @@ public class BackgroundMusic extends Component {
 
     @Override
     public void start() {
-        if (!playOnStart || clipPath == null || clipPath.isEmpty()) {
-            return;
+        // Lazy init in update() so caller has time to set clipPath after addComponent()
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        if (clipPath != null && clip == null && playOnStart) {
+            initClip();
         }
+    }
+
+    private void initClip() {
+        Logger.info("Audio", "BackgroundMusic.initClip() clipPath=" + clipPath);
         AudioManager am = P5Engine.getInstance().getAudio();
         if (am == null) {
+            Logger.warn("Audio", "BackgroundMusic.initClip() AudioManager is null");
             return;
         }
         clip = am.loadMusicFromPPak(clipPath);
         if (clip == null) {
+            Logger.warn("Audio", "BackgroundMusic.initClip() loadMusicFromPPak returned null");
             return;
         }
 
         AudioGroup g = am.getGroup(group);
         clip.setGroupVolume(g != null ? g.getVolume() : 1.0f);
 
-        if (fadeInDuration > 0) {
-            clip.volume(0f);
-            if (loop) {
-                clip.loop();
-            } else {
-                clip.play();
-            }
-            // Simple fade-in: jump to target volume after a delay
-            // Full Tween integration can be added later
-            clip.volume(volume);
+        clip.volume(volume);
+        if (loop) {
+            Logger.info("Audio", "BackgroundMusic.initClip() looping");
+            clip.loop();
         } else {
-            clip.volume(volume);
-            if (loop) {
-                clip.loop();
-            } else {
-                clip.play();
-            }
+            Logger.info("Audio", "BackgroundMusic.initClip() playing");
+            clip.play();
         }
     }
 

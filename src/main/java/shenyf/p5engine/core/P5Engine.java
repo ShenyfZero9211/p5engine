@@ -70,7 +70,7 @@ public class P5Engine {
         this.objectPool = new ObjectPool();
         this.tweenManager = new TweenManager();
         this.debugOverlay = new DebugOverlay();
-        this.audioManager = new AudioManager();
+        this.audioManager = new AudioManager(applet);
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
