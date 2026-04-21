@@ -49,6 +49,8 @@ Button btnLoad;
 Button btnSettings;
 Button btnQuit;
 Button btnSettingsBack;
+Button btnLangZh;
+Button btnLangEn;
 Slider sliderEnemyMult;
 Slider sliderTargetFps;
 Label lblSettingsNote;

@@ -4,6 +4,14 @@ static final class TdUiLayout {
   private TdUiLayout() {
   }
 
+  private static UIComponent findChildById(Panel parent, String id) {
+    if (parent == null) return null;
+    for (UIComponent c : parent.getChildren()) {
+      if (id.equals(c.getId())) return c;
+    }
+    return null;
+  }
+
   static void layout(TowerDefenseMin a) {
     Panel root = a.ui.getRoot();
     if (a.width != root.getWidth() || a.height != root.getHeight()) {
@@ -105,6 +113,13 @@ static final class TdUiLayout {
     sys += 32;
     if (a.lblSettingsNote != null) a.lblSettingsNote.setBounds(sxs, sys, 420, 20);
     sys += 28;
+    // Language selector
+    UIComponent stLang = findChildById(a.panelSettings, "st_lang");
+    if (stLang != null) stLang.setBounds(sxs, sys, 200, 22);
+    sys += 24;
+    if (a.btnLangZh != null) a.btnLangZh.setBounds(sxs, sys, 80, 32);
+    if (a.btnLangEn != null) a.btnLangEn.setBounds(sxs + 90, sys, 80, 32);
+    sys += 38;
     if (a.btnSettingsBack != null) a.btnSettingsBack.setBounds((a.width - 160) / 2, sys, 160, 36);
 
     root.invalidateLayout();

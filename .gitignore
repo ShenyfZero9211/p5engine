@@ -1,4 +1,4 @@
-﻿# Compiled class files
+# Compiled class files
 *.class
 
 # Build output & local tooling cache
@@ -39,15 +39,24 @@ __pycache__/
 *.pyc
 
 # Personal notes
-笔记.md
-新建文本文档*.md
+�ʼ�.md
+�½��ı��ĵ�*.md
 
 # Processing CLI --build default output under sketch (regenerated)
 examples/*/_build_cli/
 
 # Examples binaries & assets (not tracked)
 examples/**/*.jar
-examples/**/data/
+examples/**/data/*.png
+examples/**/data/*.jpg
+examples/**/data/*.jpeg
+examples/**/data/*.gif
+examples/**/data/*.ogg
+examples/**/data/*.wav
+examples/**/data/*.mp3
+examples/**/data/music/
+examples/**/data/sounds/
 examples/**/logs/
+examples/**/output/
 examples/**/save.json
 examples/**/settings.json

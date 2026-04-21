@@ -164,25 +164,27 @@ static final class TdFlowController {
     animateMenuFadeIn();
   }
 
+  String i18n(String key) { return app.engine.getI18n().get(key); }
+
   void tryLoadGame() {
     File f = new File(app.sketchPath("save.json"));
     if (!f.exists()) {
-      app.lblLoadMsg.setText("未找到 save.json");
+      app.lblLoadMsg.setText(i18n("msg.noSave"));
       return;
     }
     try {
       JSONObject o = app.loadJSONObject(f);
       if (o == null) {
-        app.lblLoadMsg.setText("save.json 解析失败");
+        app.lblLoadMsg.setText(i18n("msg.parseFail"));
         return;
       }
       app.world.applyEconomyAndWavesFromJson(o);
       startNewGame(true);
       app.world.loadTowersFromJson(o.getJSONArray("towers"));
-      app.lblLoadMsg.setText("已载入");
+      app.lblLoadMsg.setText(i18n("msg.loaded"));
     } catch (Exception e) {
       println("[TD] load failed: " + e.getMessage());
-      app.lblLoadMsg.setText("载入失败（见控制台）");
+      app.lblLoadMsg.setText(i18n("msg.loadError"));
     }
   }
 
@@ -196,6 +198,7 @@ static final class TdFlowController {
       o.setFloat("sliderMasterVol", app.sliderMasterVol != null ? app.sliderMasterVol.getValue() : 1.0f);
       o.setFloat("sliderBgmVol", app.sliderBgmVol != null ? app.sliderBgmVol.getValue() : 0.8f);
       o.setFloat("sliderSfxVol", app.sliderSfxVol != null ? app.sliderSfxVol.getValue() : 1.0f);
+      o.setString("locale", app.engine.getI18n().getLocale());
       app.saveJSONObject(o, app.sketchPath("settings.json"));
     } catch (Exception e) {
       println("[TD] save settings failed: " + e.getMessage());
@@ -222,6 +225,9 @@ static final class TdFlowController {
       }
       if (o.hasKey("sliderSfxVol") && app.sliderSfxVol != null) {
         app.sliderSfxVol.setValue(o.getFloat("sliderSfxVol", 1.0f));
+      }
+      if (o.hasKey("locale")) {
+        app.engine.getI18n().setLocale(o.getString("locale", "zh"));
       }
       applyAudioSettings();
       applySettingsMultipliers();
@@ -255,7 +261,7 @@ static final class TdFlowController {
       }
       o.setJSONArray("towers", ta);
       app.saveJSONObject(o, app.sketchPath("save.json"));
-      app.lblLoadMsg.setText("已保存 save.json");
+      app.lblLoadMsg.setText(i18n("msg.saved"));
     } catch (Exception e) {
       println("[TD] save failed: " + e.getMessage());
     }
@@ -283,8 +289,9 @@ static final class TdFlowController {
     }
     TowerDef d = TowerDef.forKind(h);
     int rng = (int) (h == TowerKind.SLOW ? d.aoeRadius : d.range);
-    app.lblTowerHint.setText(d.name + "\n花费 " + d.cost + "  |  " + (h == TowerKind.SLOW ? "光环 " : "射程 ") + rng
-      + "\n" + d.blurb + "\n在战场区点击放置。");
+    String rngLabel = h == TowerKind.SLOW ? i18n("tower.aoe") : i18n("tower.range");
+    app.lblTowerHint.setText(i18n(d.name) + "\n" + i18n("tower.cost") + " " + d.cost + "  |  " + rngLabel + " " + rng
+      + "\n" + i18n(d.blurb) + "\n" + i18n("tower.placeHint"));
   }
 
   void onTowerBuildPick(TowerKind k) {
@@ -314,7 +321,7 @@ static final class TdFlowController {
       int end = app.world.tick(dt, app.lblHudLine);
       if (app.lblHudLine != null) {
         app.lblHudLine.setText(app.lblHudLine.getText()
-          + (app.showTowerRangeOverlay ? "  |  塔范围 [Q] 开" : "  |  塔范围 [Q] 关"));
+          + (app.showTowerRangeOverlay ? "  |  " + i18n("hud.rangeOn") : "  |  " + i18n("hud.rangeOff")));
       }
       if (end == 1) showEnd(false);
       else if (end == 2) showEnd(true);
@@ -408,7 +415,7 @@ static final class TdFlowController {
     app.appMode = win ? 3 : 4;
     playSfx(win ? "data/sounds/resonant-flute.wav" : "data/sounds/vocal-boo.wav");
     if (app.lblEndMsg != null) {
-      app.lblEndMsg.setText(win ? "胜利 — 仍有能量球在控制下" : "失败 — 全部能量球已撤离");
+      app.lblEndMsg.setText(win ? i18n("game.victory") : i18n("game.defeat"));
     }
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setAlpha(0f);

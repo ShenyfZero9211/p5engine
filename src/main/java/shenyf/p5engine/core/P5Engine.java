@@ -16,6 +16,7 @@ import shenyf.p5engine.util.SingleInstanceGuard;
 import shenyf.p5engine.util.ScreenshotTool;
 import shenyf.p5engine.audio.AudioManager;
 import shenyf.p5engine.debug.DebugOverlay;
+import shenyf.p5engine.i18n.I18n;
 import java.awt.Frame;
 import javax.swing.JOptionPane;
 
@@ -38,6 +39,7 @@ public class P5Engine {
     private final SingleInstanceGuard singleInstanceGuard;
     private final DebugOverlay debugOverlay;
     private final AudioManager audioManager;
+    private final I18n i18n;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -71,6 +73,7 @@ public class P5Engine {
         this.tweenManager = new TweenManager();
         this.debugOverlay = new DebugOverlay();
         this.audioManager = new AudioManager(applet);
+        this.i18n = new I18n(applet);
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -624,6 +627,10 @@ public class P5Engine {
 
     public AudioManager getAudio() {
         return audioManager;
+    }
+
+    public I18n getI18n() {
+        return i18n;
     }
 
     /**

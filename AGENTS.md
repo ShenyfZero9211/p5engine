@@ -87,7 +87,9 @@ main-menu-animation_8e2c91f4.plan.md
 
 ### 3.2 输出目录
 - 引擎构建输出：`library\p5engine.jar`
+- 如果此时需要编译示例pde程序：把`library\p5engine.jar`复制到对应pde示例工程根目录中的`code`文件夹中
 - CLI 示例构建输出：`{sketch}\_build_cli\` 或 `{sketch}\build\`
+- 通常不需要执行`processing.exe cli --sketch=... --build --output...`导出exe指令，不需要导出独立应用，除非用户需要或命令
 - 计划文件：`plans\*.plan.md`
 
 ## 4. 沟通与汇报

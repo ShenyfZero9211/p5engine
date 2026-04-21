@@ -179,9 +179,10 @@ static final class TdGameWorld {
     for (TdEnemy e : enemies) if (e.alive) alive++;
 
     if (lblHudLine != null) {
-      lblHudLine.setText(String.format(Locale.US,
-        "%s | 时间 %.0fs  |  波次 %d/%d  |  敌人 %d  |  基地球 %d  |  已失 %d  |  $%d",
-        TdLevelConfig.getLevelName(currentLevel), matchElapsed, currentWave, TdLevelConfig.getTotalWaves(currentLevel), alive, baseOrbs, lostOrbs, money));
+      String fmt = engine.getI18n().get("hud.format");
+      String levelName = engine.getI18n().get(TdLevelConfig.getLevelNameKey(currentLevel));
+      lblHudLine.setText(String.format(Locale.US, fmt,
+        levelName, matchElapsed, currentWave, TdLevelConfig.getTotalWaves(currentLevel), alive, baseOrbs, lostOrbs, money));
     }
 
     if (allWavesSpawned && alive == 0 && lostOrbs < TdLevelConfig.getInitialOrbs(currentLevel)) {
@@ -219,13 +220,13 @@ static final class TdGameWorld {
     app.ellipse(baseP.x, baseP.y, 52, 52);
     app.fill(200, 230, 255);
     app.textAlign(CENTER, CENTER);
-    app.text("基地 " + baseOrbs + " 球", baseP.x, baseP.y - 36);
+    app.text(engine.getI18n().get("hud.baseOrbs", baseOrbs), baseP.x, baseP.y - 36);
 
     Vector2 exitP = path.points[path.points.length - 1];
     app.fill(255, 80, 80, 70);
     app.ellipse(exitP.x, exitP.y, 44, 44);
     app.fill(255, 200, 200);
-    app.text("撤离", exitP.x, exitP.y - 34);
+    app.text(engine.getI18n().get("hud.exit"), exitP.x, exitP.y - 34);
 
     for (TdRollingOrb r : rolling) {
       Vector2 p = path.sample(r.s);

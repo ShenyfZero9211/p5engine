@@ -10,18 +10,18 @@ static final class TdLevelConfig {
   /** 关卡总数 */
   static final int TOTAL_LEVELS = 3;
 
-  /** 关卡难度描述 */
-  static final String[] LEVEL_NAMES = {
-    "第一关 - 新手试炼",
-    "第二关 - 强化防线",
-    "第三关 - 极限挑战"
+  /** 关卡名称 i18n key */
+  static final String[] LEVEL_NAME_KEYS = {
+    "level.1.name",
+    "level.2.name",
+    "level.3.name"
   };
 
-  /** 关卡难度副标题 */
-  static final String[] LEVEL_SUBTITLES = {
-    "入门级难度，敌人较弱",
-    "中等难度，敌人更强更耐打",
-    "极限挑战，最强敌人来袭"
+  /** 关卡副标题 i18n key */
+  static final String[] LEVEL_SUBTITLE_KEYS = {
+    "level.1.subtitle",
+    "level.2.subtitle",
+    "level.3.subtitle"
   };
 
   /** 初始金钱 */
@@ -53,16 +53,16 @@ static final class TdLevelConfig {
   /** 路径是否已初始化 */
   static boolean pathsInitialized = false;
 
-  /** 获取关卡难度名称 */
-  static String getLevelName(int level) {
-    if (level < 1 || level > TOTAL_LEVELS) return "未知关卡";
-    return LEVEL_NAMES[level - 1];
+  /** 获取关卡名称 i18n key */
+  static String getLevelNameKey(int level) {
+    if (level < 1 || level > TOTAL_LEVELS) return "level.unknown";
+    return LEVEL_NAME_KEYS[level - 1];
   }
 
-  /** 获取关卡副标题 */
-  static String getLevelSubtitle(int level) {
+  /** 获取关卡副标题 i18n key */
+  static String getLevelSubtitleKey(int level) {
     if (level < 1 || level > TOTAL_LEVELS) return "";
-    return LEVEL_SUBTITLES[level - 1];
+    return LEVEL_SUBTITLE_KEYS[level - 1];
   }
 
   /** 获取初始金钱 */

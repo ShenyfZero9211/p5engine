@@ -14,30 +14,30 @@ static final class TdMainUiBuilder {
     app.panelMenu.setPaintBackground(true);
 
     app.lblMenuHint = new Label("menu_hint");
-    app.lblMenuHint.setText("p5engine 塔防游戏");
+    app.lblMenuHint.setI18nKey("menu.title");
     app.lblMenuHint.setSize(920, 44);
     app.panelMenu.add(app.lblMenuHint);
 
     app.btnStart = new Button("m_start");
-    app.btnStart.setLabel("开始游戏");
+    app.btnStart.setI18nKey("menu.start");
     app.btnStart.setSize(220, 40);
     app.btnStart.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.enterLevelSelect(true); });
     app.panelMenu.add(app.btnStart);
 
     app.btnLoad = new Button("m_load");
-    app.btnLoad.setLabel("载入游戏");
+    app.btnLoad.setI18nKey("menu.load");
     app.btnLoad.setSize(220, 40);
     app.btnLoad.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.tryLoadGame(); });
     app.panelMenu.add(app.btnLoad);
 
     app.btnSettings = new Button("m_set");
-    app.btnSettings.setLabel("设置");
+    app.btnSettings.setI18nKey("menu.settings");
     app.btnSettings.setSize(220, 40);
     app.btnSettings.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.enterSettings(true); });
     app.panelMenu.add(app.btnSettings);
 
     app.btnQuit = new Button("m_quit");
-    app.btnQuit.setLabel("退出");
+    app.btnQuit.setI18nKey("menu.quit");
     app.btnQuit.setSize(220, 40);
     app.btnQuit.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); app.exit(); });
     app.panelMenu.add(app.btnQuit);
@@ -56,33 +56,33 @@ static final class TdMainUiBuilder {
     app.panelLevelSelect.setVisible(false);
 
     Label lblSelectTitle = new Label("select_title");
-    lblSelectTitle.setText("选择关卡");
+    lblSelectTitle.setI18nKey("level.select");
     lblSelectTitle.setSize(280, 28);
     app.panelLevelSelect.add(lblSelectTitle);
 
     // 关卡1按钮
     Button btnLevel1 = new Button("level_1");
-    btnLevel1.setLabel(TdLevelConfig.LEVEL_NAMES[0]);
+    btnLevel1.setI18nKey("level.1");
     btnLevel1.setSize(300, 44);
     btnLevel1.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.startNewGameWithLevel(1); });
     app.panelLevelSelect.add(btnLevel1);
 
     // 关卡2按钮
     Button btnLevel2 = new Button("level_2");
-    btnLevel2.setLabel(TdLevelConfig.LEVEL_NAMES[1]);
+    btnLevel2.setI18nKey("level.2");
     btnLevel2.setSize(300, 44);
     btnLevel2.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.startNewGameWithLevel(2); });
     app.panelLevelSelect.add(btnLevel2);
 
     // 关卡3按钮
     Button btnLevel3 = new Button("level_3");
-    btnLevel3.setLabel(TdLevelConfig.LEVEL_NAMES[2]);
+    btnLevel3.setI18nKey("level.3");
     btnLevel3.setSize(300, 44);
     btnLevel3.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.startNewGameWithLevel(3); });
     app.panelLevelSelect.add(btnLevel3);
 
     Button btnLevelBack = new Button("level_back");
-    btnLevelBack.setLabel("返回");
+    btnLevelBack.setI18nKey("common.back");
     btnLevelBack.setSize(160, 36);
     btnLevelBack.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.enterLevelSelect(false); });
     app.panelLevelSelect.add(btnLevelBack);
@@ -95,13 +95,13 @@ static final class TdMainUiBuilder {
     app.panelSettings.setVisible(false);
 
     app.settingsTitle = new Label("st_title");
-    app.settingsTitle.setText("设置");
+    app.settingsTitle.setI18nKey("settings.title");
     app.settingsTitle.setSize(280, 28);
     app.panelSettings.add(app.settingsTitle);
 
     // Master volume
     app.lblMasterTitle = new Label("st_mt");
-    app.lblMasterTitle.setText("主音量");
+    app.lblMasterTitle.setI18nKey("settings.master");
     app.lblMasterTitle.setSize(200, 22);
     app.panelSettings.add(app.lblMasterTitle);
     app.sliderMasterVol = new Slider("st_mv");
@@ -115,7 +115,7 @@ static final class TdMainUiBuilder {
 
     // BGM volume
     app.lblBgmTitle = new Label("st_bt");
-    app.lblBgmTitle.setText("背景音乐");
+    app.lblBgmTitle.setI18nKey("settings.bgm");
     app.lblBgmTitle.setSize(200, 22);
     app.panelSettings.add(app.lblBgmTitle);
     app.sliderBgmVol = new Slider("st_bv");
@@ -129,7 +129,7 @@ static final class TdMainUiBuilder {
 
     // SFX volume
     app.lblSfxTitle = new Label("st_st");
-    app.lblSfxTitle.setText("音效");
+    app.lblSfxTitle.setI18nKey("settings.sfx");
     app.lblSfxTitle.setSize(200, 22);
     app.panelSettings.add(app.lblSfxTitle);
     app.sliderSfxVol = new Slider("st_sv");
@@ -142,7 +142,7 @@ static final class TdMainUiBuilder {
     app.panelSettings.add(app.lblSfxVal);
 
     app.settingsLblEnemy = new Label("st_l1");
-    app.settingsLblEnemy.setText("敌人生成 / 强度倍率");
+    app.settingsLblEnemy.setI18nKey("settings.enemy");
     app.settingsLblEnemy.setSize(280, 22);
     app.panelSettings.add(app.settingsLblEnemy);
 
@@ -152,7 +152,7 @@ static final class TdMainUiBuilder {
     app.panelSettings.add(app.sliderEnemyMult);
 
     app.settingsLblFps = new Label("st_l2");
-    app.settingsLblFps.setText("目标帧率");
+    app.settingsLblFps.setI18nKey("settings.fps");
     app.settingsLblFps.setSize(280, 22);
     app.panelSettings.add(app.settingsLblFps);
 
@@ -166,8 +166,25 @@ static final class TdMainUiBuilder {
     app.lblSettingsNote.setSize(420, 20);
     app.panelSettings.add(app.lblSettingsNote);
 
+    Label lblLang = new Label("st_lang");
+    lblLang.setI18nKey("settings.lang");
+    lblLang.setSize(200, 22);
+    app.panelSettings.add(lblLang);
+
+    app.btnLangZh = new Button("lang_zh");
+    app.btnLangZh.setLabel("中文");
+    app.btnLangZh.setSize(80, 32);
+    app.btnLangZh.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); app.engine.getI18n().setLocale("zh"); flow.saveSettings(); });
+    app.panelSettings.add(app.btnLangZh);
+
+    app.btnLangEn = new Button("lang_en");
+    app.btnLangEn.setLabel("English");
+    app.btnLangEn.setSize(80, 32);
+    app.btnLangEn.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); app.engine.getI18n().setLocale("en"); flow.saveSettings(); });
+    app.panelSettings.add(app.btnLangEn);
+
     app.btnSettingsBack = new Button("st_back");
-    app.btnSettingsBack.setLabel("返回");
+    app.btnSettingsBack.setI18nKey("common.back");
     app.btnSettingsBack.setSize(160, 36);
     app.btnSettingsBack.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.enterSettings(false); });
     app.panelSettings.add(app.btnSettingsBack);
@@ -203,13 +220,13 @@ static final class TdMainUiBuilder {
     app.panelTopHud.add(app.lblHudLine);
 
     app.btnSave = new Button("save");
-    app.btnSave.setLabel("保存");
+    app.btnSave.setI18nKey("hud.save");
     app.btnSave.setSize(72, 28);
     app.btnSave.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.saveGame(); });
     app.panelTopHud.add(app.btnSave);
 
     app.btnToMenu = new Button("to_menu");
-    app.btnToMenu.setLabel("菜单");
+    app.btnToMenu.setI18nKey("hud.menu");
     app.btnToMenu.setSize(72, 28);
     app.btnToMenu.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.goMenuFromGame(); });
     app.panelTopHud.add(app.btnToMenu);
@@ -221,14 +238,14 @@ static final class TdMainUiBuilder {
     app.panelRight.setPaintBackground(true);
 
     Label lr = new Label("lr_title");
-    lr.setText("建造");
+    lr.setI18nKey("hud.build");
     lr.setSize(TdConfig.RIGHT_W - 16, 24);
     app.panelRight.add(lr);
 
-    app.btnTowerMg = addTowerBuildButton(app, flow, "t_mg", "机枪", TowerKind.MG);
-    app.btnTowerMissile = addTowerBuildButton(app, flow, "t_ms", "导弹", TowerKind.MISSILE);
-    app.btnTowerLaser = addTowerBuildButton(app, flow, "t_lz", "激光", TowerKind.LASER);
-    app.btnTowerSlow = addTowerBuildButton(app, flow, "t_sl", "减速", TowerKind.SLOW);
+    app.btnTowerMg = addTowerBuildButton(app, flow, "t_mg", "tower.mg", TowerKind.MG);
+    app.btnTowerMissile = addTowerBuildButton(app, flow, "t_ms", "tower.missile", TowerKind.MISSILE);
+    app.btnTowerLaser = addTowerBuildButton(app, flow, "t_lz", "tower.laser", TowerKind.LASER);
+    app.btnTowerSlow = addTowerBuildButton(app, flow, "t_sl", "tower.slow", TowerKind.SLOW);
     app.btnTowerMg.setZOrder(20);
     app.btnTowerMissile.setZOrder(20);
     app.btnTowerLaser.setZOrder(20);
@@ -256,7 +273,7 @@ static final class TdMainUiBuilder {
     app.panelEndOverlay.add(app.lblEndMsg);
 
     app.btnEndMenu = new Button("end_menu");
-    app.btnEndMenu.setLabel("返回主菜单");
+    app.btnEndMenu.setI18nKey("game.toMenu");
     app.btnEndMenu.setSize(160, 40);
     app.btnEndMenu.setAction(() -> {
       app.panelEndOverlay.setVisible(false);
@@ -266,7 +283,7 @@ static final class TdMainUiBuilder {
 
     // 下一关按钮（胜利时显示）
     app.btnNextLevel = new Button("next_level");
-    app.btnNextLevel.setLabel("下一关");
+    app.btnNextLevel.setI18nKey("game.next");
     app.btnNextLevel.setSize(160, 40);
     app.btnNextLevel.setAction(() -> {
       app.panelEndOverlay.setVisible(false);
@@ -276,7 +293,7 @@ static final class TdMainUiBuilder {
 
     // 重玩当前关卡按钮（失败时显示）
     app.btnReplayLevel = new Button("replay_level");
-    app.btnReplayLevel.setLabel("重玩当前关卡");
+    app.btnReplayLevel.setI18nKey("game.replay");
     app.btnReplayLevel.setSize(160, 40);
     app.btnReplayLevel.setAction(() -> {
       app.panelEndOverlay.setVisible(false);
@@ -289,9 +306,9 @@ static final class TdMainUiBuilder {
     root.invalidateLayout();
   }
 
-  private static Button addTowerBuildButton(TowerDefenseMin app, TdFlowController flow, String id, String text, TowerKind k) {
+  private static Button addTowerBuildButton(TowerDefenseMin app, TdFlowController flow, String id, String i18nKey, TowerKind k) {
     Button b = new Button(id);
-    b.setLabel(text);
+    b.setI18nKey(i18nKey);
     b.setSize(TdConfig.RIGHT_W - 24, 36);
     b.setAction(() -> { flow.playSfx("data/sounds/percussive-knock.wav"); flow.onTowerBuildPick(k); });
     app.panelRight.add(b);
