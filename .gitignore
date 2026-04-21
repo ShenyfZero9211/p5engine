@@ -38,5 +38,9 @@ examples/ImageLab_build/
 __pycache__/
 *.pyc
 
+# Personal notes
+笔记.md
+新建文本文档*.md
+
 # Processing CLI --build default output under sketch (regenerated)
 examples/*/_build_cli/

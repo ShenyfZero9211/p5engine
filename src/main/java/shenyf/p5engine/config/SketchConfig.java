@@ -33,6 +33,8 @@ public class SketchConfig {
     public static final String KEY_HOT_RELOAD = "hot_reload";
     public static final String KEY_X = "x";
     public static final String KEY_Y = "y";
+    public static final String KEY_SCREENSHOT_TO_FILE = "screenshot_to_file";
+    public static final String KEY_SCREENSHOT_DIR = "screenshot_dir";
 
     private final Path configFile;
     private Map<String, String> data;
@@ -115,6 +117,9 @@ public class SketchConfig {
 
         set(SECTION_SCRIPT, KEY_LUA_PATH, "scripts/");
         set(SECTION_SCRIPT, KEY_HOT_RELOAD, "true");
+
+        set(SECTION_P5ENGINE, KEY_SCREENSHOT_TO_FILE, "false");
+        set(SECTION_P5ENGINE, KEY_SCREENSHOT_DIR, "screenshots");
 
         save();
     }
@@ -227,6 +232,24 @@ public class SketchConfig {
 
     public void setSingleInstance(boolean singleInstance) {
         set(SECTION_P5ENGINE, KEY_SINGLE_INSTANCE, singleInstance);
+        save();
+    }
+
+    public boolean isScreenshotToFile() {
+        return getBoolean(SECTION_P5ENGINE, KEY_SCREENSHOT_TO_FILE, false);
+    }
+
+    public void setScreenshotToFile(boolean enabled) {
+        set(SECTION_P5ENGINE, KEY_SCREENSHOT_TO_FILE, enabled);
+        save();
+    }
+
+    public String getScreenshotDir() {
+        return get(SECTION_P5ENGINE, KEY_SCREENSHOT_DIR, "screenshots");
+    }
+
+    public void setScreenshotDir(String dir) {
+        set(SECTION_P5ENGINE, KEY_SCREENSHOT_DIR, dir);
         save();
     }
 

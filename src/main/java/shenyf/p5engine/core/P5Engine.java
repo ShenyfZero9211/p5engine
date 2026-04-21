@@ -13,6 +13,7 @@ import shenyf.p5engine.tween.TweenManager;
 import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
 import shenyf.p5engine.util.SingleInstanceGuard;
+import shenyf.p5engine.util.ScreenshotTool;
 import shenyf.p5engine.debug.DebugOverlay;
 import java.awt.Frame;
 import javax.swing.JOptionPane;
@@ -291,6 +292,10 @@ public class P5Engine {
                 debugOverlay.toggleHud();
             } else if (code == java.awt.event.KeyEvent.VK_F5 || k == '4') {
                 Logger.cycleLevel();
+            } else if (k == '.') {
+                boolean saveToFile = sketchConfig.isScreenshotToFile();
+                String outputDir = sketchConfig.getScreenshotDir();
+                ScreenshotTool.capture(applet, saveToFile, outputDir);
             }
 
             dispatchKeyEventToComponents(code, true);

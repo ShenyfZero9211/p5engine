@@ -82,6 +82,7 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\UIManager.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Window.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\Logger.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\SingleInstanceGuard.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\ScreenshotTool.java
 
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Ease.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\EaseFunction.java
