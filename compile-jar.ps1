@@ -22,12 +22,14 @@ $ErrorActionPreference = "Stop"
 $javac = Join-Path $JdkPath "bin\javac.exe"
 $jar = Join-Path $JdkPath "bin\jar.exe"
 $core = Join-Path $RepoRoot "library\core-4.5.2.jar"
+$tinySound = Join-Path $RepoRoot "libs\TinySound.jar"
 $sources = Join-Path $RepoRoot "sources.txt"
 $classes = Join-Path $RepoRoot "build\classes"
 $outJar = Join-Path $RepoRoot "library\p5engine.jar"
 
 if (-not (Test-Path $javac)) { throw "javac not found: $javac" }
 if (-not (Test-Path $core)) { throw "core jar not found: $core" }
+if (-not (Test-Path $tinySound)) { throw "TinySound jar not found: $tinySound" }
 if (-not (Test-Path $sources)) { throw "sources.txt not found: $sources" }
 
 New-Item -ItemType Directory -Path $classes -Force | Out-Null
@@ -37,13 +39,20 @@ if (Test-Path $shenyfOut) {
 }
 
 Write-Host "[compile-jar] javac @sources.txt" -ForegroundColor Cyan
-& $javac --release 17 -encoding UTF-8 -cp $core -d $classes "@$sources"
+& $javac --release 17 -encoding UTF-8 -cp "$core;$tinySound" -d $classes "@$sources"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Unzip TinySound classes into build so they are bundled into the fat jar
+Write-Host "[compile-jar] unpacking TinySound into classes" -ForegroundColor Cyan
+$zipCopy = Join-Path $env:TEMP "TinySound.zip"
+Copy-Item -Path $tinySound -Destination $zipCopy -Force
+Expand-Archive -Path $zipCopy -DestinationPath $classes -Force
+Remove-Item -Path $zipCopy -Force
 
 Write-Host "[compile-jar] jar cf p5engine.jar" -ForegroundColor Cyan
 Push-Location $classes
 try {
-    & $jar cf $outJar shenyf
+    & $jar cf $outJar shenyf kuusisto
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location

@@ -83,6 +83,13 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Window.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\Logger.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\SingleInstanceGuard.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\ScreenshotTool.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\IAudioClip.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\AudioGroup.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\TinyMusicClip.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\TinySfxClip.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\AudioManager.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\SoundEffect.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\audio\BackgroundMusic.java
 
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Ease.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\EaseFunction.java

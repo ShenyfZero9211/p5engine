@@ -14,6 +14,7 @@ import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
 import shenyf.p5engine.util.SingleInstanceGuard;
 import shenyf.p5engine.util.ScreenshotTool;
+import shenyf.p5engine.audio.AudioManager;
 import shenyf.p5engine.debug.DebugOverlay;
 import java.awt.Frame;
 import javax.swing.JOptionPane;
@@ -36,6 +37,7 @@ public class P5Engine {
     private final SketchConfig sketchConfig;
     private final SingleInstanceGuard singleInstanceGuard;
     private final DebugOverlay debugOverlay;
+    private final AudioManager audioManager;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -68,6 +70,7 @@ public class P5Engine {
         this.objectPool = new ObjectPool();
         this.tweenManager = new TweenManager();
         this.debugOverlay = new DebugOverlay();
+        this.audioManager = new AudioManager();
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -180,6 +183,9 @@ public class P5Engine {
         applet.registerMethod("keyEvent", this);
         applet.registerMethod("mouseEvent", this);
         applet.registerMethod("dispose", this);
+
+        // Initialize audio
+        audioManager.init();
 
         Logger.info("P5Engine initialized successfully");
     }
@@ -526,6 +532,7 @@ public class P5Engine {
 
     public void destroy() {
         Logger.info("P5Engine shutting down...");
+        audioManager.shutdown();
         sceneManager.destroy();
         singleInstanceGuard.releaseLock();
         isRunning = false;
@@ -613,6 +620,10 @@ public class P5Engine {
 
     public DebugOverlay getDebugOverlay() {
         return debugOverlay;
+    }
+
+    public AudioManager getAudio() {
+        return audioManager;
     }
 
     /**
