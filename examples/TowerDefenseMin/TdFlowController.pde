@@ -106,6 +106,7 @@ static final class TdFlowController {
     app.panelTopHud.setVisible(true);
     app.panelRight.setVisible(true);
     updateTowerHint();
+    playBgmGame();
   }
 
   /** 进入下一关 */
@@ -136,6 +137,7 @@ static final class TdFlowController {
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setVisible(false);
     }
+    playBgmMenu();
     animateMenuFadeIn();
   }
 
@@ -336,6 +338,7 @@ static final class TdFlowController {
     println("[TweenDebug] showEnd(" + win + ")");
     app.buildArmed = false;
     app.appMode = win ? 3 : 4;
+    playSfx(win ? "sounds/resonant-flute.wav" : "sounds/vocal-boo.wav");
     if (app.lblEndMsg != null) {
       app.lblEndMsg.setText(win ? "胜利 — 仍有能量球在控制下" : "失败 — 全部能量球已撤离");
     }
@@ -383,6 +386,40 @@ static final class TdFlowController {
         float py = TdGameWorld.snapGrid(app.mouseY - TdConfig.TOP_HUD);
         app.world.tryBuyAndPlaceTower(app.buildSelected, px, py);
       }
+    }
+  }
+
+  // ===== Audio helpers =====
+
+  void playSfx(String path) {
+    try {
+      app.engine.getAudio().playOneShot(path, "sfx");
+    } catch (Exception e) {
+      // ignore audio errors during development
+    }
+  }
+
+  void playBgmMenu() {
+    try {
+      app.engine.getAudio().stopAll();
+      BackgroundMusic bgm = new BackgroundMusic("sounds/keybloop.wav");
+      bgm.loop = true;
+      bgm.volume = 0.6f;
+      app.sceneMenu.addComponent(bgm);
+    } catch (Exception e) {
+      // ignore
+    }
+  }
+
+  void playBgmGame() {
+    try {
+      app.engine.getAudio().stopAll();
+      BackgroundMusic bgm = new BackgroundMusic("music/TopGun.ogg");
+      bgm.loop = true;
+      bgm.volume = 0.5f;
+      app.sceneGame.addComponent(bgm);
+    } catch (Exception e) {
+      // ignore
     }
   }
 }

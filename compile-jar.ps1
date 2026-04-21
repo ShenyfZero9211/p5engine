@@ -23,6 +23,9 @@ $javac = Join-Path $JdkPath "bin\javac.exe"
 $jar = Join-Path $JdkPath "bin\jar.exe"
 $core = Join-Path $RepoRoot "library\core-4.5.2.jar"
 $tinySound = Join-Path $RepoRoot "libs\TinySound.jar"
+$jorbis = Join-Path $RepoRoot "libs\jorbis.jar"
+$tritonus = Join-Path $RepoRoot "libs\tritonus_share.jar"
+$vorbisspi = Join-Path $RepoRoot "libs\vorbisspi.jar"
 $sources = Join-Path $RepoRoot "sources.txt"
 $classes = Join-Path $RepoRoot "build\classes"
 $outJar = Join-Path $RepoRoot "library\p5engine.jar"
@@ -39,20 +42,32 @@ if (Test-Path $shenyfOut) {
 }
 
 Write-Host "[compile-jar] javac @sources.txt" -ForegroundColor Cyan
-& $javac --release 17 -encoding UTF-8 -cp "$core;$tinySound" -d $classes "@$sources"
+$cp = "$core;$tinySound"
+if (Test-Path $jorbis) { $cp += ";$jorbis" }
+if (Test-Path $tritonus) { $cp += ";$tritonus" }
+if (Test-Path $vorbisspi) { $cp += ";$vorbisspi" }
+& $javac --release 17 -encoding UTF-8 -cp $cp -d $classes "@$sources"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# Unzip TinySound classes into build so they are bundled into the fat jar
-Write-Host "[compile-jar] unpacking TinySound into classes" -ForegroundColor Cyan
-$zipCopy = Join-Path $env:TEMP "TinySound.zip"
-Copy-Item -Path $tinySound -Destination $zipCopy -Force
-Expand-Archive -Path $zipCopy -DestinationPath $classes -Force
-Remove-Item -Path $zipCopy -Force
+# Unzip dependency jars into build so they are bundled into the fat jar
+function Unpack-Jar($jarPath, $label) {
+    if (-not (Test-Path $jarPath)) { return }
+    Write-Host "[compile-jar] unpacking $label into classes" -ForegroundColor Cyan
+    $zipCopy = Join-Path $env:TEMP "$label.zip"
+    Copy-Item -Path $jarPath -Destination $zipCopy -Force
+    Expand-Archive -Path $zipCopy -DestinationPath $classes -Force
+    Remove-Item -Path $zipCopy -Force
+}
+Unpack-Jar $tinySound "TinySound"
+Unpack-Jar $jorbis "jorbis"
+Unpack-Jar $tritonus "tritonus"
+Unpack-Jar $vorbisspi "vorbisspi"
 
 Write-Host "[compile-jar] jar cf p5engine.jar" -ForegroundColor Cyan
 Push-Location $classes
 try {
-    & $jar cf $outJar shenyf kuusisto
+    # Pack everything in build/classes (shenyf + kuusisto + org + com + ...)
+    & $jar cf $outJar .
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
     Pop-Location

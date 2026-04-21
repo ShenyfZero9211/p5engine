@@ -21,25 +21,25 @@ static final class TdMainUiBuilder {
     app.btnStart = new Button("m_start");
     app.btnStart.setLabel("开始游戏");
     app.btnStart.setSize(220, 40);
-    app.btnStart.setAction(() -> flow.enterLevelSelect(true));
+    app.btnStart.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.enterLevelSelect(true); });
     app.panelMenu.add(app.btnStart);
 
     app.btnLoad = new Button("m_load");
     app.btnLoad.setLabel("载入游戏");
     app.btnLoad.setSize(220, 40);
-    app.btnLoad.setAction(() -> flow.tryLoadGame());
+    app.btnLoad.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.tryLoadGame(); });
     app.panelMenu.add(app.btnLoad);
 
     app.btnSettings = new Button("m_set");
     app.btnSettings.setLabel("设置");
     app.btnSettings.setSize(220, 40);
-    app.btnSettings.setAction(() -> flow.enterSettings(true));
+    app.btnSettings.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.enterSettings(true); });
     app.panelMenu.add(app.btnSettings);
 
     app.btnQuit = new Button("m_quit");
     app.btnQuit.setLabel("退出");
     app.btnQuit.setSize(220, 40);
-    app.btnQuit.setAction(() -> app.exit());
+    app.btnQuit.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); app.exit(); });
     app.panelMenu.add(app.btnQuit);
 
     app.lblLoadMsg = new Label("load_msg");
@@ -64,27 +64,27 @@ static final class TdMainUiBuilder {
     Button btnLevel1 = new Button("level_1");
     btnLevel1.setLabel(TdLevelConfig.LEVEL_NAMES[0]);
     btnLevel1.setSize(300, 44);
-    btnLevel1.setAction(() -> flow.startNewGameWithLevel(1));
+    btnLevel1.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.startNewGameWithLevel(1); });
     app.panelLevelSelect.add(btnLevel1);
 
     // 关卡2按钮
     Button btnLevel2 = new Button("level_2");
     btnLevel2.setLabel(TdLevelConfig.LEVEL_NAMES[1]);
     btnLevel2.setSize(300, 44);
-    btnLevel2.setAction(() -> flow.startNewGameWithLevel(2));
+    btnLevel2.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.startNewGameWithLevel(2); });
     app.panelLevelSelect.add(btnLevel2);
 
     // 关卡3按钮
     Button btnLevel3 = new Button("level_3");
     btnLevel3.setLabel(TdLevelConfig.LEVEL_NAMES[2]);
     btnLevel3.setSize(300, 44);
-    btnLevel3.setAction(() -> flow.startNewGameWithLevel(3));
+    btnLevel3.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.startNewGameWithLevel(3); });
     app.panelLevelSelect.add(btnLevel3);
 
     Button btnLevelBack = new Button("level_back");
     btnLevelBack.setLabel("返回");
     btnLevelBack.setSize(160, 36);
-    btnLevelBack.setAction(() -> flow.enterLevelSelect(false));
+    btnLevelBack.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.enterLevelSelect(false); });
     app.panelLevelSelect.add(btnLevelBack);
 
     root.add(app.panelLevelSelect);
@@ -127,7 +127,7 @@ static final class TdMainUiBuilder {
     app.btnSettingsBack = new Button("st_back");
     app.btnSettingsBack.setLabel("返回");
     app.btnSettingsBack.setSize(160, 36);
-    app.btnSettingsBack.setAction(() -> flow.enterSettings(false));
+    app.btnSettingsBack.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.enterSettings(false); });
     app.panelSettings.add(app.btnSettingsBack);
 
     root.add(app.panelSettings);
@@ -143,13 +143,13 @@ static final class TdMainUiBuilder {
     app.btnSave = new Button("save");
     app.btnSave.setLabel("保存");
     app.btnSave.setSize(72, 28);
-    app.btnSave.setAction(() -> flow.saveGame());
+    app.btnSave.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.saveGame(); });
     app.panelTopHud.add(app.btnSave);
 
     app.btnToMenu = new Button("to_menu");
     app.btnToMenu.setLabel("菜单");
     app.btnToMenu.setSize(72, 28);
-    app.btnToMenu.setAction(() -> flow.goMenuFromGame());
+    app.btnToMenu.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.goMenuFromGame(); });
     app.panelTopHud.add(app.btnToMenu);
 
     root.add(app.panelTopHud);
@@ -231,7 +231,7 @@ static final class TdMainUiBuilder {
     Button b = new Button(id);
     b.setLabel(text);
     b.setSize(TdConfig.RIGHT_W - 24, 36);
-    b.setAction(() -> flow.onTowerBuildPick(k));
+    b.setAction(() -> { flow.playSfx("sounds/percussive-knock.wav"); flow.onTowerBuildPick(k); });
     app.panelRight.add(b);
     return b;
   }

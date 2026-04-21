@@ -8,6 +8,7 @@ import shenyf.p5engine.core.*;
 import shenyf.p5engine.scene.*;
 import shenyf.p5engine.math.*;
 import shenyf.p5engine.ui.*;
+import shenyf.p5engine.audio.*;
 
 import processing.data.*;
 import java.io.File;
