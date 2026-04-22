@@ -1,6 +1,8 @@
 package shenyf.p5engine.core;
 
 public class P5Config {
+    public enum RenderMode { JAVA2D, P2D, FX2D }
+
     private int width;
     private int height;
     private String title;
@@ -10,6 +12,8 @@ public class P5Config {
     private shenyf.p5engine.util.Logger.Level logLevel = shenyf.p5engine.util.Logger.Level.INFO;
     private boolean logToFile = false;
     private String logDir = "logs";
+    private RenderMode renderMode = RenderMode.P2D;
+    private int pixelDensity = 0; // 0 = auto
 
     private P5Config() {
         this.width = 800;
@@ -103,5 +107,23 @@ public class P5Config {
 
     public String getLogDir() {
         return logDir;
+    }
+
+    public P5Config renderer(RenderMode renderMode) {
+        this.renderMode = renderMode;
+        return this;
+    }
+
+    public RenderMode getRenderMode() {
+        return renderMode;
+    }
+
+    public P5Config pixelDensity(int pixelDensity) {
+        this.pixelDensity = pixelDensity;
+        return this;
+    }
+
+    public int getPixelDensity() {
+        return pixelDensity;
     }
 }

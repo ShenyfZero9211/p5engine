@@ -50,6 +50,31 @@ public class ProcessingRenderer implements IRenderer {
     }
 
     @Override
+    public void pushTransform() {
+        graphics.push();
+    }
+
+    @Override
+    public void popTransform() {
+        graphics.pop();
+    }
+
+    @Override
+    public void translate(float x, float y) {
+        graphics.translate(x, y);
+    }
+
+    @Override
+    public void rotate(float angle) {
+        graphics.rotate(angle);
+    }
+
+    @Override
+    public void scale(float x, float y) {
+        graphics.scale(x, y);
+    }
+
+    @Override
     public void setColor(int color) {
         graphics.tint(color);
     }

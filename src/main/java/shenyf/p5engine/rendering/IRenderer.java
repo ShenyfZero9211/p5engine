@@ -14,6 +14,16 @@ public interface IRenderer {
 
     void resetTransform();
 
+    void pushTransform();
+
+    void popTransform();
+
+    void translate(float x, float y);
+
+    void rotate(float angle);
+
+    void scale(float x, float y);
+
     void setColor(int color);
 
     int getWidth();

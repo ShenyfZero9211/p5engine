@@ -40,6 +40,7 @@ public class P5Engine {
     private final DebugOverlay debugOverlay;
     private final AudioManager audioManager;
     private final I18n i18n;
+    private shenyf.p5engine.rendering.PostProcessor postProcessor;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -140,6 +141,39 @@ public class P5Engine {
                 + d + "; using pixelDensity(" + d + "). Forcing a higher density is not supported on this display.");
         }
         applet.pixelDensity(d);
+    }
+
+    /**
+     * Configure sketch display (size, renderer, pixel density) from a {@link P5Config}.
+     * Must be called inside the sketch's {@code settings()} method.
+     *
+     * <pre>
+     *   void settings() {
+     *       P5Engine.configureDisplay(this, P5Config.defaults()
+     *           .width(1280).height(720)
+     *           .renderer(P5Config.RenderMode.P2D));
+     *   }
+     * </pre>
+     */
+    public static void configureDisplay(PApplet applet, P5Config config) {
+        if (applet == null || config == null) return;
+        int pd = config.getPixelDensity();
+        if (pd > 0) {
+            applet.pixelDensity(pd);
+        } else {
+            applyRecommendedPixelDensity(applet);
+        }
+        switch (config.getRenderMode()) {
+            case P2D:
+                applet.size(config.getWidth(), config.getHeight(), processing.core.PConstants.P2D);
+                break;
+            case FX2D:
+                applet.size(config.getWidth(), config.getHeight(), processing.core.PConstants.FX2D);
+                break;
+            default:
+                applet.size(config.getWidth(), config.getHeight());
+                break;
+        }
     }
 
     private void init() {
@@ -516,6 +550,9 @@ public class P5Engine {
             renderer.clear(backgroundColor);
             activeScene.render(renderer);
         }
+        if (postProcessor != null && postProcessor.getEffectCount() > 0) {
+            postProcessor.apply(applet.g);
+        }
         if (debugOverlay != null) {
             debugOverlay.render(applet, this);
         }
@@ -631,6 +668,13 @@ public class P5Engine {
 
     public I18n getI18n() {
         return i18n;
+    }
+
+    public shenyf.p5engine.rendering.PostProcessor getPostProcessor() {
+        if (postProcessor == null) {
+            postProcessor = new shenyf.p5engine.rendering.PostProcessor();
+        }
+        return postProcessor;
     }
 
     /**

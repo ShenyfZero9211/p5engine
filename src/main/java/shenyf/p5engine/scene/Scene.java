@@ -1,5 +1,7 @@
 package shenyf.p5engine.scene;
 
+import shenyf.p5engine.math.Rect;
+import shenyf.p5engine.rendering.Camera2D;
 import shenyf.p5engine.rendering.IRenderer;
 import shenyf.p5engine.rendering.Renderable;
 import shenyf.p5engine.util.Logger;
@@ -13,6 +15,7 @@ public class Scene {
     private final List<GameObject> destroyQueue;
     private boolean running;
     private int collisionCheckCount;
+    private Camera2D camera;
 
     public Scene(String name) {
         this.name = name;
@@ -47,10 +50,57 @@ public class Scene {
 
     public void render(IRenderer renderer) {
         if (!running) return;
+
+        // 1. Collect render commands
+        List<RenderCommand> commands = new ArrayList<>();
         for (GameObject go : gameObjects) {
-            if (go.isActive()) {
-                go.render(renderer);
+            if (!go.isActive()) continue;
+            // Viewport culling
+            if (go.isCullEnabled() && camera != null) {
+                Rect viewport = camera.getViewport();
+                if (viewport != null && !viewport.intersects(go.getRenderBounds())) {
+                    continue;
+                }
             }
+            for (Component c : go.getComponents()) {
+                if (c instanceof Renderable && c.isEnabled()) {
+                    commands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
+                }
+            }
+        }
+
+        // 2. Sort by layer then zIndex (stable: fallback to insertion order when equal)
+        commands.sort((a, b) -> {
+            int layerCmp = Integer.compare(a.layer, b.layer);
+            if (layerCmp != 0) return layerCmp;
+            return Float.compare(a.zIndex, b.zIndex);
+        });
+
+        // 3. Draw with camera transform
+        if (camera != null) camera.begin(renderer);
+        for (RenderCommand cmd : commands) {
+            cmd.renderable.render(renderer);
+        }
+        if (camera != null) camera.end(renderer);
+    }
+
+    public void setCamera(Camera2D camera) {
+        this.camera = camera;
+    }
+
+    public Camera2D getCamera() {
+        return camera;
+    }
+
+    private static final class RenderCommand {
+        final int layer;
+        final float zIndex;
+        final Renderable renderable;
+
+        RenderCommand(int layer, float zIndex, Renderable renderable) {
+            this.layer = layer;
+            this.zIndex = zIndex;
+            this.renderable = renderable;
         }
     }
 

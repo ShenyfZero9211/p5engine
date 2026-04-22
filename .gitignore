@@ -20,6 +20,9 @@ Thumbs.db
 # Logs
 *.log
 
+# manual notebook
+._notebook_.md
+
 # Generated config
 p5engine.ini
 

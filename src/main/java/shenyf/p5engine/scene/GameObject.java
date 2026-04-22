@@ -1,5 +1,7 @@
 package shenyf.p5engine.scene;
 
+import shenyf.p5engine.math.Rect;
+import shenyf.p5engine.math.Vector2;
 import shenyf.p5engine.rendering.IRenderer;
 import shenyf.p5engine.rendering.Renderable;
 import shenyf.p5engine.util.Logger;
@@ -16,6 +18,9 @@ public class GameObject implements Iterable<Component> {
     private final List<Component> componentList;
     private boolean active;
     private boolean markedForDestroy;
+    private int renderLayer = 0;
+    private float zIndex = 0f;
+    private boolean cullEnabled = true;
 
     public GameObject(String name) {
         this.guid = UUID.randomUUID().toString();
@@ -125,6 +130,40 @@ public class GameObject implements Iterable<Component> {
 
     public void setTag(String tag) {
         this.tag = tag != null ? tag : "";
+    }
+
+    public int getRenderLayer() {
+        return renderLayer;
+    }
+
+    public void setRenderLayer(int renderLayer) {
+        this.renderLayer = renderLayer;
+    }
+
+    public float getZIndex() {
+        return zIndex;
+    }
+
+    public void setZIndex(float zIndex) {
+        this.zIndex = zIndex;
+    }
+
+    public boolean isCullEnabled() {
+        return cullEnabled;
+    }
+
+    public void setCullEnabled(boolean cullEnabled) {
+        this.cullEnabled = cullEnabled;
+    }
+
+    /**
+     * Returns a conservative axis-aligned bounding box for viewport culling.
+     * Default is a 100x100 box centered at the transform position.
+     * Subclasses or specific components may provide tighter bounds.
+     */
+    public Rect getRenderBounds() {
+        Vector2 pos = transform.getPosition();
+        return new Rect(pos.x - 50, pos.y - 50, 100, 100);
     }
 
     public boolean isMarkedForDestroy() {
