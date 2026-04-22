@@ -41,6 +41,7 @@ public class P5Engine {
     private final AudioManager audioManager;
     private final I18n i18n;
     private shenyf.p5engine.rendering.PostProcessor postProcessor;
+    private shenyf.p5engine.rendering.DisplayManager displayManager;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -75,6 +76,8 @@ public class P5Engine {
         this.debugOverlay = new DebugOverlay();
         this.audioManager = new AudioManager(applet);
         this.i18n = new I18n(applet);
+        this.displayManager = new shenyf.p5engine.rendering.DisplayManager(
+            config.getDisplayConfig(), config.getWidth(), config.getHeight());
         this.keyPressedState = false;
         this.keyChar = 0;
         this.keyCode = 0;
@@ -548,7 +551,9 @@ public class P5Engine {
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
             renderer.clear(backgroundColor);
+            displayManager.begin(renderer);
             activeScene.render(renderer);
+            displayManager.end(renderer);
         }
         if (postProcessor != null && postProcessor.getEffectCount() > 0) {
             postProcessor.apply(applet.g);
@@ -566,7 +571,9 @@ public class P5Engine {
     public void renderSkipBackground() {
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
+            displayManager.begin(renderer);
             activeScene.render(renderer);
+            displayManager.end(renderer);
         }
     }
 
@@ -668,6 +675,10 @@ public class P5Engine {
 
     public I18n getI18n() {
         return i18n;
+    }
+
+    public shenyf.p5engine.rendering.DisplayManager getDisplayManager() {
+        return displayManager;
     }
 
     public shenyf.p5engine.rendering.PostProcessor getPostProcessor() {

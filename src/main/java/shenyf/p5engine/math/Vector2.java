@@ -50,6 +50,12 @@ public class Vector2 implements Serializable {
         return this;
     }
 
+    public Vector2 sub(float x, float y) {
+        this.x -= x;
+        this.y -= y;
+        return this;
+    }
+
     public Vector2 mult(float scalar) {
         this.x *= scalar;
         this.y *= scalar;

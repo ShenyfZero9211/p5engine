@@ -104,3 +104,10 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Ease.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\EaseFunction.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\Tween.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\tween\TweenManager.java
+
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\ScaleMode.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\DisplayConfig.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\DisplayManager.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\Anchor.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\AnchorLayout.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\Minimap.java

@@ -51,12 +51,13 @@ public class Scene {
     public void render(IRenderer renderer) {
         if (!running) return;
 
-        // 1. Collect render commands
-        List<RenderCommand> commands = new ArrayList<>();
+        // 1. Collect render commands, separating world and screen layers
+        List<RenderCommand> worldCommands = new ArrayList<>();
+        List<RenderCommand> screenCommands = new ArrayList<>();
         for (GameObject go : gameObjects) {
             if (!go.isActive()) continue;
-            // Viewport culling
-            if (go.isCullEnabled() && camera != null) {
+            // Viewport culling (only for world layer)
+            if (go.getRenderLayer() < 100 && go.isCullEnabled() && camera != null) {
                 Rect viewport = camera.getViewport();
                 if (viewport != null && !viewport.intersects(go.getRenderBounds())) {
                     continue;
@@ -64,24 +65,36 @@ public class Scene {
             }
             for (Component c : go.getComponents()) {
                 if (c instanceof Renderable && c.isEnabled()) {
-                    commands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
+                    RenderCommand cmd = new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c);
+                    if (go.getRenderLayer() >= 100) {
+                        screenCommands.add(cmd);
+                    } else {
+                        worldCommands.add(cmd);
+                    }
                 }
             }
         }
 
-        // 2. Sort by layer then zIndex (stable: fallback to insertion order when equal)
-        commands.sort((a, b) -> {
+        // 2. Sort both lists by layer then zIndex
+        Comparator<RenderCommand> cmdSort = (a, b) -> {
             int layerCmp = Integer.compare(a.layer, b.layer);
             if (layerCmp != 0) return layerCmp;
             return Float.compare(a.zIndex, b.zIndex);
-        });
+        };
+        worldCommands.sort(cmdSort);
+        screenCommands.sort(cmdSort);
 
-        // 3. Draw with camera transform
+        // 3. Draw world layer with camera transform
         if (camera != null) camera.begin(renderer);
-        for (RenderCommand cmd : commands) {
+        for (RenderCommand cmd : worldCommands) {
             cmd.renderable.render(renderer);
         }
         if (camera != null) camera.end(renderer);
+
+        // 4. Draw screen layer without camera transform
+        for (RenderCommand cmd : screenCommands) {
+            cmd.renderable.render(renderer);
+        }
     }
 
     public void setCamera(Camera2D camera) {

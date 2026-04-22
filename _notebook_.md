@@ -2282,3 +2282,130 @@ Camera2D 在 Scene.render() 开始时自动 pushMatrix/translate/scale/rotate，
 6. **性能基准** — 视口裁剪 3× 提升、缓存层零开销等实测数据
 7. **向后兼容说明** — 存量 Sketch 无需修改
 8. **API 速查表** — 所有公共接口一行查阅
+
+
+
+用户要求我列出"现在的所有系统指令（System Instructions）"。
+
+我需要澄清一个重要的点：作为AI助手，我无法直接"读取"或"列出"系统指令的完整内容。系统指令是平台在会话开始时注入给我的，但我不能像读取文件一样把它们全部输出。我只能根据我在交互中实际接收到的系统提示来回答。
+
+不过，从这次会话中，我确实收到了一些系统级别的指令。让我回忆一下在这次会话中被注入的系统指令：
+
+关于 git 操作的规则："Do NOT git commit/tag/push without explicit user instruction"
+关于 git mutations 的规则："Do NOT run git commit, git push, git reset, git rebase and/or do any other git mutations unless explicitly asked to do so. Ask for confirmation each time when you need to do git mutations, even if the user has confirmed in earlier conversations."
+关于 AGENTS.md 的说明和规则
+关于 Plan Mode 的规则
+关于 AskUserQuestion 的规则
+关于技能（Skills）的说明
+关于 Windows 环境的说明
+关于 Working Directory 的信息
+关于工具使用（Tools）的说明
+但是，我必须诚实地告诉用户：我不能保证我列出的就是"所有"系统指令，因为：
+
+系统指令可能在不同会话轮次中分段注入
+有些指令可能以隐式方式存在
+我无法像查看文件一样查看完整的系统提示
+我应该诚实地说明这个限制，然后列出我在本次会话中明确接收到的、我认为属于系统指令的内容。
+
+另外，用户可能混淆了"系统指令"和"AGENTS.md"的内容。我需要再次澄清两者的区别。
+
+让我给出一个诚实且有帮助的回答。
+
+我需要先澄清一个限制：**我无法像读取文件一样直接"导出"完整的系统指令清单**。系统指令是 Kimi Code CLI 平台在会话开始时注入给我的底层行为约束，它们分布在我的上下文中的不同位置，有些甚至可能以隐式方式存在。
+
+不过，我可以根据本次会话中实际接收到的内容，列出**我明确感知到的系统级规则**。为了完整性和诚实性，我会区分哪些是"我确定收到的系统指令"和哪些是我根据行为推断的。
+
+---
+
+## 我明确收到的系统指令（按主题分组）
+
+### 1. Git 操作安全约束
+```
+Rule: Do NOT git commit/tag/push without explicit user instruction
+Rule: Do NOT run git commit, git push, git reset, git rebase and/or do 
+      any other git mutations unless explicitly asked to do so.
+      Ask for confirmation each time when you need to do git mutations, 
+      even if the user has confirmed in earlier conversations.
+```
+
+### 2. Plan Mode 规则
+```
+- 非平凡任务必须先进入 Plan Mode
+- Plan Mode 下：先 explore → 再设计 → 写 plan 文件 → ExitPlanMode 等待用户批准
+- Yolo mode 下：仅在用户明确要求规划或架构歧义时才进入 Plan Mode
+- 计划必须写入 plans/ 目录的 .plan.md 文件
+```
+
+### 3. 工具使用规范
+```
+- 优先使用内置工具（ReadFile/WriteFile/StrReplaceFile/Shell）而非描述
+- Shell 在 Windows 上运行 PowerShell
+- Agent 工具可用于委托子任务
+- AskUserQuestion 用于收集偏好、解决歧义、呈现选项
+- 不要过度使用 AskUserQuestion
+- 多个独立查询可并行 launch explore agents
+```
+
+### 4. 用户消息处理
+```
+- 默认采取行动而非只回答
+- 当请求可解释为问题或任务时，视为任务
+- 使用与用户相同的语言回复
+```
+
+### 5. AGENTS.md 相关
+```
+- AGENTS.md 可出现在项目任何层级
+- 深层 AGENTS.md 优先于父目录
+- 用户直接指令优先级最高
+- 修改 AGENTS.md 中提到的内容时，必须同步更新 AGENTS.md
+```
+
+### 6. 通用行为准则
+```
+- HELPFUL, CONCISE, ACCURATE
+- 不要偏离任务目标
+- 不要给用户超出需求的东西
+- 避免幻觉，事实核查
+- 保持简单，不要过度复杂化
+```
+
+---
+
+## 重要说明
+
+**以下这些内容 NOT 系统指令，而是平台/环境信息：**
+
+| 类型 | 例子 | 来源 |
+|------|------|------|
+| **环境上下文** | Windows OS、JDK 17、Processing 4.5.2 | 平台自动检测 |
+| **项目信息** | 工作目录 `E:\projects\kilo\p5engine` | 启动时注入 |
+| **工具能力说明** | Shell 可用命令列表、Agent 类型说明 | 工具 schema |
+| **压缩历史** | "Previous context has been compacted" | 会话管理机制 |
+
+---
+
+## 为什么有些规则我能"记住"但不在 AGENTS.md 中？
+
+因为系统指令是**平台级**的（Kimi Code CLI 统一注入），而 AGENTS.md 是**项目级**的。两者的关系：
+
+```
+┌─────────────────────────┐
+│   平台系统指令            │  ← 所有项目通用，每次会话注入
+│   (你无法直接编辑)        │
+├─────────────────────────┤
+│   AGENTS.md             │  ← p5engine 特有，你可编辑
+│   (项目级补充/覆盖)       │
+├─────────────────────────┤
+│   用户直接说的话          │  ← 最高优先级
+└─────────────────────────┘
+```
+
+---
+
+如果你发现我的行为违背了某条规则，但这条规则又不在上面列表中，那可能是：
+1. 它隐含在模型的训练数据中（非显式系统指令）
+2. 它在某次上下文压缩中被我遗漏了
+3. 它是本次对话中你新增的要求（通过 AGENTS.md 或直接对话）
+
+**你想让我把上面列出的系统指令也同步写进 AGENTS.md 吗？** 这样其他 Agent（Cursor、Claude）也能遵守同样的 git、plan mode 等规则。

@@ -14,6 +14,7 @@ public class P5Config {
     private String logDir = "logs";
     private RenderMode renderMode = RenderMode.P2D;
     private int pixelDensity = 0; // 0 = auto
+    private shenyf.p5engine.rendering.DisplayConfig displayConfig;
 
     private P5Config() {
         this.width = 800;
@@ -125,5 +126,19 @@ public class P5Config {
 
     public int getPixelDensity() {
         return pixelDensity;
+    }
+
+    public P5Config displayConfig(shenyf.p5engine.rendering.DisplayConfig displayConfig) {
+        this.displayConfig = displayConfig;
+        return this;
+    }
+
+    public shenyf.p5engine.rendering.DisplayConfig getDisplayConfig() {
+        if (displayConfig == null) {
+            displayConfig = shenyf.p5engine.rendering.DisplayConfig.defaults()
+                .designWidth(width)
+                .designHeight(height);
+        }
+        return displayConfig;
     }
 }

@@ -21,7 +21,11 @@ Thumbs.db
 *.log
 
 # manual notebook
-._notebook_.md
+_notebook_.md
+
+# Agent rules
+AGENTS.md
+AGENTS.md.bak
 
 # Generated config
 p5engine.ini
