@@ -206,7 +206,64 @@ minimap.setColors(
 
 ---
 
-## 六、RenderDemo 控制说明
+## 六、时间缩放系统（Time Scaling）
+
+p5engine 内置了完整的时间缩放支持，可让游戏世界加速/减速/暂停，同时保持渲染帧率稳定。
+
+### 6.1 核心概念
+
+| 时间类型 | 获取方法 | 用途 |
+|----------|----------|------|
+| **游戏时间** | `getDeltaTime()` | 世界逻辑、物理、AI、游戏内动画（受 timeScale 影响） |
+| **真实时间** | `getRealDeltaTime()` | UI 动画、输入冷却、网络超时（不受 timeScale 影响） |
+
+### 6.2 P5GameTime API
+
+```java
+P5GameTime gt = engine.getGameTime();
+
+// 瞬时设置
+gt.setTimeScale(0.5f);   // 半速
+gt.setTimeScale(2.0f);   // 双倍速
+
+// 平滑过渡（推荐）
+gt.setTargetTimeScale(0.1f);   // 目标 0.1x
+gt.setTransitionSpeed(5.0f);   // 过渡速度
+
+// 暂停 / 恢复
+gt.pause();
+gt.resume();
+gt.togglePause();
+
+// 查询
+float dt  = gt.getDeltaTime();       // 游戏 delta（缩放后）
+float rdt = gt.getRealDeltaTime();   // 真实 delta（未缩放）
+boolean p = gt.isPaused();
+```
+
+### 6.3 子系统时间规范
+
+| 子系统 | 使用的时间 | 说明 |
+|--------|-----------|------|
+| `Scene.update()` | `getDeltaTime()` | 世界逻辑 |
+| `Scheduler` | 双参数（scaled + real） | Timer 可自选 `timeScaleAffected` |
+| `TweenManager` | 可配置 | `setUseUnscaledTime(true/false)`，默认 false（游戏优先） |
+| `AudioManager` | 真实时间 | 音频不受 timeScale 影响 |
+
+### 6.4 RenderDemo 时间控制
+
+| 按键 | 功能 |
+|------|------|
+| `1` | timeScale → 0.1x（超级慢动作） |
+| `2` | timeScale → 0.5x（慢动作） |
+| `3` | timeScale → 1.0x（正常） |
+| `4` | timeScale → 2.0x（快进） |
+| `5` | timeScale → 5.0x（极速） |
+| `P` | 暂停 / 恢复 |
+
+---
+
+## 七、RenderDemo 控制说明（完整版）
 
 | 按键 | 功能 |
 |------|------|
@@ -217,13 +274,15 @@ minimap.setColors(
 | `M` | 切换缩放模式（NO_SCALE / FIT / FILL / STRETCH） |
 | `+` / `-` | 以屏幕中心缩放 |
 | `0` | 重置 zoom 为 1.0 |
+| `1` ~ `5` | 时间缩放档位 |
+| `P` | 暂停 / 恢复 |
 | 鼠标滚轮 | 以鼠标位置为中心缩放 |
 | 左键按住 | 飞船加速前进 |
 | 点击小地图 | 摄像机跳转到对应世界位置 |
 
 ---
 
-## 七、相关文件
+## 八、相关文件
 
 - `src/main/java/shenyf/p5engine/rendering/Camera2D.java`
 - `src/main/java/shenyf/p5engine/rendering/DisplayManager.java`

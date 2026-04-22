@@ -425,14 +425,11 @@ public class P5Engine {
         }
 
         long currentTime = System.nanoTime();
-        float deltaTime = (currentTime - lastFrameTime) / 1_000_000_000f;
+        float rawDelta = (currentTime - lastFrameTime) / 1_000_000_000f;
         lastFrameTime = currentTime;
 
-        if (deltaTime > 0.1f) {
-            deltaTime = 1f / 60f;
-        }
-
-        gameTime.update(deltaTime);
+        // P5GameTime handles anti-stutter clamping, smooth time-scale transition, and pause
+        gameTime.update(rawDelta);
 
         renderer.syncSizeFromApplet();
 
@@ -443,8 +440,8 @@ public class P5Engine {
 
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
         inputManager.postUpdate();
-        scheduler.update(gameTime.getDeltaTime(), deltaTime);
-        tweenManager.update(gameTime.getDeltaTime());
+        scheduler.update(gameTime.getDeltaTime(), gameTime.getRealDeltaTime());
+        tweenManager.update(gameTime);
 
         refreshNativeWindowTitle();
     }

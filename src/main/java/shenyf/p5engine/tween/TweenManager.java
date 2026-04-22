@@ -20,9 +20,27 @@ public class TweenManager {
 
     private final List<Tween> activeTweens = new ArrayList<>();
 
+    /**
+     * When false (default), tweens use scaled game time (affected by timeScale).
+     * When true, tweens use unscaled real time.
+     *
+     * <p>Default is {@code false} (game-priority): game-object tweens slow down with
+     * bullet-time. Set to {@code true} for UI tweens that must stay responsive during pause.
+     */
+    private boolean useUnscaledTime = false;
+
     // ═══════════════════════════════════════════════════════════════
     // Update loop
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Updates all active tweens using the appropriate time source.
+     * Preferred entry point when time scaling is enabled.
+     */
+    public void update(shenyf.p5engine.time.P5GameTime gameTime) {
+        float dt = useUnscaledTime ? gameTime.getRealDeltaTime() : gameTime.getDeltaTime();
+        update(dt);
+    }
 
     public void update(float dt) {
         if (activeTweens.isEmpty()) return;
@@ -134,6 +152,14 @@ public class TweenManager {
                 tween.kill();
             }
         }
+    }
+
+    public void setUseUnscaledTime(boolean v) {
+        this.useUnscaledTime = v;
+    }
+
+    public boolean isUseUnscaledTime() {
+        return useUnscaledTime;
     }
 
     /** Stop every active tween immediately. */

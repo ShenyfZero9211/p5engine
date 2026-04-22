@@ -287,6 +287,11 @@ class HUDRenderer extends Component implements Renderable {
     g.text("Zoom: " + fmt(cam != null ? cam.getZoom() : 1.0) + "  [Wheel / +/-]", 24, y); y += 20;
     ScaleMode[] modes = ScaleMode.values();
     g.text("Scale [M]: " + modes[scaleModeIndex] + "  " + width + "x" + height, 24, y); y += 20;
+    // Time-scale display
+    P5GameTime gt = engine.getGameTime();
+    String timeLabel = String.format("Time [1-5/P]: %.1fx", gt.getTimeScale());
+    if (gt.isPaused()) timeLabel += " [PAUSED]";
+    g.text(timeLabel, 24, y); y += 20;
     g.text("Minimap click = jump", 24, y);
   }
 
@@ -302,7 +307,6 @@ void keyPressed() {
   if (key == 'b' || key == 'B') postFxEnabled = !postFxEnabled;
   if (key == 's' || key == 'S') skipClear = !skipClear;
 
-
   Camera2D cam = scene.getCamera();
   if (cam != null) {
     if (key == '+' || key == '=') cam.zoomAt(3, new Vector2(width / 2, height / 2));
@@ -314,6 +318,15 @@ void keyPressed() {
     scaleModeIndex = (scaleModeIndex + 1) % 4;
     engine.getDisplayManager().setScaleMode(ScaleMode.values()[scaleModeIndex]);
   }
+
+  // Time-scale controls
+  P5GameTime gt = engine.getGameTime();
+  if (key == '1') gt.setTargetTimeScale(0.1f);
+  if (key == '2') gt.setTargetTimeScale(0.5f);
+  if (key == '3') gt.setTargetTimeScale(1.0f);
+  if (key == '4') gt.setTargetTimeScale(2.0f);
+  if (key == '5') gt.setTargetTimeScale(5.0f);
+  if (key == 'p' || key == 'P') gt.togglePause();
 }
 
 void windowResize(int newW, int newH) {

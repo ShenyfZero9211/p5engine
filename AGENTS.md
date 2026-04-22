@@ -178,3 +178,6 @@ main-menu-animation_8e2c91f4.plan.md
 
 ### 7.4 例外
 用户明确说 **"每次需要 git 操作时都先问我"** 时，即使听到了 commit 相关词汇，也要先确认再执行。
+
+如果这次小地图内容（边框、视口、飞船点）正常显示，说明问题就是 P2D 模式下 pushStyle()/popStyle() 与 fill(float,float,float) 存在冲突（OpenGL 状态未正确同步）。如果仍然不可见，我们需要继续排查其他原因。
+
