@@ -43,7 +43,7 @@ public class GameObject implements Iterable<Component> {
         componentList.add(component);
         component.setGameObject(this);
         component.start();
-        Logger.debug("Component " + clazz.getSimpleName() + " added to " + name);
+        // Logger.debug("Component " + clazz.getSimpleName() + " added to " + name);
     }
 
     public <T extends Component> T addComponent(Class<T> componentClass) {
@@ -60,7 +60,7 @@ public class GameObject implements Iterable<Component> {
         componentList.add(component);
         component.setGameObject(this);
         component.start();
-        Logger.debug("Component " + componentClass.getSimpleName() + " added to " + name);
+        // Logger.debug("Component " + componentClass.getSimpleName() + " added to " + name);
         return component;
     }
 

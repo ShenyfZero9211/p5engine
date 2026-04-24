@@ -35,6 +35,10 @@ public class Scene {
         Logger.info("Scene '" + name + "' unloaded");
     }
 
+    public boolean isRunning() {
+        return running;
+    }
+
     public void update(float deltaTime) {
         if (!running) return;
         collisionCheckCount = 0;
@@ -50,10 +54,17 @@ public class Scene {
 
     public void render(IRenderer renderer) {
         if (!running) return;
+        renderWorld(renderer, camera);
+        renderScreen(renderer);
+    }
 
-        // 1. Collect render commands, separating world and screen layers
+    /**
+     * Render only the world layer (renderLayer < 100) with the specified camera.
+     */
+    public void renderWorld(IRenderer renderer, Camera2D camera) {
+        if (!running) return;
+
         List<RenderCommand> worldCommands = new ArrayList<>();
-        List<RenderCommand> screenCommands = new ArrayList<>();
         for (GameObject go : gameObjects) {
             if (!go.isActive()) continue;
             // Viewport culling (only for world layer)
@@ -65,37 +76,52 @@ public class Scene {
             }
             for (Component c : go.getComponents()) {
                 if (c instanceof Renderable && c.isEnabled()) {
-                    RenderCommand cmd = new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c);
-                    if (go.getRenderLayer() >= 100) {
-                        screenCommands.add(cmd);
-                    } else {
-                        worldCommands.add(cmd);
+                    if (go.getRenderLayer() < 100) {
+                        worldCommands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
                     }
                 }
             }
         }
 
-        // 2. Sort both lists by layer then zIndex
-        Comparator<RenderCommand> cmdSort = (a, b) -> {
-            int layerCmp = Integer.compare(a.layer, b.layer);
-            if (layerCmp != 0) return layerCmp;
-            return Float.compare(a.zIndex, b.zIndex);
-        };
         worldCommands.sort(cmdSort);
-        screenCommands.sort(cmdSort);
 
-        // 3. Draw world layer with camera transform
         if (camera != null) camera.begin(renderer);
         for (RenderCommand cmd : worldCommands) {
             cmd.renderable.render(renderer);
         }
         if (camera != null) camera.end(renderer);
+    }
 
-        // 4. Draw screen layer without camera transform
+    /**
+     * Render only the screen layer (renderLayer >= 100) without camera transform.
+     */
+    public void renderScreen(IRenderer renderer) {
+        if (!running) return;
+
+        List<RenderCommand> screenCommands = new ArrayList<>();
+        for (GameObject go : gameObjects) {
+            if (!go.isActive()) continue;
+            for (Component c : go.getComponents()) {
+                if (c instanceof Renderable && c.isEnabled()) {
+                    if (go.getRenderLayer() >= 100) {
+                        screenCommands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
+                    }
+                }
+            }
+        }
+
+        screenCommands.sort(cmdSort);
+
         for (RenderCommand cmd : screenCommands) {
             cmd.renderable.render(renderer);
         }
     }
+
+    private static final Comparator<RenderCommand> cmdSort = (a, b) -> {
+        int layerCmp = Integer.compare(a.layer, b.layer);
+        if (layerCmp != 0) return layerCmp;
+        return Float.compare(a.zIndex, b.zIndex);
+    };
 
     public void setCamera(Camera2D camera) {
         this.camera = camera;
@@ -121,7 +147,7 @@ public class Scene {
         gameObject.setScene(this);
         if (!gameObjects.contains(gameObject) && !addQueue.contains(gameObject)) {
             addQueue.add(gameObject);
-            Logger.debug("Scene '" + name + "': addGameObject queued '" + gameObject.getName() + "', addQueue size=" + addQueue.size());
+            // Logger.debug("Scene '" + name + "': addGameObject queued '" + gameObject.getName() + "', addQueue size=" + addQueue.size());
         }
     }
 

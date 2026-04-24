@@ -1,0 +1,64 @@
+towers:
+  mg:
+    nameKey: tower.mg
+    blurbKey: tower.mg.blurb
+    cost: 80
+    range: 190
+    firePeriod: 0.11
+    damage: 7
+    aoeRadius: 0
+    laserBonus: 0
+    slowFactor: 1.0
+    buildTime: 2.25
+    iconColor: [120, 200, 255]
+    sfx:
+      fire: data/sounds/synthetic-spike.wav
+      place: data/sounds/synthetic-select.wav
+
+  missile:
+    nameKey: tower.missile
+    blurbKey: tower.missile.blurb
+    cost: 150
+    range: 300
+    firePeriod: 0.85
+    damage: 38
+    aoeRadius: 52
+    laserBonus: 0
+    slowFactor: 1.0
+    buildTime: 2.25
+    iconColor: [255, 180, 80]
+    sfx:
+      fire: data/sounds/synthetic-honk.wav
+      place: data/sounds/synthetic-select.wav
+
+  laser:
+    nameKey: tower.laser
+    blurbKey: tower.laser.blurb
+    cost: 200
+    range: 400
+    firePeriod: 2.1
+    damage: 115
+    aoeRadius: 0
+    laserBonus: 0
+    slowFactor: 1.0
+    buildTime: 2.25
+    iconColor: [255, 80, 220]
+    sfx:
+      fire: data/sounds/synthetic-rave.wav
+      place: data/sounds/synthetic-select.wav
+
+  slow:
+    nameKey: tower.slow
+    blurbKey: tower.slow.blurb
+    cost: 100
+    range: 130
+    firePeriod: 0.72
+    damage: 0
+    aoeRadius: 130
+    laserBonus: 0
+    slowFactor: 0.38
+    buildTime: 2.25
+    iconColor: [160, 255, 200]
+    sfx:
+      fire: data/sounds/ambient-swoosh.wav
+      place: data/sounds/synthetic-select.wav

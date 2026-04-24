@@ -4,6 +4,7 @@ import shenyf.p5engine.math.Rect;
 import shenyf.p5engine.math.Vector2;
 import shenyf.p5engine.scene.Component;
 import shenyf.p5engine.scene.Transform;
+import shenyf.p5engine.util.Logger;
 
 /**
  * A 2D camera that transforms world coordinates to screen coordinates.
@@ -13,6 +14,8 @@ import shenyf.p5engine.scene.Transform;
 public class Camera2D extends Component {
     private float viewportWidth;
     private float viewportHeight;
+    private float viewportOffsetX;
+    private float viewportOffsetY;
     private Vector2 targetOffset;
     private Transform followTarget;
     private float followSpeed = 5.0f;
@@ -29,6 +32,19 @@ public class Camera2D extends Component {
 
     public Camera2D() {
         this.targetOffset = new Vector2(0, 0);
+    }
+
+    public void setViewportOffset(float x, float y) {
+        this.viewportOffsetX = x;
+        this.viewportOffsetY = y;
+    }
+
+    public float getViewportOffsetX() {
+        return viewportOffsetX;
+    }
+
+    public float getViewportOffsetY() {
+        return viewportOffsetY;
     }
 
     @Override
@@ -59,7 +75,7 @@ public class Camera2D extends Component {
         Vector2 pos = getTransform().getPosition();
         float rot = getTransform().getRotation();
         renderer.pushTransform();
-        renderer.translate(viewportWidth / 2, viewportHeight / 2);
+        renderer.translate(viewportOffsetX + viewportWidth / 2, viewportOffsetY + viewportHeight / 2);
         renderer.scale(zoom, zoom);
         renderer.rotate(rot);
         renderer.translate(-pos.x, -pos.y);
@@ -77,6 +93,8 @@ public class Camera2D extends Component {
     public void setViewportSize(float width, float height) {
         this.viewportWidth = width;
         this.viewportHeight = height;
+        // Logger.debug("Camera", String.format("setViewportSize %.0fx%.0f offset(%.0f,%.0f)",
+        //     viewportWidth, viewportHeight, viewportOffsetX, viewportOffsetY));
     }
 
     public float getViewportWidth() {
@@ -167,8 +185,12 @@ public class Camera2D extends Component {
      * @param focusScreenPos the screen point to keep stable (typically mouse position)
      */
     public void zoomAt(float amount, Vector2 focusScreenPos) {
+        Vector2 posBefore = getTransform().getPosition();
+        float zoomBefore = zoom;
         // 1. Remember what world point is under the focus screen position
         Vector2 focusWorldBefore = screenToWorld(focusScreenPos);
+        Logger.debug("Camera", String.format("zoomAt start amount=%.3f focusScreen=(%.1f,%.1f) focusWorld=(%.1f,%.1f) pos=(%.2f,%.2f) zoom=%.3f",
+            amount, focusScreenPos.x, focusScreenPos.y, focusWorldBefore.x, focusWorldBefore.y, posBefore.x, posBefore.y, zoomBefore));
 
         // 2. Apply zoom change
         zoom *= (float) Math.pow(wheelZoomStep, amount);
@@ -179,11 +201,14 @@ public class Camera2D extends Component {
 
         // 4. Adjust camera position so the same world point maps back to the same screen position
         Vector2 pos = getTransform().getPosition();
-        pos.x = focusWorldBefore.x - (focusScreenPos.x - viewportWidth / 2) / zoom;
-        pos.y = focusWorldBefore.y - (focusScreenPos.y - viewportHeight / 2) / zoom;
+        pos.x = focusWorldBefore.x - (focusScreenPos.x - viewportOffsetX - viewportWidth / 2) / zoom;
+        pos.y = focusWorldBefore.y - (focusScreenPos.y - viewportOffsetY - viewportHeight / 2) / zoom;
         getTransform().setPosition(pos);
 
         clampToBounds();
+        Vector2 posAfter = getTransform().getPosition();
+        Logger.debug("Camera", String.format("zoomAt end zoom %.3f->%.3f (min=%.3f) pos (%.2f,%.2f)->(%.2f,%.2f)",
+            zoomBefore, zoom, effectiveMin, posBefore.x, posBefore.y, posAfter.x, posAfter.y));
     }
 
     /**
@@ -191,16 +216,21 @@ public class Camera2D extends Component {
      */
     public void jumpCenterTo(float worldX, float worldY) {
         Vector2 pos = getTransform().getPosition();
+        Logger.debug("Camera", String.format("jumpCenterTo (%.1f,%.1f) from (%.2f,%.2f)", worldX, worldY, pos.x, pos.y));
         pos.x = worldX;
         pos.y = worldY;
         getTransform().setPosition(pos);
         clampToBounds();
+        Vector2 posAfter = getTransform().getPosition();
+        Logger.debug("Camera", String.format("jumpCenterTo result (%.2f,%.2f)", posAfter.x, posAfter.y));
     }
 
     // ── World Bounds ──
 
     public void setWorldBounds(Rect bounds) {
         this.worldBounds = bounds;
+        Logger.debug("Camera", String.format("setWorldBounds (%.0f,%.0f %.0fx%.0f)",
+            bounds.x, bounds.y, bounds.width, bounds.height));
         clampToBounds();
     }
 
@@ -213,24 +243,37 @@ public class Camera2D extends Component {
      */
     public void clampToBounds() {
         if (worldBounds == null) {
+            float oldZoom = zoom;
             zoom = constrain(zoom, minZoom, maxZoom);
+            if (zoom != oldZoom) {
+                Logger.debug("Camera", String.format("clamp (no bounds) zoom %.3f->%.3f", oldZoom, zoom));
+            }
             return;
         }
 
         float effectiveMin = effectiveMinZoom();
+        float oldZoom = zoom;
         zoom = constrain(zoom, effectiveMin, maxZoom);
 
         float visibleW = viewportWidth / zoom;
         float visibleH = viewportHeight / zoom;
 
+        float minX = worldBounds.x + visibleW / 2;
+        float maxX = worldBounds.x + worldBounds.width - visibleW / 2;
+        float minY = worldBounds.y + visibleH / 2;
+        float maxY = worldBounds.y + worldBounds.height - visibleH / 2;
+
         Vector2 pos = getTransform().getPosition();
-        pos.x = constrain(pos.x,
-            worldBounds.x + visibleW / 2,
-            worldBounds.x + worldBounds.width - visibleW / 2);
-        pos.y = constrain(pos.y,
-            worldBounds.y + visibleH / 2,
-            worldBounds.y + worldBounds.height - visibleH / 2);
+        float oldX = pos.x;
+        float oldY = pos.y;
+        pos.x = constrain(pos.x, minX, maxX);
+        pos.y = constrain(pos.y, minY, maxY);
         getTransform().setPosition(pos);
+
+        if (oldX != pos.x || oldY != pos.y || oldZoom != zoom) {
+            Logger.debug("Camera", String.format("clamp pos (%.2f,%.2f)->(%.2f,%.2f) zoom %.3f->%.3f vis=%.1fx%.1f bounds=[%.1f,%.1f]x[%.1f,%.1f] world=(%.0fx%.0f)",
+                oldX, oldY, pos.x, pos.y, oldZoom, zoom, visibleW, visibleH, minX, maxX, minY, maxY, worldBounds.width, worldBounds.height));
+        }
     }
 
     /**
@@ -258,12 +301,12 @@ public class Camera2D extends Component {
             offset.set(nx, ny);
         }
         offset.mult(zoom);
-        offset.add(viewportWidth / 2, viewportHeight / 2);
+        offset.add(viewportOffsetX + viewportWidth / 2, viewportOffsetY + viewportHeight / 2);
         return offset;
     }
 
     public Vector2 screenToWorld(Vector2 screenPos) {
-        Vector2 offset = screenPos.copy().sub(viewportWidth / 2, viewportHeight / 2);
+        Vector2 offset = screenPos.copy().sub(viewportOffsetX + viewportWidth / 2, viewportOffsetY + viewportHeight / 2);
         offset.div(zoom);
         float rot = getTransform().getRotation();
         if (rot != 0) {

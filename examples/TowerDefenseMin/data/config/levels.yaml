@@ -1,0 +1,74 @@
+levels:
+  - id: 1
+    nameKey: level.1.name
+    subtitleKey: level.1.subtitle
+    initialMoney: 420
+    initialOrbs: 3
+    totalWaves: 5
+    enemy:
+      hpBase: 55
+      hpPerWave: 14
+      speed: 62
+      countBase: 4
+      countPerWave: 2
+    spawnCooldown: 1.1
+    interWaveDelay: 2.4
+    path:
+      - [0.02, 0.12]
+      - [0.18, 0.22]
+      - [0.32, 0.38]
+      - [0.44, 0.52]
+      - [0.52, 0.48]
+      - [0.66, 0.62]
+      - [0.82, 0.78]
+      - [0.98, 0.95]
+
+  - id: 2
+    nameKey: level.2.name
+    subtitleKey: level.2.subtitle
+    initialMoney: 380
+    initialOrbs: 3
+    totalWaves: 6
+    enemy:
+      hpBase: 70
+      hpPerWave: 18
+      speed: 68
+      countBase: 5
+      countPerWave: 2
+    spawnCooldown: 1.0
+    interWaveDelay: 2.0
+    path:
+      - [0.02, 0.10]
+      - [0.25, 0.10]
+      - [0.25, 0.40]
+      - [0.50, 0.40]
+      - [0.50, 0.70]
+      - [0.75, 0.70]
+      - [0.75, 0.45]
+      - [0.98, 0.45]
+
+  - id: 3
+    nameKey: level.3.name
+    subtitleKey: level.3.subtitle
+    initialMoney: 350
+    initialOrbs: 2
+    totalWaves: 7
+    enemy:
+      hpBase: 90
+      hpPerWave: 22
+      speed: 72
+      countBase: 6
+      countPerWave: 2
+    spawnCooldown: 0.9
+    interWaveDelay: 1.8
+    path:
+      - [0.02, 0.08]
+      - [0.20, 0.08]
+      - [0.20, 0.35]
+      - [0.40, 0.35]
+      - [0.40, 0.15]
+      - [0.60, 0.15]
+      - [0.60, 0.55]
+      - [0.80, 0.55]
+      - [0.80, 0.30]
+      - [0.98, 0.30]

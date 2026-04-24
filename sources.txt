@@ -111,3 +111,8 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\DisplayManager
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\Anchor.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\AnchorLayout.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\Minimap.java
+
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\OffscreenRenderer.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\WorldViewport.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\SceneViewport.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\MinimapViewport.java

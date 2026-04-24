@@ -6,7 +6,9 @@ import shenyf.p5engine.resource.ppak.PPak;
 import shenyf.p5engine.util.Logger;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +26,7 @@ public class AudioManager {
     private float masterVolume = 1.0f;
     private final Map<String, AudioGroup> groups = new HashMap<>();
     private final Map<String, TinySfxClip> sfxCache = new HashMap<>();
+    private final List<TinyMusicClip> activeMusics = new ArrayList<>();
 
     public AudioManager(PApplet applet) {
         this.applet = applet;
@@ -82,6 +85,7 @@ public class AudioManager {
         Logger.info("Audio", "loadMusic success: " + resolved);
         TinyMusicClip clip = new TinyMusicClip(music);
         clip.setGroupVolume(getGroup("bgm").getVolume());
+        activeMusics.add(clip);
         return clip;
     }
 
@@ -110,6 +114,7 @@ public class AudioManager {
         }
         TinyMusicClip clip = new TinyMusicClip(music);
         clip.setGroupVolume(getGroup("bgm").getVolume());
+        activeMusics.add(clip);
         return clip;
     }
 
@@ -220,7 +225,19 @@ public class AudioManager {
 
     // ===== Global control =====
 
+    public void update() {
+        for (int i = activeMusics.size() - 1; i >= 0; i--) {
+            TinyMusicClip clip = activeMusics.get(i);
+            clip.update();
+        }
+    }
+
+    public void unregisterMusic(TinyMusicClip clip) {
+        activeMusics.remove(clip);
+    }
+
     public void stopAll() {
+        activeMusics.clear();
         TinySound.shutdown();
         TinySound.init();
         TinySound.setGlobalVolume(masterVolume);

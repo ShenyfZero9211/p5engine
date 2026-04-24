@@ -51,6 +51,9 @@ static final class TdUiLayout {
       if (c == a.lblTowerHint) {
         c.setBounds(8, ry, TdConfig.RIGHT_W - 12, 120);
         ry += 128;
+      } else if (c == a.minimapViewport) {
+        c.setBounds(8, ry, TdConfig.RIGHT_W - 16, 180);
+        ry += 188;
       } else {
         c.setBounds(8, ry, TdConfig.RIGHT_W - 24, 36);
         ry += 42;
@@ -66,7 +69,7 @@ static final class TdUiLayout {
       }
       // 根据当前状态显示/隐藏按钮
       boolean isWin = (a.appMode == 3);
-      boolean isLastLevel = (a.lastPlayedLevel >= TdLevelConfig.TOTAL_LEVELS);
+      boolean isLastLevel = (a.lastPlayedLevel >= TdLevelConfig.getTotalLevels());
       
       // 胜利时显示下一关按钮（不是最后一关），失败时显示重玩按钮
       if (a.btnNextLevel != null) {

@@ -37,6 +37,7 @@ public final class UIManager {
     private boolean inFrame;
     private boolean attached;
     private UIComponent pressedTarget;
+    private Window resizeWindow;
 
     public UIManager(PApplet applet) {
         this.applet = applet;
@@ -238,6 +239,11 @@ public final class UIManager {
             return;
         }
 
+        if (act == MouseEvent.MOVE) {
+            updateCursor(mx, my, hit);
+            return;
+        }
+
         if (act == MouseEvent.PRESS) {
             UIComponent fhit = hit;
             while (fhit != null && !fhit.isFocusable()) {
@@ -245,10 +251,49 @@ public final class UIManager {
             }
             focusManager.setFocused(fhit);
 
-            if (hit instanceof Window) {
-                Window w = (Window) hit;
-                if (w.isTitleBarHit(mx, my) && e.getButton() == PApplet.LEFT) {
-                    dragManager.beginDrag(w, mx, my);
+            // Window-specific handling (buttons, resize, drag, double-click)
+            Window win = findWindowInHierarchy(hit);
+            if (win != null && e.getButton() == PApplet.LEFT) {
+                // Double-click on title bar (not buttons) -> maximize/restore
+                if (e.getCount() >= 2 && win.isTitleBarHit(mx, my)
+                        && !win.isCloseButtonHit(mx, my)
+                        && !win.isMaxButtonHit(mx, my)
+                        && !win.isMinButtonHit(mx, my)) {
+                    if (dragManager.isDragging()) dragManager.endDrag();
+                    if (win.isMaximized()) win.restore(); else win.maximize();
+                    pressedTarget = null;
+                    return;
+                }
+
+                // Buttons
+                if (win.isCloseButtonHit(mx, my)) {
+                    win.close();
+                    pressedTarget = null;
+                    return;
+                }
+                if (win.isMaxButtonHit(mx, my)) {
+                    if (win.isMaximized()) win.restore(); else win.maximize();
+                    pressedTarget = null;
+                    return;
+                }
+                if (win.isMinButtonHit(mx, my)) {
+                    if (win.isMinimized()) win.restore(); else win.minimize();
+                    pressedTarget = null;
+                    return;
+                }
+
+                // Resize edge
+                Window.ResizeEdge edge = win.getResizeEdge(mx, my);
+                if (edge != Window.ResizeEdge.NONE) {
+                    resizeWindow = win;
+                    win.beginResize(edge, mx, my);
+                    pressedTarget = hit;
+                    return;
+                }
+
+                // Title bar drag
+                if (win.isTitleBarHit(mx, my)) {
+                    dragManager.beginDrag(win, mx, my);
                 }
             }
             pressedTarget = hit;
@@ -257,7 +302,9 @@ public final class UIManager {
         }
 
         if (act == MouseEvent.DRAG) {
-            if (dragManager.isDragging()) {
+            if (resizeWindow != null) {
+                resizeWindow.updateResize(mx, my);
+            } else if (dragManager.isDragging()) {
                 dragManager.updateDrag(mx, my);
             }
             if (pressedTarget != null) {
@@ -267,12 +314,47 @@ public final class UIManager {
         }
 
         if (act == MouseEvent.RELEASE) {
+            if (resizeWindow != null && e.getButton() == PApplet.LEFT) {
+                resizeWindow.endResize();
+                resizeWindow = null;
+            }
             if (dragManager.isDragging() && e.getButton() == PApplet.LEFT) {
                 dragManager.endDrag();
             }
             dispatchBubble(pressedTarget, UIEvent.mouse(UIEvent.Type.MOUSE_RELEASED, mx, my, e.getButton()), mx, my);
             pressedTarget = null;
         }
+    }
+
+    /** Walk up the hierarchy to find the nearest Window ancestor. */
+    private Window findWindowInHierarchy(UIComponent start) {
+        UIComponent c = start;
+        while (c != null) {
+            if (c instanceof Window) return (Window) c;
+            c = c.getParent();
+        }
+        return null;
+    }
+
+    /** Update mouse cursor based on hover/resize state. */
+    private void updateCursor(float mx, float my, UIComponent hit) {
+        if (resizeWindow != null) {
+            applet.cursor(PApplet.CROSS);
+            return;
+        }
+        Window w = findWindowInHierarchy(hit);
+        if (w != null) {
+            Window.ResizeEdge edge = w.getResizeEdge(mx, my);
+            if (edge != Window.ResizeEdge.NONE) {
+                applet.cursor(PApplet.CROSS);
+                return;
+            }
+            if (w.isTitleBarHit(mx, my)) {
+                applet.cursor(PApplet.MOVE);
+                return;
+            }
+        }
+        applet.cursor(PApplet.ARROW);
     }
 
     public void keyEvent(KeyEvent e) {

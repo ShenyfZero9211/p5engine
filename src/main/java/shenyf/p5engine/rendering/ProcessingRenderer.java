@@ -36,7 +36,7 @@ public class ProcessingRenderer implements IRenderer {
 
     @Override
     public void setTransform(Transform transform) {
-        graphics.push();
+        graphics.pushMatrix();
         Vector2 pos = transform.getPosition();
         graphics.translate(pos.x, pos.y);
         graphics.rotate(transform.getRotation());
@@ -46,17 +46,17 @@ public class ProcessingRenderer implements IRenderer {
 
     @Override
     public void resetTransform() {
-        graphics.pop();
+        graphics.popMatrix();
     }
 
     @Override
     public void pushTransform() {
-        graphics.push();
+        graphics.pushMatrix();
     }
 
     @Override
     public void popTransform() {
-        graphics.pop();
+        graphics.popMatrix();
     }
 
     @Override

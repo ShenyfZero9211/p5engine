@@ -1,0 +1,58 @@
+- id: 1
+  nameKey: level.1.name
+  subtitleKey: level.1.subtitle
+  initialMoney: 300
+  initialOrbs: 10
+  totalWaves: 5
+  worldWidth: 1600
+  worldHeight: 1200
+  enemy:
+    hpBase: 80
+    hpPerWave: 40
+    speed: 60
+    countBase: 3
+    countPerWave: 2
+  spawnCooldown: 0.6
+  interWaveDelay: 6.0
+  basePos: { x: 400, y: 600 }
+  exitPos: { x: 1200, y: 600 }
+  spawnPos: { x: 100, y: 100 }
+  pathPoints:
+    - { x: 100, y: 100 }
+    - { x: 400, y: 100 }
+    - { x: 400, y: 600 }
+    - { x: 800, y: 600 }
+    - { x: 800, y: 200 }
+    - { x: 1200, y: 200 }
+    - { x: 1200, y: 600 }
+
+- id: 2
+  nameKey: level.2.name
+  subtitleKey: level.2.subtitle
+  initialMoney: 350
+  initialOrbs: 10
+  totalWaves: 6
+  worldWidth: 1800
+  worldHeight: 1400
+  enemy:
+    hpBase: 100
+    hpPerWave: 50
+    speed: 70
+    countBase: 4
+    countPerWave: 2
+  spawnCooldown: 0.5
+  interWaveDelay: 5.5
+  basePos: { x: 300, y: 700 }
+  exitPos: { x: 1500, y: 700 }
+  spawnPos: { x: 200, y: 100 }
+  pathPoints:
+    - { x: 200, y: 100 }
+    - { x: 200, y: 400 }
+    - { x: 600, y: 400 }
+    - { x: 600, y: 100 }
+    - { x: 900, y: 100 }
+    - { x: 900, y: 700 }
+    - { x: 1200, y: 700 }
+    - { x: 1200, y: 300 }
+    - { x: 1500, y: 300 }
+    - { x: 1500, y: 700 }

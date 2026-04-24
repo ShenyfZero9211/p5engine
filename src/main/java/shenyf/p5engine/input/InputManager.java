@@ -18,15 +18,72 @@ public class InputManager {
     private float mouseY;
     private boolean mousePressed;
     private int mouseButton;
+    private float mouseWheelDelta;
+    private float mouseDragDX;
+    private float mouseDragDY;
+    private boolean mouseJustPressed;
+    private boolean mouseJustReleased;
+
+    /** Tracks whether mouse-wheel events arrived since last updateMouse(). */
+    private boolean wheelDirty;
+    /** Tracks whether mouse-drag events arrived since last updateMouse(). */
+    private boolean dragDirty;
 
     public InputManager() {
     }
 
     public void updateMouse(float x, float y, boolean pressed, int button) {
+        // Clear accumulated deltas only if no new events arrived since last frame.
+        // This preserves values set by callbacks (onMouseWheel/onMouseDragged)
+        // so they remain readable after engine.update() returns.
+        if (!wheelDirty) {
+            mouseWheelDelta = 0;
+        }
+        wheelDirty = false;
+
+        if (!dragDirty) {
+            mouseDragDX = 0;
+            mouseDragDY = 0;
+        }
+        dragDirty = false;
+
         this.mouseX = x;
         this.mouseY = y;
+        this.mouseJustPressed = pressed && !this.mousePressed;
+        this.mouseJustReleased = !pressed && this.mousePressed;
         this.mousePressed = pressed;
         this.mouseButton = button;
+    }
+
+    public void onMouseWheel(float delta) {
+        wheelDirty = true;
+        this.mouseWheelDelta += delta;
+    }
+
+    public void onMouseDragged(float dx, float dy) {
+        dragDirty = true;
+        this.mouseDragDX += dx;
+        this.mouseDragDY += dy;
+    }
+
+    public float getMouseWheelDelta() {
+        return mouseWheelDelta;
+    }
+
+    public float getMouseDragDX() {
+        return mouseDragDX;
+    }
+
+    public float getMouseDragDY() {
+        return mouseDragDY;
+    }
+
+    public boolean isMouseJustPressed() {
+        return mouseJustPressed;
+    }
+
+    public boolean isMouseJustReleased() {
+        return mouseJustReleased;
     }
 
     public void onKeyEvent(KeyEvent event) {
@@ -53,6 +110,9 @@ public class InputManager {
             state.pressed = false;
             state.released = false;
         }
+        // mouseWheelDelta / mouseDragDX/DY are cleared lazily in updateMouse()
+        // when no new events arrived since the last frame.
+        // mouseJustPressed / mouseJustReleased are recomputed every frame in updateMouse().
     }
 
     public boolean isKeyDown(int keyCode) {

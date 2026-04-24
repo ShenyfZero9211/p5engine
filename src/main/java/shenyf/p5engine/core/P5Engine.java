@@ -18,6 +18,8 @@ import shenyf.p5engine.audio.AudioManager;
 import shenyf.p5engine.debug.DebugOverlay;
 import shenyf.p5engine.i18n.I18n;
 import java.awt.Frame;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JOptionPane;
 
 import shenyf.p5engine.GameState;
@@ -42,6 +44,10 @@ public class P5Engine {
     private final I18n i18n;
     private shenyf.p5engine.rendering.PostProcessor postProcessor;
     private shenyf.p5engine.rendering.DisplayManager displayManager;
+
+    private final List<Runnable> onDisposeListeners = new ArrayList<>();
+    private float lastMouseX;
+    private float lastMouseY;
 
     private boolean isRunning;
     private long lastFrameTime;
@@ -224,6 +230,9 @@ public class P5Engine {
         applet.registerMethod("mouseEvent", this);
         applet.registerMethod("dispose", this);
 
+        lastMouseX = applet.mouseX;
+        lastMouseY = applet.mouseY;
+
         // Initialize audio
         audioManager.init();
 
@@ -353,8 +362,20 @@ public class P5Engine {
 
     public void mouseEvent(processing.event.MouseEvent event) {
         int action = event.getAction();
-        int button = event.getButton();
 
+        if (action == processing.event.MouseEvent.WHEEL) {
+            inputManager.onMouseWheel(event.getCount());
+        } else if (action == processing.event.MouseEvent.DRAG) {
+            float dx = event.getX() - lastMouseX;
+            float dy = event.getY() - lastMouseY;
+            inputManager.onMouseDragged(dx, dy);
+        }
+        if (action == processing.event.MouseEvent.MOVE || action == processing.event.MouseEvent.DRAG) {
+            lastMouseX = event.getX();
+            lastMouseY = event.getY();
+        }
+
+        int button = event.getButton();
         if (action == processing.event.MouseEvent.PRESS) {
             dispatchMouseEventToComponents(button, true);
         } else if (action == processing.event.MouseEvent.RELEASE) {
@@ -442,6 +463,7 @@ public class P5Engine {
         inputManager.postUpdate();
         scheduler.update(gameTime.getDeltaTime(), gameTime.getRealDeltaTime());
         tweenManager.update(gameTime);
+        audioManager.update();
 
         refreshNativeWindowTitle();
     }
@@ -574,6 +596,10 @@ public class P5Engine {
         }
     }
 
+    public void addOnDisposeListener(Runnable listener) {
+        onDisposeListeners.add(listener);
+    }
+
     public void destroy() {
         Logger.info("P5Engine shutting down...");
         audioManager.shutdown();
@@ -581,6 +607,13 @@ public class P5Engine {
         singleInstanceGuard.releaseLock();
         isRunning = false;
         instance = null;
+        for (Runnable listener : onDisposeListeners) {
+            try {
+                listener.run();
+            } catch (Exception e) {
+                Logger.warn("OnDisposeListener error: " + e.getMessage());
+            }
+        }
         Logger.info("P5Engine destroyed");
     }
 

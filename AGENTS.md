@@ -109,6 +109,7 @@ main-menu-animation_8e2c91f4.plan.md
 
 ### 3.2 编译验证
 - 每次修改 Java 源码后，必须运行 `compile-jar.ps1` 重新编译 `p5engine.jar`。
+- **修改引擎源码后，必须将编译出的 `library\p5engine.jar` 复制到相关示例工程根目录的 `code\` 文件夹中**，否则示例程序运行时仍使用旧版本引擎。
 - 每次修改示例 PDE 后，必须用 Processing CLI (`processing.exe cli --sketch=... --build`) 验证编译通过。
 - **禁止将未编译验证的代码提交给用户。**
 
@@ -126,6 +127,8 @@ main-menu-animation_8e2c91f4.plan.md
 
 ### 4.2 输出目录
 - 引擎构建输出：`library\p5engine.jar`
+- **未经用户明确允许，不得将 jar 自动复制到 Processing 库目录或其他项目外部的路径**（如 `E:\projects\processing_env\libraries\p5engine\library\`）
+- 若用户明确要求覆盖 Processing 库：`.\compile-jar.ps1` 去掉 `-NoCopy` 参数
 - 如果此时需要编译示例pde程序：把`library\p5engine.jar`复制到对应pde示例工程根目录中的`code`文件夹中
 - CLI 示例构建输出：`{sketch}\_build_cli\` 或 `{sketch}\build\`
 - 通常不需要执行`processing.exe cli --sketch=... --build --output...`导出exe指令，不需要导出独立应用，除非用户需要或命令

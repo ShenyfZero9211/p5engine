@@ -11,15 +11,31 @@ public class TinyMusicClip implements IAudioClip {
     private float baseVolume = 1.0f;
     private float groupVolume = 1.0f;
     private boolean looping = false;
+    private boolean wasPlaying = false;
+    private Runnable onComplete;
 
     public TinyMusicClip(Music music) {
         this.music = music;
+    }
+
+    public void setOnComplete(Runnable callback) {
+        this.onComplete = callback;
+    }
+
+    /** Call every frame by AudioManager to detect playback completion. */
+    public void update() {
+        boolean playing = isPlaying();
+        if (wasPlaying && !playing && onComplete != null) {
+            onComplete.run();
+        }
+        wasPlaying = playing;
     }
 
     @Override
     public void play() {
         Logger.info("Audio", "TinyMusicClip.play() looping=" + looping);
         applyVolume();
+        wasPlaying = false;
         music.play(looping);
     }
 
@@ -27,12 +43,14 @@ public class TinyMusicClip implements IAudioClip {
         Logger.info("Audio", "TinyMusicClip.loop()");
         this.looping = true;
         applyVolume();
+        wasPlaying = false;
         music.play(true);
     }
 
     @Override
     public void stop() {
         music.stop();
+        wasPlaying = false;
     }
 
     public void pause() {

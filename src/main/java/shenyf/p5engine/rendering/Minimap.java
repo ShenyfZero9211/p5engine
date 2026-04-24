@@ -7,6 +7,10 @@ import shenyf.p5engine.scene.Component;
 import shenyf.p5engine.scene.GameObject;
 import shenyf.p5engine.rendering.Renderable;
 import shenyf.p5engine.scene.Scene;
+import shenyf.p5engine.util.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A screen-space minimap that shows a simplified overview of the world,
@@ -30,12 +34,37 @@ public class Minimap extends Component implements Renderable {
     // Visual toggles
     private boolean showViewportRect = true;
     private boolean showObjects = true;
+    private boolean showPath = true;
+    private boolean showBaseExit = true;
 
     // Colors (default values; use setColors() to override)
-    private int bgColor = 0xC80A0A0A;
-    private int borderColor = 0xFF373737;
-    private int viewportColor = 0xFF78FF78;
-    private int objectColor = 0xFF50C8FF;
+    private int bgColor = 0xFF151A25;
+    private int borderColor = 0xFF3A506B;
+    private int viewportColor = 0xFF4ADE80;
+    private int objectColor = 0xFF38BDF8;
+    private int pathColor = 0xFF3C5A82;
+    private int baseColor = 0xFF28C840;
+    private int exitColor = 0xFFFF5050;
+
+    // Tracked object entries (name prefix -> color & size)
+    public static class TrackEntry {
+        public final String namePrefix;
+        public final int color;
+        public final float size;
+
+        public TrackEntry(String namePrefix, int color, float size) {
+            this.namePrefix = namePrefix;
+            this.color = color;
+            this.size = size;
+        }
+    }
+
+    private final List<TrackEntry> trackedEntries = new ArrayList<>();
+
+    // Landmark data (path, base, exit)
+    private Vector2[] pathPoints;
+    private Vector2 basePos;
+    private Vector2 exitPos;
 
     public void setColors(int bg, int border, int viewport, int object) {
         this.bgColor = bg;
@@ -43,6 +72,10 @@ public class Minimap extends Component implements Renderable {
         this.viewportColor = viewport;
         this.objectColor = object;
     }
+
+    public void setPathColor(int c) { this.pathColor = c; }
+    public void setBaseColor(int c) { this.baseColor = c; }
+    public void setExitColor(int c) { this.exitColor = c; }
 
     public Minimap() {}
 
@@ -52,6 +85,14 @@ public class Minimap extends Component implements Renderable {
         if (scene != null) {
             camera = scene.getCamera();
         }
+    }
+
+    public void setScene(Scene scene) {
+        this.scene = scene;
+    }
+
+    public void setCamera(Camera2D camera) {
+        this.camera = camera;
     }
 
     // ── Configuration ──
@@ -78,6 +119,34 @@ public class Minimap extends Component implements Renderable {
 
     public void setShowViewportRect(boolean v) { this.showViewportRect = v; }
     public void setShowObjects(boolean v) { this.showObjects = v; }
+    public void setShowPath(boolean v) { this.showPath = v; }
+    public void setShowBaseExit(boolean v) { this.showBaseExit = v; }
+
+    // ── Tracked objects ──
+
+    public void clearTrackedNames() {
+        trackedEntries.clear();
+    }
+
+    public void addTrackedName(String namePrefix, int color, float size) {
+        trackedEntries.add(new TrackEntry(namePrefix, color, size));
+    }
+
+    public List<TrackEntry> getTrackedEntries() {
+        return new ArrayList<>(trackedEntries);
+    }
+
+    public void setPathPoints(Vector2[] points) {
+        this.pathPoints = points;
+    }
+
+    public void setBasePosition(Vector2 pos) {
+        this.basePos = pos;
+    }
+
+    public void setExitPosition(Vector2 pos) {
+        this.exitPos = pos;
+    }
 
     // ── Render ──
 
@@ -96,54 +165,105 @@ public class Minimap extends Component implements Renderable {
         float ox = x + (w - drawW) * 0.5f;
         float oy = y + (h - drawH) * 0.5f;
 
-        // Use 3-arg fill() to avoid P2D fill(int) issues.
-        // NOTE: g.pushStyle()/popStyle() disabled for P2D compatibility test.
         g.rectMode(PGraphics.CORNER);
         g.noStroke();
 
         // Background
-        setFillRGB(g, bgColor);
+        setFillRGBA(g, bgColor);
         g.rect(x, y, w, h);
 
         // World area border (4 filled strips)
-        setFillRGB(g, borderColor);
+        setFillRGBA(g, borderColor);
         g.rect(ox, oy, drawW, 3);
         g.rect(ox, oy + drawH - 3, drawW, 3);
         g.rect(ox, oy, 3, drawH);
         g.rect(ox + drawW - 3, oy, 3, drawH);
 
-        // Viewport rectangle
+        // Path (polyline)
+        if (showPath && pathPoints != null && pathPoints.length > 1) {
+            g.noFill();
+            setStrokeRGBA(g, pathColor);
+            g.strokeWeight(Math.max(1, 2 * minimapScale));
+            g.beginShape();
+            for (Vector2 p : pathPoints) {
+                float px = ox + (p.x - worldBounds.x) * minimapScale;
+                float py = oy + (p.y - worldBounds.y) * minimapScale;
+                g.vertex(px, py);
+            }
+            g.endShape();
+            g.strokeWeight(1);
+        }
+
+        // Base & Exit markers
+        if (showBaseExit) {
+            if (basePos != null) {
+                float bx = ox + (basePos.x - worldBounds.x) * minimapScale;
+                float by = oy + (basePos.y - worldBounds.y) * minimapScale;
+                setFillRGBA(g, baseColor);
+                g.noStroke();
+                g.ellipse(bx, by, 8, 8);
+            }
+            if (exitPos != null) {
+                float ex = ox + (exitPos.x - worldBounds.x) * minimapScale;
+                float ey = oy + (exitPos.y - worldBounds.y) * minimapScale;
+                setFillRGBA(g, exitColor);
+                g.noStroke();
+                g.ellipse(ex, ey, 6, 6);
+            }
+        }
+
+        // Viewport rectangle (outline only, RTS-style)
         if (showViewportRect && camera != null) {
             Rect vp = camera.getViewport();
             float vx = ox + (vp.x - worldBounds.x) * minimapScale;
             float vy = oy + (vp.y - worldBounds.y) * minimapScale;
             float vw = Math.max(4, vp.width * minimapScale);
             float vh = Math.max(4, vp.height * minimapScale);
-            setFillRGB(g, viewportColor);
+            // Clamp viewport rect inside the actual map drawing area
+            vx = Math.max(ox, Math.min(ox + drawW - vw, vx));
+            vy = Math.max(oy, Math.min(oy + drawH - vh, vy));
+            g.noFill();
+            setStrokeRGBA(g, viewportColor);
             g.rect(vx, vy, vw, vh);
+            // Logger.debug("Minimap", String.format("viewport rect vp=(%.0f,%.0f %.0fx%.0f) mm=(%.1f,%.1f %.1fx%.1f) scale=%.4f",
+            //     vp.x, vp.y, vp.width, vp.height, vx, vy, vw, vh, minimapScale));
         }
 
-        // Objects
+        // Objects (tracked by name prefix)
         if (showObjects && scene != null) {
-            setFillRGB(g, objectColor);
-            for (GameObject go : scene.getGameObjects()) {
-                if (!go.isActive()) continue;
-                if (go.getName().equals("ship")) {
-                    Vector2 pos = go.getTransform().getPosition();
-                    float mx = ox + (pos.x - worldBounds.x) * minimapScale;
-                    float my = oy + (pos.y - worldBounds.y) * minimapScale;
-                    g.rect(mx - 4, my - 4, 9, 9);
+            g.noStroke();
+            for (TrackEntry entry : trackedEntries) {
+                setFillRGBA(g, entry.color);
+                for (GameObject go : scene.getGameObjects()) {
+                    if (!go.isActive()) continue;
+                    if (go.getName().startsWith(entry.namePrefix)) {
+                        Vector2 pos = go.getTransform().getPosition();
+                        float mx = ox + (pos.x - worldBounds.x) * minimapScale;
+                        float my = oy + (pos.y - worldBounds.y) * minimapScale;
+                        float hs = entry.size * 0.5f;
+                        g.rect(mx - hs, my - hs, entry.size, entry.size);
+                    }
                 }
             }
         }
     }
 
-    /** P2D's fill(int) is unreliable with negative ARGB values; use 3-float fill instead. */
-    private static void setFillRGB(PGraphics g, int c) {
+    /** P2D compatible ARGB fill using 4-float overload. */
+    private static void setFillRGBA(PGraphics g, int c) {
         float r = ((c >> 16) & 0xFF);
         float gr = ((c >> 8) & 0xFF);
         float b = (c & 0xFF);
-        g.fill(r, gr, b);
+        float a = ((c >> 24) & 0xFF);
+        g.fill(r, gr, b, a);
+    }
+
+    /** P2D compatible ARGB stroke using 4-float overload. */
+    private static void setStrokeRGBA(PGraphics g, int c) {
+        float r = ((c >> 16) & 0xFF);
+        float gr = ((c >> 8) & 0xFF);
+        float b = (c & 0xFF);
+        float a = ((c >> 24) & 0xFF);
+        g.stroke(r, gr, b, a);
     }
 
     // ── Interaction ──
@@ -179,9 +299,12 @@ public class Minimap extends Component implements Renderable {
         nx = Math.max(0f, Math.min(1f, nx));
         ny = Math.max(0f, Math.min(1f, ny));
 
-        return new Vector2(
+        Vector2 result = new Vector2(
             worldBounds.x + nx * worldBounds.width,
             worldBounds.y + ny * worldBounds.height
         );
+        Logger.debug("Minimap", String.format("minimapToWorld design=(%.1f,%.1f) mm=(%.1f,%.1f) norm=(%.3f,%.3f) world=(%.1f,%.1f)",
+            designX, designY, ox, oy, nx, ny, result.x, result.y));
+        return result;
     }
 }

@@ -106,11 +106,75 @@ static final class TdFlowController {
     app.lastPlayedLevel = level;
     
     // 初始化关卡路径配置
-    TdLevelPath.initPaths(app);
+    TdLevelPath.initPaths(app, WORLD_W, WORLD_H);
     
     app.engine.getSceneManager().loadScene("Game");
     Scene g = app.engine.getSceneManager().getActiveScene();
-    g.clear();
+    
+    // Recreate camera, minimap and placement ghost for the Game scene
+    GameObject camGo = GameObject.create("camera");
+    app.camera = camGo.addComponent(Camera2D.class);
+    app.camera.setViewportSize(1280 - TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
+    app.camera.setViewportOffset(0, TdConfig.TOP_HUD);
+    app.camera.setWorldBounds(new Rect(0, 0, WORLD_W, WORLD_H));
+    app.camera.setFollowSpeed(0);
+    app.camera.jumpCenterTo(WORLD_W * 0.5f, WORLD_H * 0.5f);
+    g.addGameObject(camGo);
+    g.setCamera(app.camera);
+    
+    GameObject minimapGo = GameObject.create("minimap");
+    minimapGo.setRenderLayer(110);
+    minimapGo.setZIndex(500);
+    app.minimap = minimapGo.addComponent(Minimap.class);
+    app.minimap.setWorldBounds(new Rect(0, 0, WORLD_W, WORLD_H));
+    float mmW = TdConfig.RIGHT_W - 16;
+    float mmH = 180;
+    float mmX = 1280 - TdConfig.RIGHT_W + 8;
+    float mmY = 720 - mmH - 8;
+    app.minimap.setRect(mmX, mmY, mmW, mmH);
+    app.minimap.setColors(app.color(21, 26, 37), app.color(58, 80, 107), app.color(74, 222, 128), app.color(56, 189, 248));
+    app.minimap.clearTrackedNames();
+    app.minimap.addTrackedName("Tower_", app.color(56, 189, 248), 5);
+    app.minimap.addTrackedName("Enemy_", app.color(248, 113, 104), 4);
+    app.minimap.addTrackedName("Orb_", app.color(250, 204, 21), 4);
+    app.minimap.setScene(g);
+    app.minimap.setCamera(app.camera);
+
+    // ── WorldViewport: main world view ──
+    if (app.worldViewport != null) {
+      app.ui.getRoot().remove(app.worldViewport);
+    }
+    app.worldViewport = new SceneViewport("world_viewport");
+    app.worldViewport.setBounds(0, TdConfig.TOP_HUD, 1280 - TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
+    app.worldViewport.setScene(g);
+    app.worldViewport.setCamera(app.camera);
+    app.worldViewport.setZOrder(-1);
+    app.worldViewport.setVisible(true);
+    app.ui.getRoot().add(app.worldViewport);
+
+    // ── MinimapViewport: minimap inside right panel ──
+    if (app.minimapViewport != null) {
+      app.panelRight.remove(app.minimapViewport);
+    }
+    app.minimapViewport = new MinimapViewport("minimap_view", app.minimap);
+    app.minimapViewport.setScene(g);
+    app.minimapViewport.setCamera(app.camera);
+    app.minimapViewport.setVisible(true);
+    app.panelRight.add(app.minimapViewport);
+    // 保留 minimap 的原始 rect（用于可能的回退），MinimapViewport 会临时覆盖它
+
+    GameObject ghostGo = GameObject.create("placement_ghost");
+    ghostGo.setRenderLayer(30);
+    ghostGo.setCullEnabled(false);
+    ghostGo.addComponent(new PlacementGhostController(app));
+    g.addGameObject(ghostGo);
+    // Remove old towers and world_bg only; keep camera/minimap/placement ghost
+    for (GameObject go : new ArrayList<>(g.getGameObjects())) {
+      if (go.getComponent(TowerController.class) != null
+          || "world_bg".equals(go.getName())) {
+        g.markForDestroy(go);
+      }
+    }
     app.world.clearEntities();
     
     // 设置关卡并初始化路径
@@ -122,6 +186,11 @@ static final class TdFlowController {
     }
     app.world.resetTowerNaming();
     app.world.configurePath();
+    if (app.minimap != null && app.world.path != null) {
+      app.minimap.setPathPoints(app.world.path.points);
+      app.minimap.setBasePosition(app.world.path.points[app.world.baseVertexIndex]);
+      app.minimap.setExitPosition(app.world.path.points[app.world.path.points.length - 1]);
+    }
     app.appMode = 2;
     app.panelMenu.setVisible(false);
     app.panelLevelSelect.setVisible(false);
@@ -135,7 +204,7 @@ static final class TdFlowController {
   /** 进入下一关 */
   void goNextLevel() {
     int nextLevel = app.lastPlayedLevel + 1;
-    if (nextLevel <= TdLevelConfig.TOTAL_LEVELS) {
+    if (nextLevel <= TdLevelConfig.getTotalLevels()) {
       startNewGameWithLevel(nextLevel);
     } else {
       // 已经通关所有关卡，返回主菜单
@@ -159,6 +228,12 @@ static final class TdFlowController {
     app.panelSettings.setVisible(false);
     if (app.panelEndOverlay != null) {
       app.panelEndOverlay.setVisible(false);
+    }
+    if (app.worldViewport != null) {
+      app.worldViewport.setVisible(false);
+    }
+    if (app.minimapViewport != null) {
+      app.minimapViewport.setVisible(false);
     }
     playBgmMenu();
     animateMenuFadeIn();
@@ -269,7 +344,8 @@ static final class TdFlowController {
 
   TowerKind hoveredTowerBuildButtonKindOrNull() {
     if (app.panelRight != null && app.panelRight.isVisible() && (app.appMode == 2 || app.appMode == 3 || app.appMode == 4)) {
-      UIComponent hit = app.ui.getRoot().hitTest(app.mouseX, app.mouseY);
+      Vector2 dm = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
+      UIComponent hit = app.ui.getRoot().hitTest((int)dm.x, (int)dm.y);
       while (hit != null) {
         if (hit == app.btnTowerMg) return TowerKind.MG;
         if (hit == app.btnTowerMissile) return TowerKind.MISSILE;
@@ -290,14 +366,53 @@ static final class TdFlowController {
     TowerDef d = TowerDef.forKind(h);
     int rng = (int) (h == TowerKind.SLOW ? d.aoeRadius : d.range);
     String rngLabel = h == TowerKind.SLOW ? i18n("tower.aoe") : i18n("tower.range");
-    app.lblTowerHint.setText(i18n(d.name) + "\n" + i18n("tower.cost") + " " + d.cost + "  |  " + rngLabel + " " + rng
-      + "\n" + i18n(d.blurb) + "\n" + i18n("tower.placeHint"));
+    app.lblTowerHint.setText(i18n(d.nameKey) + "\n" + i18n("tower.cost") + " " + d.cost + "  |  " + rngLabel + " " + rng
+      + "\n" + i18n(d.blurbKey) + "\n" + i18n("tower.placeHint"));
   }
 
   void onTowerBuildPick(TowerKind k) {
     app.buildSelected = k;
     app.buildArmed = true;
     updateTowerHint();
+  }
+
+  void updateCameraScroll(float dt) {
+    if (app.camera == null) return;
+    if (app.appMode != 2 && app.appMode != 3 && app.appMode != 4) return;
+    if (!app.focused) return;
+
+    float speed = 520 * dt; // design pixels per second
+
+    float dx = 0;
+    float dy = 0;
+
+    // Keyboard scroll
+    if (app.keyScrollLeft) dx -= speed;
+    if (app.keyScrollRight) dx += speed;
+    if (app.keyScrollUp) dy -= speed;
+    if (app.keyScrollDown) dy += speed;
+
+    // Edge scroll (actual pixels margin)
+    int margin = 20;
+    if (app.mouseX < margin) dx -= speed;
+    if (app.mouseX > app.width - margin) dx += speed;
+    if (app.mouseY < margin) dy -= speed;
+    if (app.mouseY > app.height - margin) dy += speed;
+
+    if (dx != 0 || dy != 0) {
+      app.camera.getTransform().translate(dx / app.camera.getZoom(), dy / app.camera.getZoom());
+      app.camera.clampToBounds();
+    }
+  }
+
+  void drawMinimapOverUi() {
+    if (app.minimap == null) return;
+    shenyf.p5engine.rendering.IRenderer r = app.engine.getRenderer();
+    r.pushTransform();
+    app.engine.getDisplayManager().begin(r);
+    app.minimap.render(r);
+    app.engine.getDisplayManager().end(r);
+    r.popTransform();
   }
 
   void onKeyPressed() {
@@ -313,24 +428,50 @@ static final class TdFlowController {
   void drawFrame() {
     float dt = app.engine.getGameTime().getDeltaTime();
     app.background(14, 18, 30);
-    drawHudBackdrop();
+    // drawHudBackdrop() 不再需要，网格线已移到 SceneViewport 内部
 
+    updateCameraScroll(dt);
     app.engine.update();
+    if (app.camera != null) {
+      app.camera.clampToBounds();
+      // 强制限制：确保相机不会看到世界外面
+      Vector2 p = app.camera.getTransform().getPosition();
+      float vw = app.camera.getViewportWidth();
+      float vh = app.camera.getViewportHeight();
+      float z = app.camera.getZoom();
+      float halfVisW = (vw / z) * 0.5f;
+      float halfVisH = (vh / z) * 0.5f;
+      p.x = Math.max(halfVisW, Math.min(WORLD_W - halfVisW, p.x));
+      p.y = Math.max(halfVisH, Math.min(WORLD_H - halfVisH, p.y));
+      app.camera.getTransform().setPosition(p);
+      // shenyf.p5engine.util.Logger.debug("TdFlow", String.format("drawFrame camPos=(%.1f,%.1f) zoom=%.2f vp=%.0fx%.0f offset=(%.0f,%.0f)",
+      //   p.x, p.y, z, vw, vh, app.camera.getViewportOffsetX(), app.camera.getViewportOffsetY()));
+    }
 
     if (app.appMode == 2) {
       int end = app.world.tick(dt, app.lblHudLine);
       if (app.lblHudLine != null) {
-        app.lblHudLine.setText(app.lblHudLine.getText()
-          + (app.showTowerRangeOverlay ? "  |  " + i18n("hud.rangeOn") : "  |  " + i18n("hud.rangeOff")));
+        String extra = (app.showTowerRangeOverlay ? "  |  " + i18n("hud.rangeOn") : "  |  " + i18n("hud.rangeOff"));
+        // Append time-scale info
+        P5GameTime gt = app.engine.getGameTime();
+        String timeInfo = String.format(" | Time: %.1fx", gt.getTimeScale());
+        if (gt.isPaused()) timeInfo += " [PAUSED]";
+        app.lblHudLine.setText(app.lblHudLine.getText() + extra + timeInfo);
       }
       if (end == 1) showEnd(false);
       else if (end == 2) showEnd(true);
     }
 
-    boolean ghostPreview = app.appMode == 2 && app.buildArmed
-      && app.mouseX < app.width - TdConfig.RIGHT_W
-      && app.mouseY >= TdConfig.TOP_HUD;
-    app.world.drawBattlefield(app.buildSelected, app.appMode, app.showTowerRangeOverlay || ghostPreview, app.buildArmed);
+    // 每 60 帧输出一次 camera 状态日志（避免日志过多）
+    if (app.camera != null && app.frameCount % 60 == 0) {
+      Vector2 cp = app.camera.getTransform().getPosition();
+      Rect cvp = app.camera.getViewport();
+      shenyf.p5engine.util.Logger.debug("TdFlow", String.format("frame=%d camPos=(%.1f,%.1f) zoom=%.3f viewport=(%.1f,%.1f %.1fx%.1f)",
+        app.frameCount, cp.x, cp.y, app.camera.getZoom(), cvp.x, cvp.y, cvp.width, cvp.height));
+    }
+
+    // World 渲染现在由 WorldViewport 在 UI render 阶段完成
+    // 不再需要 app.engine.render() 和手动覆盖矩形
 
     // 延迟重启 BGM（设置面板调完音量后）
     if (bgmRestartAt > 0 && app.millis() >= bgmRestartAt) {
@@ -339,26 +480,69 @@ static final class TdFlowController {
     }
 
     TdUiLayout.layout(app);
-    sketchUi.updateFrame(dt);
+    // UI updates use real time so menus stay responsive during pause
+    sketchUi.updateFrame(app.engine.getGameTime().getRealDeltaTime());
     if (app.appMode == 2 || app.appMode == 3 || app.appMode == 4) {
       updateTowerHint();
     }
     sketchUi.renderFrame();
+
+    // Debug: verify ghost placement coordinate chain
+    if (app.buildArmed && app.camera != null) {
+      Vector2 designMouse = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
+      Vector2 worldMouse = app.camera.screenToWorld(designMouse);
+      Vector2 backDesign = app.camera.worldToScreen(worldMouse);
+      Vector2 backActual = app.engine.getDisplayManager().designToActual(backDesign);
+      app.stroke(255, 0, 255);
+      app.strokeWeight(3);
+      app.noFill();
+      app.ellipse(backActual.x, backActual.y, 20, 20);
+      app.line(backActual.x - 12, backActual.y, backActual.x + 12, backActual.y);
+      app.line(backActual.x, backActual.y - 12, backActual.x, backActual.y + 12);
+      app.noStroke();
+      app.fill(255, 0, 255);
+      app.textAlign(PApplet.CENTER, PApplet.CENTER);
+      app.text("V", backActual.x, backActual.y);
+      app.textAlign(PApplet.LEFT, PApplet.BASELINE);
+    }
+
     app.engine.renderDebugOverlay();
+
+    // Debug: draw zoom anchor focus point on screen
+    if (app.debugZoomFocusWorld != null && app.camera != null) {
+      Vector2 screenDesign = app.camera.worldToScreen(app.debugZoomFocusWorld);
+      Vector2 screenActual = app.engine.getDisplayManager().designToActual(screenDesign);
+      app.stroke(255, 0, 0);
+      app.strokeWeight(3);
+      app.noFill();
+      app.ellipse(screenActual.x, screenActual.y, 24, 24);
+      app.line(screenActual.x - 16, screenActual.y, screenActual.x + 16, screenActual.y);
+      app.line(screenActual.x, screenActual.y - 16, screenActual.x, screenActual.y + 16);
+      app.noStroke();
+      app.fill(255, 0, 0);
+      app.textAlign(PApplet.CENTER, PApplet.CENTER);
+      app.text("Z", screenActual.x, screenActual.y);
+      app.textAlign(PApplet.LEFT, PApplet.BASELINE);
+      app.debugZoomFocusTimer--;
+      if (app.debugZoomFocusTimer <= 0) app.debugZoomFocusWorld = null;
+    }
   }
 
   void drawHudBackdrop() {
-    app.pushStyle();
     app.stroke(40, 90, 120, 22);
     app.strokeWeight(1);
     int step = 48;
-    for (int x = 0; x < app.width; x += step) {
-      app.line(x, 0, x, app.height);
+    // 只画在地图区域内（扣除顶部 HUD 和右侧面板）
+    shenyf.p5engine.rendering.DisplayManager dm = app.engine.getDisplayManager();
+    Vector2 tl = dm.designToActual(new Vector2(0, TdConfig.TOP_HUD));
+    Vector2 br = dm.designToActual(new Vector2(1280 - TdConfig.RIGHT_W, 720));
+    for (float x = tl.x; x < br.x; x += step) {
+      app.line(x, tl.y, x, br.y);
     }
-    for (int y = 0; y < app.height; y += step) {
-      app.line(0, y, app.width, y);
+    for (float y = tl.y; y < br.y; y += step) {
+      app.line(tl.x, y, br.x, y);
     }
-    app.popStyle();
+    app.noStroke();
   }
 
   private void animateMenuFadeIn() {
@@ -449,16 +633,41 @@ static final class TdFlowController {
   }
 
   void onMousePressed() {
+    // 小地图点击跳转（优先处理，不限制 appMode）
+    if (app.minimap != null && app.camera != null) {
+      Vector2 designMouse = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
+      if (app.minimap.contains(designMouse.x, designMouse.y)) {
+        Vector2 worldPos = app.minimap.minimapToWorld(designMouse.x, designMouse.y);
+        app.camera.jumpCenterTo(worldPos.x, worldPos.y);
+        shenyf.p5engine.util.Logger.debug("TdFlow", String.format("minimap click design=(%.1f,%.1f) -> world=(%.1f,%.1f)",
+          designMouse.x, designMouse.y, worldPos.x, worldPos.y));
+        return;
+      }
+    }
+
     if (app.appMode == 2) {
       if (app.mouseButton == RIGHT) {
         app.buildArmed = false;
         return;
       }
       if (!app.buildArmed || app.mouseButton != LEFT) return;
-      int pw = app.width - TdConfig.RIGHT_W;
-      if (app.mouseX >= 0 && app.mouseX < pw && app.mouseY >= TdConfig.TOP_HUD) {
-        float px = TdGameWorld.snapGrid(app.mouseX);
-        float py = TdGameWorld.snapGrid(app.mouseY - TdConfig.TOP_HUD);
+
+      float mx = app.mouseX;
+      float my = app.mouseY;
+      if (app.camera != null) {
+        Vector2 designMouse = app.engine.getDisplayManager().actualToDesign(new Vector2(mx, my));
+        Vector2 worldMouse = app.camera.screenToWorld(designMouse);
+        mx = worldMouse.x;
+        my = worldMouse.y;
+        shenyf.p5engine.util.Logger.debug("Mouse", String.format("mousePressed actual=(%d,%d) design=(%.1f,%.1f) world=(%.1f,%.1f) camPos=(%.1f,%.1f) zoom=%.2f",
+          app.mouseX, app.mouseY, designMouse.x, designMouse.y, worldMouse.x, worldMouse.y,
+          app.camera.getTransform().getPosition().x, app.camera.getTransform().getPosition().y, app.camera.getZoom()));
+      }
+
+      if (mx >= 0 && mx < WORLD_W && my >= 0 && my < WORLD_H) {
+        float px = TdGameWorld.snapGrid(mx);
+        float py = TdGameWorld.snapGrid(my);
+        shenyf.p5engine.util.Logger.debug("Mouse", String.format("placeTower snapped=(%.1f,%.1f)", px, py));
         app.world.tryBuyAndPlaceTower(app.buildSelected, px, py);
       }
     }

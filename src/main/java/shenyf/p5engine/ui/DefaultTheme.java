@@ -52,6 +52,39 @@ public final class DefaultTheme implements Theme {
         float tx = x + 8;
         float ty = y + titleH * 0.5f;
         g.text(title != null ? title : "", tx, ty);
+
+        // Draw window control buttons (close / max / min) on the right side of title bar
+        float btnW = 22;
+        float btnGap = 2;
+        float btnY = y + (titleH - 16) * 0.5f;
+        float right = x + w - btnGap;
+
+        // Helper to draw a single button background + hover feedback
+        java.util.function.BiConsumer<Float, String> drawBtn = (bx, label) -> {
+            g.noStroke();
+            g.fill(a(0xFF333333));
+            g.rect(bx, btnY, btnW, 16);
+            g.stroke(a(BORDER));
+            g.strokeWeight(1);
+            g.noFill();
+            g.rect(bx + 0.5f, btnY + 0.5f, btnW - 1, 15);
+            g.fill(a(TEXT));
+            g.textAlign(PApplet.CENTER, PApplet.CENTER);
+            g.textSize(10);
+            g.text(label, bx + btnW * 0.5f, btnY + 8);
+        };
+
+        // Close (×)
+        right -= btnW;
+        drawBtn.accept(right, "×");
+
+        // Maximize / Restore (□)
+        right -= btnW + btnGap;
+        drawBtn.accept(right, "□");
+
+        // Minimize (−)
+        right -= btnW + btnGap;
+        drawBtn.accept(right, "−");
     }
 
     @Override
