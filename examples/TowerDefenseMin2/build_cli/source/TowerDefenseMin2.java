@@ -107,6 +107,11 @@ TdBuildMode buildMode = TdBuildMode.NONE;
 boolean keyScrollUp, keyScrollDown, keyScrollLeft, keyScrollRight;
 boolean wasKeyP;
 
+// HUD UI components (managed by p5engine UI library)
+TdTopBar hudTopBar;
+TdBuildPanel hudBuildPanel;
+TdMinimapComponent hudMinimap;
+
 public void settings() {
   P5Engine.configureDisplay(this, P5Config.defaults()
     .width(1280).height(720)
@@ -216,15 +221,15 @@ public void draw() {
   sketchUi.updateFrame(dtReal);
   sketchUi.renderFrame();
 
-  if (state == TdState.PLAYING) {
-    TdHUD.drawTopBar();
-    TdHUD.drawBuildPanel();
-    TdHUD.drawMinimap();
-  }
-
   if (state == TdState.PLAYING && buildMode != TdBuildMode.NONE) {
     TdGhost.update();
     TdGhost.draw();
+  }
+
+  // DEBUG: minimap hit test
+  if (state == TdState.PLAYING && hudMinimap != null) {
+    boolean hit = hudMinimap.containsPoint(mouseX, mouseY);
+    println("[DEBUG] mouse=" + mouseX + "," + mouseY + " minimapBounds=" + hudMinimap.getAbsoluteX() + "," + hudMinimap.getAbsoluteY() + "," + hudMinimap.getWidth() + "," + hudMinimap.getHeight() + " hit=" + hit);
   }
 
   if (state == TdState.PAUSED) {
@@ -253,7 +258,6 @@ public void handleKeyboardInput(InputManager im) {
 public void handleMouseInput(InputManager im) {
   if (state != TdState.PLAYING || camera == null) return;
   handleMouseWheelZoom(im);
-  handleMouseDragPan(im);
   handleMouseClick(im);
 }
 
@@ -283,24 +287,36 @@ public void handleMouseDragPan(InputManager im) {
   }
 }
 
+public void setupHud() {
+  Panel root = ui.getRoot();
+
+  hudTopBar = new TdTopBar("hud_top");
+  hudTopBar.setZOrder(5);
+  root.add(hudTopBar);
+
+  hudBuildPanel = new TdBuildPanel("hud_build");
+  hudBuildPanel.setZOrder(5);
+  root.add(hudBuildPanel);
+
+  hudMinimap = new TdMinimapComponent("hud_minimap");
+  hudMinimap.setPosition(1280 - TdConfig.RIGHT_W + 16, 720 - TdMinimapComponent.MH - 16);
+  hudMinimap.setZOrder(5);
+  root.add(hudMinimap);
+}
+
 public void handleMouseClick(InputManager im) {
-  if (!im.isMouseJustPressed()) return;
   Vector2 dm = getDesignMousePos(im);
-  if (im.getMouseButton() == PApplet.LEFT) {
-    if (TdHUD.isPauseButtonHit(dm.x, dm.y)) {
-      state = TdState.PAUSED;
-    } else {
-      TdBuildMode clicked = TdHUD.getBuildModeAt(dm.x, dm.y);
-      if (clicked != null) {
-        buildMode = clicked;
-      } else if (TdMinimap.isMouseOver()) {
-        TdHUD.handleMinimapClick();
-      } else if (buildMode != TdBuildMode.NONE && TdGhost.isValid) {
-        TdGameWorld.tryPlaceTower(buildMode, TdGhost.gridX, TdGhost.gridY);
-        buildMode = TdBuildMode.NONE;
-      }
+
+  // Place tower on world viewport click
+  if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.LEFT) {
+    if (buildMode != TdBuildMode.NONE && TdGhost.isValid) {
+      TdGameWorld.tryPlaceTower(buildMode, TdGhost.gridX, TdGhost.gridY);
+      buildMode = TdBuildMode.NONE;
     }
-  } else if (im.getMouseButton() == PApplet.RIGHT) {
+  }
+
+  // Right-click cancel
+  if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.RIGHT) {
     buildMode = TdBuildMode.NONE;
   }
 }
@@ -815,7 +831,7 @@ static final class TdFlow {
         root.removeAllChildren();
 
         Window win = new Window("menu_win");
-        win.setBounds(340, 200, 600, 360);
+        win.setBounds(340, 300, 600, 360);
         win.setTitle(TdAssets.i18n("menu.title"));
         win.setZOrder(10);
         win.setPaintBackground(false);
@@ -827,33 +843,46 @@ static final class TdFlow {
         panel.setPaintBackground(false);
         win.add(panel);
 
+        // Title animation: start from center, float up with outBack
+        TdMenuBg.titleProgress = 0f;
+        TweenManager tm = app.engine.getTweenManager();
+        tm.setUseUnscaledTime(true);
+        tm.toFloat(0f, 1f, 0.8f, v -> {
+            TdMenuBg.titleProgress = v;
+        }).ease(Ease::outBack).start();
+
+        // Buttons start below their final position
         Button btnStart = new Button("btn_start");
         btnStart.setLabel(TdAssets.i18n("menu.start"));
-        btnStart.setBounds(180, 40, 240, 52);
+        btnStart.setBounds(180, 70, 240, 52);
         btnStart.setAlpha(0);
         btnStart.setAction(() -> TdFlow.showLevelSelect(app));
         panel.add(btnStart);
 
         Button btnSettings = new Button("btn_settings");
         btnSettings.setLabel(TdAssets.i18n("menu.settings"));
-        btnSettings.setBounds(180, 110, 240, 52);
+        btnSettings.setBounds(180, 140, 240, 52);
         btnSettings.setAlpha(0);
         btnSettings.setAction(() -> TdFlow.showSettings(app));
         panel.add(btnSettings);
 
         Button btnQuit = new Button("btn_quit");
         btnQuit.setLabel(TdAssets.i18n("menu.quit"));
-        btnQuit.setBounds(180, 180, 240, 52);
+        btnQuit.setBounds(180, 210, 240, 52);
         btnQuit.setAlpha(0);
         btnQuit.setAction(() -> app.exit());
         panel.add(btnQuit);
 
-        // Staggered fade-in animation
-        TweenManager tm = app.engine.getTweenManager();
-        tm.setUseUnscaledTime(true);
-        tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(0.1f).start();
-        tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(0.25f).start();
-        tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(0.4f).start();
+        // Staggered slide-up + fade-in (start after title begins moving)
+        float btnDelay = 0.3f;
+        tm.toY(btnStart, 40, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+        tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+
+        tm.toY(btnSettings, 110, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+        tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+
+        tm.toY(btnQuit, 180, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
+        tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
 
         TdSound.playBgmMenu();
     }
@@ -1047,6 +1076,7 @@ static final class TdFlow {
         app.ui.getRoot().removeAllChildren();
         TdGameWorld.startLevel(app, levelId);
         app.setupWorldViewport();
+        app.setupHud();
         TdSound.playBgmGame();
     }
 
@@ -1613,6 +1643,9 @@ static final class TdMenuBg {
     static boolean initialized = false;
     static processing.core.PFont font;
 
+    // Title animation state (0 = start, 1 = end)
+    static float titleProgress = 0f;
+
     public static void setFont(processing.core.PFont f) {
         font = f;
     }
@@ -1636,22 +1669,34 @@ static final class TdMenuBg {
     }
 
     public static void drawTitle(PApplet g, String title) {
-        // Large glowing title
+        // Animated position: center (360) -> final (120)
+        float startY = 360f;
+        float endY = 120f;
+        float curY = startY + (endY - startY) * titleProgress;
+
+        // Animated alpha: 0 -> 255
+        int alpha = (int)(Math.min(255, Math.max(0, 255 * titleProgress)));
+
+        // Animated scale: 0.8 -> 1.0
+        float scale = Math.max(0, 0.8f + 0.2f * titleProgress);
+
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
         if (font != null) g.textFont(font);
-        g.textSize(48);
-        // Glow shadow
-        g.fill(74, 158, 255, 60);
-        g.text(title, 642, 122);
-        g.text(title, 638, 118);
-        // Main text
-        g.fill(224, 230, 240);
-        g.text(title, 640, 120);
-        // Accent underline
-        g.stroke(74, 158, 255, 180);
-        g.strokeWeight(2);
+        g.textSize(48 * scale);
+
         float tw = g.textWidth(title);
-        g.line(640 - tw * 0.5f, 152, 640 + tw * 0.5f, 152);
+
+        // Glow shadow
+        g.fill(74, 158, 255, (int)(60 * titleProgress));
+        g.text(title, 642, curY + 2);
+        g.text(title, 638, curY - 2);
+        // Main text
+        g.fill(224, 230, 240, alpha);
+        g.text(title, 640, curY);
+        // Accent underline
+        g.stroke(74, 158, 255, (int)(180 * titleProgress));
+        g.strokeWeight(2);
+        g.line(640 - tw * 0.5f, curY + 32, 640 + tw * 0.5f, curY + 32);
     }
 
     public static void draw(PApplet g) {
@@ -1776,7 +1821,7 @@ static final class TdMinimap {
             app.noStroke();
             app.fill(0xFF66FF66);
             for (Tower t : TdGameWorld.towers) {
-              app.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 8, 8);
+              app.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
             }
             // Enemies
             app.noStroke();
@@ -2669,6 +2714,242 @@ public class TdTheme implements Theme {
         int origA = (c >>> 24) & 0xFF;
         int newA = Math.round(origA * currentAlpha);
         return (newA << 24) | (c & 0x00FFFFFF);
+    }
+}
+/**
+ * HUD UI components using p5engine UI library.
+ * Replaces hand-drawn TdHUD and TdMinimap.
+ */
+
+// \u2500\u2500\u2500 Tower Button \u2500\u2500\u2500
+
+static class TowerButton extends Button {
+    TowerType towerType;
+    String initial;
+
+    TowerButton(String id, TowerType type, String initial) {
+        super(id);
+        this.towerType = type;
+        this.initial = initial;
+        setSize(TdConfig.RIGHT_W - 16, 56);
+    }
+
+    @Override
+    public void paint(PApplet applet, Theme theme) {
+        TowerDef def = TdAssets.loadTowerDef(towerType);
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        boolean selected = (app.buildMode == TowerType.toBuildMode(towerType));
+
+        int fill = selected ? TdTheme.BTN_PRESS : (hover ? TdTheme.BTN_HOVER : TdTheme.BTN_BG);
+        applet.noStroke();
+        applet.fill(fill);
+        applet.rect(getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+
+        applet.stroke(selected ? TdTheme.ACCENT : TdTheme.BORDER);
+        applet.strokeWeight(selected ? 2 : 1);
+        applet.noFill();
+        applet.rect(getAbsoluteX() + 0.5f, getAbsoluteY() + 0.5f, getWidth() - 1, getHeight() - 1);
+
+        // Icon
+        float iconSize = 32;
+        float iconX = getAbsoluteX() + 8;
+        float iconY = getAbsoluteY() + (getHeight() - iconSize) * 0.5f;
+        applet.noStroke();
+        applet.fill(TdConfig.C_ACCENT);
+        applet.rect(iconX, iconY, iconSize, iconSize);
+        applet.fill(TdTheme.BG_DARK);
+        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+        applet.textSize(14);
+        applet.text(initial, iconX + iconSize * 0.5f, iconY + iconSize * 0.5f);
+
+        // Name and cost
+        if (def != null) {
+            applet.fill(TdTheme.TEXT);
+            applet.textAlign(PApplet.LEFT, PApplet.CENTER);
+            applet.textSize(13);
+            applet.text(TdAssets.i18n(def.nameKey), iconX + iconSize + 10, getAbsoluteY() + getHeight() * 0.35f);
+            applet.fill(TdTheme.TEXT_DIM);
+            applet.textSize(11);
+            applet.text("$" + def.cost, iconX + iconSize + 10, getAbsoluteY() + getHeight() * 0.7f);
+        }
+    }
+
+    @Override
+    public void update(PApplet applet, float dt) {
+        super.update(applet, dt);
+        TowerDef def = TdAssets.loadTowerDef(towerType);
+        if (def != null) {
+            setEnabled(TdGameWorld.money >= def.cost);
+        }
+    }
+}
+
+// \u2500\u2500\u2500 Minimap Component \u2500\u2500\u2500
+
+static class TdMinimapComponent extends UIComponent {
+    static final float MW = 180, MH = 120;
+
+    TdMinimapComponent(String id) {
+        super(id);
+        setSize(MW, MH);
+    }
+
+    @Override
+    public void paint(PApplet applet, Theme theme) {
+        float mx = getAbsoluteX();
+        float my = getAbsoluteY();
+
+        applet.pushStyle();
+        applet.noStroke();
+        applet.fill(TdTheme.BG_DARK);
+        applet.rect(mx, my, MW, MH);
+        applet.stroke(TdTheme.BORDER);
+        applet.strokeWeight(1);
+        applet.noFill();
+        applet.rect(mx + 0.5f, my + 0.5f, MW - 1, MH - 1);
+
+        if (TdGameWorld.level != null) {
+            float sx = MW / TdGameWorld.level.worldW;
+            float sy = MH / TdGameWorld.level.worldH;
+
+            // Base
+            applet.fill(0xFF4A9EFF);
+            applet.ellipse(mx + TdGameWorld.level.basePos.x * sx, my + TdGameWorld.level.basePos.y * sy, 6, 6);
+            // Exit
+            applet.fill(0xFFFF4444);
+            applet.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+            // Path
+            applet.stroke(0xFF4A9EFF);
+            applet.strokeWeight(1);
+            Vector2[] pts = TdGameWorld.level.pathPoints;
+            for (int i = 1; i < pts.length; i++) {
+                applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
+                            mx + pts[i].x * sx, my + pts[i].y * sy);
+            }
+            // Towers
+            applet.noStroke();
+            applet.fill(0xFF66FF66);
+            for (Tower t : TdGameWorld.towers) {
+                applet.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
+            }
+            // Enemies
+            applet.noStroke();
+            applet.fill(0xFFFF4444);
+            for (Enemy e : TdGameWorld.enemies) {
+                applet.ellipse(mx + e.pos.x * sx, my + e.pos.y * sy, 5, 5);
+            }
+            // Camera rect
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            Camera2D cam = app.camera;
+            if (cam != null) {
+                float cx = cam.getTransform().getPosition().x;
+                float cy = cam.getTransform().getPosition().y;
+                float cw = cam.getViewportWidth() / cam.getZoom();
+                float ch = cam.getViewportHeight() / cam.getZoom();
+                applet.noFill();
+                applet.stroke(0xFFFF8C42);
+                applet.strokeWeight(1);
+                applet.rect(mx + (cx - cw * 0.5f) * sx, my + (cy - ch * 0.5f) * sy, cw * sx, ch * sy);
+            }
+        }
+        applet.popStyle();
+    }
+
+    @Override
+    public boolean onEvent(UIEvent event, float absMouseX, float absMouseY) {
+        println("[DEBUG] Minimap onEvent: type=" + event.getType() + " button=" + event.getMouseButton() + " pos=" + absMouseX + "," + absMouseY);
+        if (event.getMouseButton() != PApplet.LEFT) return false;
+        switch (event.getType()) {
+            case MOUSE_PRESSED:
+            case MOUSE_DRAGGED:
+                jumpCameraTo(absMouseX, absMouseY);
+                return true;
+            case MOUSE_RELEASED:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public void jumpCameraTo(float absMouseX, float absMouseY) {
+        if (TdGameWorld.level == null) return;
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        float mx = getAbsoluteX();
+        float my = getAbsoluteY();
+        float wx = (absMouseX - mx) / MW * TdGameWorld.level.worldW;
+        float wy = (absMouseY - my) / MH * TdGameWorld.level.worldH;
+        app.camera.jumpCenterTo(wx, wy);
+    }
+}
+
+// \u2500\u2500\u2500 Top Bar \u2500\u2500\u2500
+
+static class TdTopBar extends Panel {
+    Label lblStatus;
+
+    TdTopBar(String id) {
+        super(id);
+        setPaintBackground(true);
+        setBounds(0, 0, 1280, TdConfig.TOP_HUD);
+        setLayoutManager(null);
+
+        lblStatus = new Label("lbl_status");
+        lblStatus.setBounds(16, 0, 400, TdConfig.TOP_HUD);
+        lblStatus.setTextAlign(PApplet.LEFT);
+        add(lblStatus);
+
+        Button btnPause = new Button("btn_pause");
+        btnPause.setLabel(TdAssets.i18n("game.pause"));
+        btnPause.setBounds(1280 - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
+        btnPause.setAction(() -> {
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            app.state = TdState.PAUSED;
+        });
+        add(btnPause);
+    }
+
+    @Override
+    public void update(PApplet applet, float dt) {
+        super.update(applet, dt);
+        lblStatus.setText("$ " + TdGameWorld.money + "  \u2666 " + TdGameWorld.orbits + "  \u6ce2 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.totalWaves : 0));
+    }
+}
+
+// \u2500\u2500\u2500 Build Panel \u2500\u2500\u2500
+
+static class TdBuildPanel extends Panel {
+    TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
+    String[] initials = { "M", "R", "L", "S" };
+
+    TdBuildPanel(String id) {
+        super(id);
+        setPaintBackground(true);
+        setBounds(1280 - TdConfig.RIGHT_W, TdConfig.TOP_HUD, TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
+        setLayoutManager(null);
+
+        float by = 16;
+        for (int i = 0; i < types.length; i++) {
+            TowerType tt = types[i];
+            final TdBuildMode mode = TowerType.toBuildMode(tt);
+            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, initials[i]);
+            btn.setPosition(8, by);
+            btn.setAction(() -> {
+                TowerDefenseMin2 app = TowerDefenseMin2.inst;
+                app.buildMode = mode;
+            });
+            add(btn);
+            by += 56 + 8;
+        }
+
+        by += 8;
+        Button btnCancel = new Button("btn_cancel");
+        btnCancel.setLabel(TdAssets.i18n("game.build.cancel"));
+        btnCancel.setBounds(8, by, TdConfig.RIGHT_W - 16, 32);
+        btnCancel.setAction(() -> {
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            app.buildMode = TdBuildMode.NONE;
+        });
+        add(btnCancel);
     }
 }
 /**

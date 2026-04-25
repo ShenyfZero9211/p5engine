@@ -18,6 +18,18 @@ public abstract class UIComponent {
     private Object layoutConstraint;
     private boolean layoutDirty = true;
 
+    // Fade-in animation state
+    private boolean fadeInPending = false;
+    private float fadeInDelay = 0f;
+    private float fadeInDuration = 0.5f;
+
+    // Slide-up animation state
+    private boolean slideUpPending = false;
+    private float slideUpDelay = 0f;
+    private float slideUpOffsetY = 20f;
+    private float slideUpDuration = 0.5f;
+    private float slideUpOriginalY = 0f;
+
     protected UIComponent(String id) {
         this.id = id != null ? id : "";
     }
@@ -113,6 +125,89 @@ public abstract class UIComponent {
 
     public void setAlpha(float alpha) {
         this.alpha = Math.max(0f, Math.min(1f, alpha));
+    }
+
+    // ── Fade-in animation ──
+
+    public void fadeIn(float delay) {
+        this.fadeInPending = true;
+        this.fadeInDelay = delay;
+    }
+
+    public void fadeIn(float delay, float duration) {
+        this.fadeInPending = true;
+        this.fadeInDelay = delay;
+        this.fadeInDuration = duration;
+    }
+
+    public boolean isFadeInPending() {
+        return fadeInPending;
+    }
+
+    public void clearFadeInPending() {
+        this.fadeInPending = false;
+    }
+
+    public float getFadeInDelay() {
+        return fadeInDelay;
+    }
+
+    public float getFadeInDuration() {
+        return fadeInDuration;
+    }
+
+    // ── Slide-up animation ──
+
+    public void slideUp(float delay) {
+        this.slideUpPending = true;
+        this.slideUpDelay = delay;
+    }
+
+    public void slideUp(float delay, float offsetY, float duration) {
+        this.slideUpPending = true;
+        this.slideUpDelay = delay;
+        this.slideUpOffsetY = offsetY;
+        this.slideUpDuration = duration;
+    }
+
+    public boolean isSlideUpPending() {
+        return slideUpPending;
+    }
+
+    public void clearSlideUpPending() {
+        this.slideUpPending = false;
+    }
+
+    public float getSlideUpDelay() {
+        return slideUpDelay;
+    }
+
+    public float getSlideUpOffsetY() {
+        return slideUpOffsetY;
+    }
+
+    public float getSlideUpDuration() {
+        return slideUpDuration;
+    }
+
+    public float getSlideUpOriginalY() {
+        return slideUpOriginalY;
+    }
+
+    public void setSlideUpOriginalY(float y) {
+        this.slideUpOriginalY = y;
+    }
+
+    // ── Appear animation (fade-in + slide-up combo) ──
+
+    public void appear(float delay) {
+        fadeIn(delay);
+        slideUp(delay);
+    }
+
+    public void appear(float delay, float offsetY, float duration) {
+        fadeIn(delay, duration);
+        slideUp(delay, offsetY, duration);
     }
 
     /**

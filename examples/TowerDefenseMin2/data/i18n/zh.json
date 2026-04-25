@@ -33,6 +33,8 @@
   "game.build.laser": "激光塔",
   "game.build.slow": "减速塔",
   "game.build.cancel": "取消",
+  "game.rangeOn": "范围:开",
+  "game.rangeOff": "范围:关",
   "tower.mg.name": "机枪塔",
   "tower.mg.desc": "快速射击，适合清理小怪。",
   "tower.missile.name": "导弹塔",

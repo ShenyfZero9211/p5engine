@@ -16,7 +16,8 @@ public class Tween {
 
     public enum Type {
         GO_POSITION, GO_ROTATION, GO_SCALE,
-        UI_X, UI_Y, UI_WIDTH, UI_HEIGHT, UI_ALPHA
+        UI_X, UI_Y, UI_WIDTH, UI_HEIGHT, UI_ALPHA,
+        CUSTOM_FLOAT
     }
 
     private final TweenManager manager;
@@ -121,7 +122,8 @@ public class Tween {
         started = true;
         shenyf.p5engine.util.Logger.debug("Tween", "START target=" + target.getClass().getSimpleName()
             + " type=" + type + " from=" + fromF + "," + fromX + "/" + fromY
-            + " to=" + toF + "," + toX + "/" + toY + " duration=" + String.format("%.2f", duration));
+            + " to=" + toF + "," + toX + "/" + toY + " duration=" + String.format("%.2f", duration)
+            + " hash=" + System.identityHashCode(this));
         if (onStart != null) {
             onStart.run();
         }
@@ -187,6 +189,14 @@ public class Tween {
         float progress = Math.min(1f, elapsed / duration);
         float t = forward ? progress : (1f - progress);
         float eased = ease.apply(t);
+
+        if (type == Type.CUSTOM_FLOAT) {
+            shenyf.p5engine.util.Logger.debug("Tween", "  CUSTOM_FLOAT update dt=" + String.format("%.4f", dt)
+                + " elapsed=" + String.format("%.4f", elapsed)
+                + " progress=" + String.format("%.4f", progress)
+                + " eased=" + String.format("%.4f", eased)
+                + " hash=" + System.identityHashCode(this));
+        }
 
         applyValue(eased);
 
@@ -263,6 +273,9 @@ public class Tween {
                 }
                 case UI_ALPHA:
                     ((UIComponent) target).setAlpha(v);
+                    break;
+                case CUSTOM_FLOAT:
+                    ((java.util.function.Consumer<Float>) target).accept(v);
                     break;
                 default:
                     break;

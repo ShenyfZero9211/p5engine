@@ -4,6 +4,7 @@ import processing.core.PApplet;
 import processing.core.PFont;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
+import shenyf.p5engine.util.Logger;
 
 import java.util.HashMap;
 import java.util.HashSet;

@@ -86,6 +86,47 @@ public class Container extends UIComponent {
         child.setParentInternal(this);
         children.add(child);
         markLayoutDirtyUp();
+        // Trigger fade-in animation if pending
+        if (child.isFadeInPending()) {
+            triggerFadeIn(child);
+        }
+        // Trigger slide-up animation if pending
+        if (child.isSlideUpPending()) {
+            triggerSlideUp(child);
+        }
+    }
+
+    private void triggerFadeIn(UIComponent child) {
+        var engine = shenyf.p5engine.core.P5Engine.getInstance();
+        if (engine == null) return;
+        var tm = engine.getTweenManager();
+        if (tm == null) return;
+
+        child.setAlpha(0);
+        tm.toAlpha(child, 1f, child.getFadeInDuration())
+          .ease(shenyf.p5engine.tween.Ease::outQuad)
+          .delay(child.getFadeInDelay())
+          .start();
+
+        child.clearFadeInPending();
+    }
+
+    private void triggerSlideUp(UIComponent child) {
+        var engine = shenyf.p5engine.core.P5Engine.getInstance();
+        if (engine == null) return;
+        var tm = engine.getTweenManager();
+        if (tm == null) return;
+
+        float originalY = child.getY();
+        child.setSlideUpOriginalY(originalY);
+        child.setPosition(child.getX(), originalY + child.getSlideUpOffsetY());
+
+        tm.toY(child, originalY, child.getSlideUpDuration())
+          .ease(shenyf.p5engine.tween.Ease::outQuad)
+          .delay(child.getSlideUpDelay())
+          .start();
+
+        child.clearSlideUpPending();
     }
 
     public void remove(UIComponent child) {

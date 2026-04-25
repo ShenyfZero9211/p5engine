@@ -1,9 +1,9 @@
 - id: 1
   nameKey: level.1.name
   subtitleKey: level.1.subtitle
-  initialMoney: 300
-  initialOrbs: 10
-  totalWaves: 5
+  initialMoney: 30000
+  initialOrbs: 1
+  totalWaves: 1
   worldWidth: 1600
   worldHeight: 1200
   enemy:
@@ -29,6 +29,37 @@
 - id: 2
   nameKey: level.2.name
   subtitleKey: level.2.subtitle
+  initialMoney: 350
+  initialOrbs: 10
+  totalWaves: 6
+  worldWidth: 1800
+  worldHeight: 1400
+  enemy:
+    hpBase: 100
+    hpPerWave: 50
+    speed: 70
+    countBase: 4
+    countPerWave: 2
+  spawnCooldown: 0.5
+  interWaveDelay: 5.5
+  basePos: { x: 300, y: 700 }
+  exitPos: { x: 1500, y: 700 }
+  spawnPos: { x: 200, y: 100 }
+  pathPoints:
+    - { x: 200, y: 100 }
+    - { x: 200, y: 400 }
+    - { x: 600, y: 400 }
+    - { x: 600, y: 100 }
+    - { x: 900, y: 100 }
+    - { x: 900, y: 700 }
+    - { x: 1200, y: 700 }
+    - { x: 1200, y: 300 }
+    - { x: 1500, y: 300 }
+    - { x: 1500, y: 700 }
+
+- id: 3
+  nameKey: level.3.name
+  subtitleKey: level.3.subtitle
   initialMoney: 350
   initialOrbs: 10
   totalWaves: 6

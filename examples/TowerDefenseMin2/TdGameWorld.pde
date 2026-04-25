@@ -21,8 +21,9 @@ static final class TdGameWorld {
         for (Tower t : towers) {
             if (t.gameObject != null) t.gameObject.markForDestroy();
         }
+        // Recycle all active bullets back to pools
         for (Bullet b : bullets) {
-            if (b.gameObject != null) b.gameObject.markForDestroy();
+            if (!b.dead) b.recycle();
         }
         towers.clear();
         enemies.clear();
@@ -44,6 +45,10 @@ static final class TdGameWorld {
         TowerDefenseMin2.WORLD_H = level.worldH;
         app.camera.setWorldBounds(new Rect(0, 0, level.worldW, level.worldH));
         app.camera.jumpCenterTo(level.basePos.x, level.basePos.y);
+
+        // Preload bullet pools for the new level
+        app.bulletDataPool.preload(100);
+        app.bulletGoPool.preload(100);
     }
 
     static void update(float dt) {
@@ -105,7 +110,10 @@ static final class TdGameWorld {
         for (int i = bullets.size() - 1; i >= 0; i--) {
             Bullet b = bullets.get(i);
             b.update(dt);
-            if (b.dead) bullets.remove(i);
+            if (b.dead) {
+                bullets.remove(i);
+                // recycle() already called in update()
+            }
         }
 
         // Tower AI

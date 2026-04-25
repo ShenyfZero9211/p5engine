@@ -121,7 +121,9 @@ static class EnemyRenderer extends RendererComponent {
         float y = enemy.pos.y;
         float r = enemy.radius;
         float dir = 0;
-        if (enemy.path != null) {
+        if (enemy.gameObject != null) {
+            dir = enemy.gameObject.getTransform().getRotation();
+        } else if (enemy.path != null) {
             Vector2 d = enemy.path.direction(enemy.pathDistance);
             if (d != null) dir = PApplet.atan2(d.y, d.x);
         }
@@ -188,8 +190,10 @@ static class TowerRenderer extends RendererComponent {
         int c = tower.def.iconColor;
         float time = System.currentTimeMillis() / 1000f;
 
-        // Range indicator (very subtle)
-        if (tower.built) {
+        // Range indicator (shown when building or manually toggled)
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        boolean shouldShowRange = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
+        if (tower.built && shouldShowRange) {
             g.noFill();
             g.stroke(c & 0x40FFFFFF);
             g.strokeWeight(1);
@@ -260,8 +264,7 @@ static class TowerRenderer extends RendererComponent {
 }
 
 static class BulletRenderer extends RendererComponent {
-    Bullet bullet;
-    BulletRenderer(Bullet bullet) { this.bullet = bullet; }
+    Bullet bullet;  // dynamically bound by Tower.fireAt()
 
     protected void renderShape(PGraphics g) {
         if (bullet == null || bullet.dead) return;

@@ -14,6 +14,9 @@ static final class TdMenuBg {
     static boolean initialized = false;
     static processing.core.PFont font;
 
+    // Title animation state (0 = start, 1 = end)
+    static float titleProgress = 0f;
+
     static void setFont(processing.core.PFont f) {
         font = f;
     }
@@ -37,22 +40,34 @@ static final class TdMenuBg {
     }
 
     static void drawTitle(PApplet g, String title) {
-        // Large glowing title
+        // Animated position: center (360) -> final (120)
+        float startY = 360f;
+        float endY = 120f;
+        float curY = startY + (endY - startY) * titleProgress;
+
+        // Animated alpha: 0 -> 255
+        int alpha = (int)(Math.min(255, Math.max(0, 255 * titleProgress)));
+
+        // Animated scale: 0.8 -> 1.0
+        float scale = Math.max(0, 0.8f + 0.2f * titleProgress);
+
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
         if (font != null) g.textFont(font);
-        g.textSize(48);
-        // Glow shadow
-        g.fill(74, 158, 255, 60);
-        g.text(title, 642, 122);
-        g.text(title, 638, 118);
-        // Main text
-        g.fill(224, 230, 240);
-        g.text(title, 640, 120);
-        // Accent underline
-        g.stroke(74, 158, 255, 180);
-        g.strokeWeight(2);
+        g.textSize(48 * scale);
+
         float tw = g.textWidth(title);
-        g.line(640 - tw * 0.5f, 152, 640 + tw * 0.5f, 152);
+
+        // Glow shadow
+        g.fill(74, 158, 255, (int)(60 * titleProgress));
+        g.text(title, 642, curY + 2);
+        g.text(title, 638, curY - 2);
+        // Main text
+        g.fill(224, 230, 240, alpha);
+        g.text(title, 640, curY);
+        // Accent underline
+        g.stroke(74, 158, 255, (int)(180 * titleProgress));
+        g.strokeWeight(2);
+        g.line(640 - tw * 0.5f, curY + 32, 640 + tw * 0.5f, curY + 32);
     }
 
     static void draw(PApplet g) {

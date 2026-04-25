@@ -142,7 +142,7 @@ static final class TdHUD {
     static void drawPauseOverlay() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         app.pushStyle();
-        app.fill(0xCC000000);
+        app.fill(0x66000000);
         app.noStroke();
         app.rect(0, 0, app.width, app.height);
         app.fill(TdTheme.TEXT);

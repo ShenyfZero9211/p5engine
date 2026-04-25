@@ -116,6 +116,15 @@ public class TdTheme implements Theme {
 
     @Override
     public void drawButton(PApplet g, float x, float y, float w, float h, String label, boolean hover, boolean pressed, boolean disabled) {
+        float scale = pressed ? 0.96f : 1.0f;
+        float cx = x + w * 0.5f;
+        float cy = y + h * 0.5f;
+
+        g.pushMatrix();
+        g.translate(cx, cy);
+        g.scale(scale);
+        g.translate(-cx, -cy);
+
         int fill = disabled ? 0xFF333333 : (pressed ? BTN_PRESS : (hover ? BTN_HOVER : BTN_BG));
         float r = 6;
         g.noStroke();
@@ -143,6 +152,8 @@ public class TdTheme implements Theme {
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
         applyFont(g, Math.min(18, h * 0.48f));
         g.text(label != null ? label : "", x + w * 0.5f, y + h * 0.5f);
+
+        g.popMatrix();
     }
 
     @Override

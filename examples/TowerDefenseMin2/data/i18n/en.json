@@ -33,6 +33,8 @@
   "game.build.laser": "Laser",
   "game.build.slow": "Slow",
   "game.build.cancel": "Cancel",
+  "game.rangeOn": "Range:On",
+  "game.rangeOff": "Range:Off",
   "tower.mg.name": "Machine Gun",
   "tower.mg.desc": "Fast fire rate, great against swarms.",
   "tower.missile.name": "Missile",

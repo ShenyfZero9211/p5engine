@@ -47,12 +47,20 @@ public class DebugOverlay {
     }
 
     public void render(PApplet g, P5Engine engine) {
-        if (!enabled) return;
+        System.out.println("[DEBUGOVERLAY] render called, enabled=" + enabled);
+        if (!enabled) {
+            System.out.println("[DEBUGOVERLAY] render skipped: not enabled");
+            return;
+        }
         Scene scene = engine.getActiveScene();
-        if (scene == null) return;
+        if (scene == null) {
+            System.out.println("[DEBUGOVERLAY] render skipped: scene is null");
+            return;
+        }
 
         g.pushStyle();
         try {
+            System.out.println("[DEBUGOVERLAY] rendering overlay, showHud=" + showHud + ", showGizmos=" + showGizmos + ", showTree=" + showTree);
             if (showHud) renderHud(g, engine, scene);
             if (showGizmos) renderGizmos(g, scene);
             if (showTree) renderTree(g, scene);
@@ -86,6 +94,8 @@ public class DebugOverlay {
         g.text("Tweens: " + engine.getTweenManager().getActiveCount(), x + 10, ty);
         ty += lineH;
         g.text("Delta: " + String.format(java.util.Locale.US, "%.3f", engine.getGameTime().getDeltaTime()), x + 10, ty);
+        ty += lineH;
+        g.text("Time: x" + String.format(java.util.Locale.US, "%.1f", engine.getGameTime().getTimeScale()), x + 10, ty);
         ty += lineH;
         g.text("Log: " + shenyf.p5engine.util.Logger.getLevel(), x + 10, ty);
         if (shenyf.p5engine.util.Logger.isFileLogging()) {

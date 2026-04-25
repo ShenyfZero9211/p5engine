@@ -48,7 +48,8 @@ public class TweenManager {
         for (int i = activeTweens.size() - 1; i >= 0; i--) {
             Tween tween = activeTweens.get(i);
             shenyf.p5engine.util.Logger.debug("Tween", "  tween target=" + tween.getTarget().getClass().getSimpleName()
-                + " type=" + tween.getType() + " progress=" + String.format("%.3f", tween.getProgress()));
+                + " type=" + tween.getType() + " progress=" + String.format("%.3f", tween.getProgress())
+                + " hash=" + System.identityHashCode(tween));
             if (tween.update(dt)) {
                 shenyf.p5engine.util.Logger.debug("Tween", "  tween COMPLETED, target=" + tween.getTarget());
                 activeTweens.remove(i);
@@ -125,6 +126,21 @@ public class TweenManager {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // Custom float callback tween (for PDE-layer animation)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Animate an arbitrary float value via a callback.
+     * Useful when the target is not a GameObject or UIComponent
+     * (e.g. a PDE sketch variable).
+     */
+    public Tween toFloat(float from, float to, float duration, java.util.function.Consumer<Float> callback) {
+        Tween tween = new Tween(this, callback, Tween.Type.CUSTOM_FLOAT,
+            from, to, 0f, 0f, 0f, 0f, false, duration);
+        return tween;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // Batch helpers
     // ═══════════════════════════════════════════════════════════════
 
@@ -181,6 +197,7 @@ public class TweenManager {
     void add(Tween tween) {
         activeTweens.add(tween);
         shenyf.p5engine.util.Logger.debug("Tween", "ADD tween target=" + tween.getTarget().getClass().getSimpleName()
-            + " type=" + tween.getType() + " duration=" + String.format("%.2f", tween.getDuration()));
+            + " type=" + tween.getType() + " duration=" + String.format("%.2f", tween.getDuration())
+            + " hash=" + System.identityHashCode(tween));
     }
 }

@@ -9,6 +9,7 @@ import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.input.InputManager;
 import shenyf.p5engine.event.EventSystem;
 import shenyf.p5engine.pool.ObjectPool;
+import shenyf.p5engine.pool.GenericObjectPool;
 import shenyf.p5engine.tween.TweenManager;
 import shenyf.p5engine.Constants;
 import shenyf.p5engine.util.Logger;
@@ -49,13 +50,19 @@ public class P5Engine {
     private float lastMouseX;
     private float lastMouseY;
 
+    /** Cached native surface (JOGL GLWindow or AWT Frame) for mouse confinement. */
+    private Object nativeSurface;
+
     private boolean isRunning;
     private long lastFrameTime;
-    private boolean windowPositionRestored;
+
 
     private boolean keyPressedState;
     private char keyChar;
     private int keyCode;
+    private boolean mouseConfinedEnabled;
+    private boolean wasFocused = true;
+    private boolean windowPositionApplied;
 
     private int defaultBackgroundColor = 0xFF000000;
     private GameState gameState = GameState.READY;
@@ -187,7 +194,7 @@ public class P5Engine {
 
     private void init() {
         isRunning = false;
-        windowPositionRestored = false;
+
         Logger.info("P5Engine initializing...");
         Logger.info("  Version: " + shenyf.p5engine.Constants.ENGINE_VERSION);
         Logger.info("  Window: " + config.getWidth() + "x" + config.getHeight());
@@ -196,15 +203,6 @@ public class P5Engine {
 
         if (checkSingleInstance()) {
             return;
-        }
-
-        String detectedTitle = detectWindowTitle();
-        if (detectedTitle != null && !detectedTitle.isEmpty()) {
-            applicationTitleBase = normalizeTitleBase(detectedTitle);
-            if (applicationTitleBase != null) {
-                sketchConfig.saveWindowTitle(applicationTitleBase);
-                Logger.info("  Window title: " + applicationTitleBase);
-            }
         }
 
         if (config.isDebugMode()) {
@@ -236,7 +234,171 @@ public class P5Engine {
         // Initialize audio
         audioManager.init();
 
+        // Cache native surface for mouse confinement and other native operations
+        try {
+            nativeSurface = applet.getSurface().getNative();
+        } catch (Exception e) {
+            Logger.debug("Could not cache native surface: " + e.getMessage());
+        }
+
+        // Apply window position (center or custom) before window is fully visible
+        applyWindowPosition();
+
+        // Register JOGL focus listener for proper focus restoration (P2D/P3D)
+        registerFocusListener();
+
+        // Auto-enable mouse confinement if configured
+        if (config.isMouseConfined()) {
+            setMouseConfined(true);
+        }
+
         Logger.info("P5Engine initialized successfully");
+    }
+
+    /**
+     * Centers the sketch window on the primary screen.
+     * Works with P2D/P3D (JOGL) and JAVA2D renderers.
+     * Call from {@code setup()} before any {@code surface.setResizable()} calls
+     * to avoid JOGL EDT conflicts.
+     */
+    public void centerWindow() {
+        if (nativeSurface == null) {
+            Logger.debug("centerWindow: nativeSurface not available");
+            return;
+        }
+        if (windowPositionApplied) {
+            return;
+        }
+        try {
+            String clsName = nativeSurface.getClass().getName();
+            boolean isJOGL = clsName.contains("newt") || clsName.contains("jogamp");
+            int winW = applet.width > 0 ? applet.width : config.getWidth();
+            int winH = applet.height > 0 ? applet.height : config.getHeight();
+
+            if (isJOGL) {
+                java.lang.reflect.Method getScreen = nativeSurface.getClass().getMethod("getScreen");
+                Object screen = getScreen.invoke(nativeSurface);
+                if (screen != null) {
+                    int screenW = (Integer) screen.getClass().getMethod("getWidth").invoke(screen);
+                    int screenH = (Integer) screen.getClass().getMethod("getHeight").invoke(screen);
+                    int x = (screenW - winW) / 2;
+                    int y = (screenH - winH) / 2;
+                    java.lang.reflect.Method setPosition = nativeSurface.getClass().getMethod("setPosition", int.class, int.class);
+                    setPosition.invoke(nativeSurface, x, y);
+                    windowPositionApplied = true;
+                    Logger.info("Window centered: " + x + ", " + y);
+                }
+            } else {
+                Frame frame = getFrameFromSurface();
+                if (frame != null) {
+                    java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
+                    java.awt.Rectangle screenBounds = ge.getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+                    java.awt.Rectangle usableBounds = ge.getMaximumWindowBounds();
+                    int x = (screenBounds.width - winW) / 2 + screenBounds.x;
+                    int y = (usableBounds.height - winH) / 2 + usableBounds.y;
+                    frame.setLocation(x, y);
+                    windowPositionApplied = true;
+                    Logger.info("Window centered (AWT): " + x + ", " + y);
+                }
+            }
+        } catch (Exception e) {
+            Logger.debug("centerWindow failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Sets the sketch window to a specific position.
+     * Works with P2D/P3D (JOGL) and JAVA2D renderers.
+     */
+    public void setWindowPosition(int x, int y) {
+        if (nativeSurface == null) {
+            Logger.debug("setWindowPosition: nativeSurface not available");
+            return;
+        }
+        if (windowPositionApplied) {
+            return;
+        }
+        try {
+            String clsName = nativeSurface.getClass().getName();
+            boolean isJOGL = clsName.contains("newt") || clsName.contains("jogamp");
+
+            if (isJOGL) {
+                java.lang.reflect.Method setPosition = nativeSurface.getClass().getMethod("setPosition", int.class, int.class);
+                setPosition.invoke(nativeSurface, x, y);
+                windowPositionApplied = true;
+                Logger.info("Window positioned: " + x + ", " + y);
+            } else {
+                Frame frame = getFrameFromSurface();
+                if (frame != null) {
+                    frame.setLocation(x, y);
+                    windowPositionApplied = true;
+                    Logger.info("Window positioned (AWT): " + x + ", " + y);
+                }
+            }
+        } catch (Exception e) {
+            Logger.debug("setWindowPosition failed: " + e.getMessage());
+        }
+    }
+
+    private void applyWindowPosition() {
+        if (config.isCenterWindow()) {
+            centerWindow();
+        } else if (config.getWindowX() >= 0 && config.getWindowY() >= 0) {
+            setWindowPosition(config.getWindowX(), config.getWindowY());
+        }
+    }
+
+    /**
+     * Registers a JOGL WindowListener to detect focus gain/loss.
+     * On focus gain, re-applies mouse confinement using the required
+     * "disable then re-enable" sequence (Windows security restriction).
+     */
+    private void registerFocusListener() {
+        if (nativeSurface == null) {
+            return;
+        }
+        String clsName = nativeSurface.getClass().getName();
+        if (!clsName.contains("newt") && !clsName.contains("jogamp")) {
+            return; // Not JOGL, skip
+        }
+        try {
+            Class<?> windowListenerClass = Class.forName("com.jogamp.newt.event.WindowListener");
+            Object listener = java.lang.reflect.Proxy.newProxyInstance(
+                windowListenerClass.getClassLoader(),
+                new Class<?>[]{windowListenerClass},
+                (proxy, method, args) -> {
+                    if ("windowGainedFocus".equals(method.getName())) {
+                        onWindowGainedFocus();
+                    }
+                    return null;
+                }
+            );
+            java.lang.reflect.Method addListener = nativeSurface.getClass().getMethod("addWindowListener", windowListenerClass);
+            addListener.invoke(nativeSurface, listener);
+            Logger.debug("JOGL focus listener registered");
+        } catch (Exception e) {
+            Logger.debug("Could not register JOGL focus listener: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Called when JOGL window gains focus.
+     * Re-applies mouse confinement with the required disable-then-enable sequence.
+     */
+    private void onWindowGainedFocus() {
+        if (!mouseConfinedEnabled || nativeSurface == null) {
+            return;
+        }
+        try {
+            java.lang.reflect.Method m = nativeSurface.getClass().getMethod("confinePointer", boolean.class);
+            // Windows security: must disable then re-enable to regain capture
+            m.invoke(nativeSurface, false);
+            m.invoke(nativeSurface, true);
+            recenterPointer();
+            Logger.info("Mouse confinement restored on focus gain");
+        } catch (Exception e) {
+            Logger.debug("Focus restore confinement failed: " + e.getMessage());
+        }
     }
 
     private void syncConfigToFile() {
@@ -264,37 +426,39 @@ public class P5Engine {
         return false;
     }
 
-    private String detectWindowTitle() {
-        try {
-            PSurface surface = applet.getSurface();
-            Object nativeObj = surface.getNative();
-            if (nativeObj == null) return null;
-
-            if (nativeObj.getClass().getSimpleName().contains("SmoothCanvas")) {
-                java.lang.reflect.Method method = nativeObj.getClass().getMethod("getFrame");
-                Object frame = method.invoke(nativeObj);
-                if (frame instanceof javax.swing.JFrame) {
-                    return ((javax.swing.JFrame) frame).getTitle();
-                }
-            }
-        } catch (Exception e) {
-            Logger.debug("detectWindowTitle failed: " + e.getMessage());
-        }
-        return null;
-    }
-
     private Frame getFrameFromSurface() {
         try {
             PSurface surface = applet.getSurface();
             Object nativeObj = surface.getNative();
             if (nativeObj == null) return null;
 
+            // JAVA2D renderer: native is SmoothCanvas which wraps a Frame
             if (nativeObj.getClass().getSimpleName().contains("SmoothCanvas")) {
                 java.lang.reflect.Method method = nativeObj.getClass().getMethod("getFrame");
                 Object frame = method.invoke(nativeObj);
                 if (frame instanceof Frame) {
                     return (Frame) frame;
                 }
+            }
+
+            // P2D/P3D renderer (JOGL): native is GLWindow, need to traverse to find the Frame
+            String clsName = nativeObj.getClass().getName();
+            if (clsName.contains("newt") || clsName.contains("jogamp")) {
+                // Try to get the parent Window/Frame through NEWT
+                try {
+                    java.lang.reflect.Method getParentMethod = nativeObj.getClass().getMethod("getParent");
+                    Object parent = getParentMethod.invoke(nativeObj);
+                    while (parent != null) {
+                        if (parent instanceof Frame) {
+                            return (Frame) parent;
+                        }
+                        java.lang.reflect.Method gp = parent.getClass().getMethod("getParent");
+                        parent = gp.invoke(parent);
+                    }
+                } catch (Exception ignored) {}
+
+                // Alternative: use the window handle via JNA to get window rect
+                // For now, fall through to null and handle in caller
             }
 
             if (nativeObj instanceof Frame) {
@@ -306,23 +470,75 @@ public class P5Engine {
         return null;
     }
 
-    private void restoreWindowPosition() {
-        try {
-            Frame frame = getFrameFromSurface();
-            if (frame != null) {
-                int[] pos = sketchConfig.getWindowPosition();
-                if (pos != null) {
-                    frame.setLocation(pos[0], pos[1]);
-                    Logger.info("  Window position restored: " + pos[0] + ", " + pos[1]);
-                } else {
-                    int[] center = SketchConfig.getCenterPosition(config.getWidth(), config.getHeight());
-                    frame.setLocation(center[0], center[1]);
-                    Logger.info("  Window centered on screen");
-                }
-            }
-        } catch (Exception e) {
-            Logger.warn("Could not restore window position: " + e.getMessage());
+    /**
+     * Confines or releases the mouse cursor to the sketch window.
+     * Works with P2D/P3D (JOGL GLWindow) and JAVA2D renderers.
+     * Automatically re-applies confinement when window regains focus.
+     *
+     * @param confined true to keep the cursor inside the window, false to allow free movement
+     */
+    /**
+     * Confines or releases the mouse cursor to the sketch window.
+     * Works with P2D/P3D (JOGL GLWindow) and JAVA2D renderers.
+     * Automatically re-applies confinement when window regains focus,
+     * and warps the cursor to the window center when enabling.
+     *
+     * @param confined true to keep the cursor inside the window, false to allow free movement
+     */
+    public void setMouseConfined(boolean confined) {
+        mouseConfinedEnabled = confined;
+        applyMouseConfinement();
+        if (confined) {
+            recenterPointer();
         }
+    }
+
+    private void applyMouseConfinement() {
+        if (nativeSurface == null) {
+            Logger.debug("setMouseConfined: nativeSurface not available");
+            return;
+        }
+        try {
+            java.lang.reflect.Method m = nativeSurface.getClass().getMethod("confinePointer", boolean.class);
+            m.invoke(nativeSurface, mouseConfinedEnabled);
+            Logger.info("Mouse confined: " + mouseConfinedEnabled);
+        } catch (NoSuchMethodException e) {
+            Logger.warn("setMouseConfined not supported by current renderer (confinePointer method not found)");
+        } catch (Exception e) {
+            Logger.warn("setMouseConfined failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Moves the mouse cursor to the specified position relative to the sketch window.
+     * Only supported by JOGL (P2D/P3D) renderers.
+     *
+     * @param x horizontal position in sketch pixels
+     * @param y vertical position in sketch pixels
+     */
+    public void warpPointer(int x, int y) {
+        if (nativeSurface == null) {
+            Logger.debug("warpPointer: nativeSurface not available");
+            return;
+        }
+        try {
+            java.lang.reflect.Method m = nativeSurface.getClass().getMethod("warpPointer", int.class, int.class);
+            m.invoke(nativeSurface, x, y);
+        } catch (NoSuchMethodException e) {
+            Logger.debug("warpPointer not supported by current renderer");
+        } catch (Exception e) {
+            Logger.debug("warpPointer failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Moves the mouse cursor to the center of the sketch window.
+     * Useful after enabling mouse confinement or regaining window focus.
+     */
+    public void recenterPointer() {
+        int cx = applet.width > 0 ? applet.width / 2 : config.getWidth() / 2;
+        int cy = applet.height > 0 ? applet.height / 2 : config.getHeight() / 2;
+        warpPointer(cx, cy);
     }
 
     public void keyEvent(processing.event.KeyEvent event) {
@@ -339,13 +555,13 @@ public class P5Engine {
             char k = event.getKey();
             if (k == '`' || k == '~' || code == java.awt.event.KeyEvent.VK_BACK_QUOTE) {
                 debugOverlay.toggle();
-            } else if (code == java.awt.event.KeyEvent.VK_F2 || k == '1') {
+            } else if (code == java.awt.event.KeyEvent.VK_F2) {
                 debugOverlay.toggleGizmos();
-            } else if (code == java.awt.event.KeyEvent.VK_F3 || k == '2') {
+            } else if (code == java.awt.event.KeyEvent.VK_F3) {
                 debugOverlay.toggleTree();
-            } else if (code == java.awt.event.KeyEvent.VK_F4 || k == '3') {
+            } else if (code == java.awt.event.KeyEvent.VK_F4) {
                 debugOverlay.toggleHud();
-            } else if (code == java.awt.event.KeyEvent.VK_F5 || k == '4') {
+            } else if (code == java.awt.event.KeyEvent.VK_F5) {
                 Logger.cycleLevel();
             } else if (k == '.') {
                 boolean saveToFile = sketchConfig.isScreenshotToFile();
@@ -416,33 +632,13 @@ public class P5Engine {
     }
 
     public void dispose() {
-        saveWindowPosition();
         destroy();
-    }
-
-    private void saveWindowPosition() {
-        try {
-            Frame frame = getFrameFromSurface();
-            if (frame != null) {
-                java.awt.Point location = frame.getLocationOnScreen();
-                int x = location.x;
-                int y = location.y;
-                sketchConfig.saveWindowPosition(x, y);
-            }
-        } catch (Exception e) {
-            Logger.warn("Could not save window position: " + e.getMessage());
-        }
     }
 
     public void update() {
         if (!isRunning) {
             isRunning = true;
             lastFrameTime = System.nanoTime();
-        }
-
-        if (!windowPositionRestored) {
-            restoreWindowPosition();
-            windowPositionRestored = true;
         }
 
         long currentTime = System.nanoTime();
@@ -457,6 +653,24 @@ public class P5Engine {
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
             activeScene.update(gameTime.getDeltaTime());
+        }
+
+        // Fallback: re-apply mouse confinement via Processing focus state.
+        // Primary focus restoration is handled by JOGL WindowListener (onWindowGainedFocus).
+        if (mouseConfinedEnabled) {
+            boolean nowFocused = applet.focused;
+            if (nowFocused && !wasFocused) {
+                // Use the same disable-then-enable sequence as the JOGL listener
+                try {
+                    java.lang.reflect.Method m = nativeSurface.getClass().getMethod("confinePointer", boolean.class);
+                    m.invoke(nativeSurface, false);
+                    m.invoke(nativeSurface, true);
+                    recenterPointer();
+                } catch (Exception e) {
+                    Logger.debug("Focus restore fallback failed: " + e.getMessage());
+                }
+            }
+            wasFocused = nowFocused;
         }
 
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
@@ -474,9 +688,6 @@ public class P5Engine {
      */
     public void setApplicationTitle(String base) {
         applicationTitleBase = normalizeTitleBase(base);
-        if (applicationTitleBase != null && !applicationTitleBase.isEmpty()) {
-            sketchConfig.saveWindowTitle(applicationTitleBase);
-        }
     }
 
     /**
@@ -511,13 +722,6 @@ public class P5Engine {
         if (applicationTitleBase != null && !applicationTitleBase.isEmpty()) {
             return applicationTitleBase;
         }
-        String fromConfig = sketchConfig.getWindowTitle();
-        if (fromConfig != null && !fromConfig.trim().isEmpty()) {
-            String n = normalizeTitleBase(fromConfig);
-            if (n != null) {
-                return n;
-            }
-        }
         return applet.getClass().getSimpleName();
     }
 
@@ -545,10 +749,7 @@ public class P5Engine {
                 surface.setTitle(composed);
                 return;
             }
-            Frame frame = getFrameFromSurface();
-            if (frame != null) {
-                frame.setTitle(composed);
-            }
+
         } catch (Exception e) {
             Logger.debug("refreshNativeWindowTitle failed: " + e.getMessage());
         }
@@ -602,6 +803,7 @@ public class P5Engine {
 
     public void destroy() {
         Logger.info("P5Engine shutting down...");
+        setMouseConfined(false);
         audioManager.shutdown();
         sceneManager.destroy();
         singleInstanceGuard.releaseLock();
@@ -691,6 +893,16 @@ public class P5Engine {
         return objectPool;
     }
 
+    /** Create a generic object pool for arbitrary types. */
+    public <T> GenericObjectPool<T> createPool(java.util.function.Supplier<T> factory) {
+        return new GenericObjectPool<>(factory);
+    }
+
+    /** Create a generic object pool with reset callback. */
+    public <T> GenericObjectPool<T> createPool(java.util.function.Supplier<T> factory, java.util.function.Consumer<T> resetter) {
+        return new GenericObjectPool<>(factory, resetter);
+    }
+
     public TweenManager getTweenManager() {
         return tweenManager;
     }
@@ -723,6 +935,7 @@ public class P5Engine {
      * Call this at the end of your sketch's {@code draw()} if you are not using {@link #render()}.
      */
     public void renderDebugOverlay() {
+        System.out.println("[P5ENGINE] renderDebugOverlay called, debugOverlay=" + (debugOverlay != null));
         if (debugOverlay != null) {
             debugOverlay.render(applet, this);
         }

@@ -1,5 +1,6 @@
 package shenyf.p5engine.config;
 
+import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.nio.file.Path;
@@ -84,9 +85,14 @@ public class WindowConfigSource implements ConfigSource {
 
     public static int[] getCenterPosition(int windowWidth, int windowHeight) {
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        java.awt.Rectangle screenBounds = ge.getMaximumWindowBounds();
+        GraphicsDevice gd = ge.getDefaultScreenDevice();
+        // Use GraphicsConfiguration bounds to get logical resolution.
+        // This matches the coordinate system used by Frame.setLocation()
+        // which operates in DPI-scaled logical pixels on HiDPI displays.
+        java.awt.Rectangle screenBounds = gd.getDefaultConfiguration().getBounds();
+        java.awt.Rectangle usableBounds = ge.getMaximumWindowBounds();
         int x = (screenBounds.width - windowWidth) / 2 + screenBounds.x;
-        int y = (screenBounds.height - windowHeight) / 2 + screenBounds.y;
+        int y = (usableBounds.height - windowHeight) / 2 + usableBounds.y;
         return new int[]{x, y};
     }
 

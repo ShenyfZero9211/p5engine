@@ -18,7 +18,7 @@ public class SketchConfig {
     public static final String SECTION_WINDOW_SIZE = "window_size";
     public static final String SECTION_CACHE = "cache";
     public static final String SECTION_SCRIPT = "script";
-    public static final String SECTION_WINDOW_POSITION = "window_position";
+
 
     public static final String KEY_NAME = "name";
     public static final String KEY_VERSION = "version";
@@ -31,8 +31,7 @@ public class SketchConfig {
     public static final String KEY_CACHE_ENABLED = "enabled";
     public static final String KEY_LUA_PATH = "lua_path";
     public static final String KEY_HOT_RELOAD = "hot_reload";
-    public static final String KEY_X = "x";
-    public static final String KEY_Y = "y";
+
     public static final String KEY_SCREENSHOT_TO_FILE = "screenshot_to_file";
     public static final String KEY_SCREENSHOT_DIR = "screenshot_dir";
 
@@ -175,25 +174,6 @@ public class SketchConfig {
         return defaultValue;
     }
 
-    public void saveWindowPosition(int x, int y) {
-        set(SECTION_WINDOW_POSITION, KEY_X, x);
-        set(SECTION_WINDOW_POSITION, KEY_Y, y);
-        save();
-    }
-
-    public int[] getWindowPosition() {
-        String xStr = get(SECTION_WINDOW_POSITION, KEY_X);
-        String yStr = get(SECTION_WINDOW_POSITION, KEY_Y);
-        if (xStr != null && yStr != null) {
-            try {
-                return new int[]{Integer.parseInt(xStr), Integer.parseInt(yStr)};
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
     public int getWindowWidth() {
         return getInt(SECTION_WINDOW_SIZE, KEY_WIDTH, 800);
     }
@@ -205,15 +185,6 @@ public class SketchConfig {
     public void setWindowSize(int width, int height) {
         set(SECTION_WINDOW_SIZE, KEY_WIDTH, width);
         set(SECTION_WINDOW_SIZE, KEY_HEIGHT, height);
-        save();
-    }
-
-    public String getWindowTitle() {
-        return get(SECTION_WINDOW, KEY_TITLE);
-    }
-
-    public void saveWindowTitle(String title) {
-        set(SECTION_WINDOW, KEY_TITLE, title);
         save();
     }
 
@@ -261,11 +232,5 @@ public class SketchConfig {
         return configFile.toString();
     }
 
-    public static int[] getCenterPosition(int windowWidth, int windowHeight) {
-        java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
-        java.awt.Rectangle screenBounds = ge.getMaximumWindowBounds();
-        int x = (screenBounds.width - windowWidth) / 2 + screenBounds.x;
-        int y = (screenBounds.height - windowHeight) / 2 + screenBounds.y;
-        return new int[]{x, y};
-    }
+
 }

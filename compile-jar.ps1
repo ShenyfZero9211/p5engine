@@ -26,6 +26,8 @@ $tinySound = Join-Path $RepoRoot "libs\TinySound.jar"
 $jorbis = Join-Path $RepoRoot "libs\jorbis.jar"
 $tritonus = Join-Path $RepoRoot "libs\tritonus_share.jar"
 $vorbisspi = Join-Path $RepoRoot "libs\vorbisspi.jar"
+$jna = "D:\Processing\app\jna-5.18.1-cb531ec131e1c68c45b5d45fe5b9878.jar"
+$jnaPlatform = "D:\Processing\app\jna-platform-5.18.1-a7af0779ec98bfe22dfb07b153283d.jar"
 $sources = Join-Path $RepoRoot "sources.txt"
 $classes = Join-Path $RepoRoot "build\classes"
 $outJar = Join-Path $RepoRoot "library\p5engine.jar"
@@ -45,6 +47,8 @@ $cp = "$core;$tinySound"
 if (Test-Path $jorbis) { $cp += ";$jorbis" }
 if (Test-Path $tritonus) { $cp += ";$tritonus" }
 if (Test-Path $vorbisspi) { $cp += ";$vorbisspi" }
+if (Test-Path $jna) { $cp += ";$jna" }
+if (Test-Path $jnaPlatform) { $cp += ";$jnaPlatform" }
 & $javac --release 17 -encoding UTF-8 -cp $cp -d $classes "@$sources"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

@@ -83,5 +83,20 @@ static final class TdPath {
         return bestDist;
     }
 
+    /** Get the segment index at the given distance along the path. */
+    int getSegmentIndex(float dist) {
+        if (points == null || points.length < 2) return 0;
+        if (dist <= 0) return 0;
+        if (dist >= totalLength) return segmentLengths.length - 1;
+        float accumulated = 0;
+        for (int i = 0; i < segmentLengths.length; i++) {
+            if (accumulated + segmentLengths[i] >= dist) {
+                return i;
+            }
+            accumulated += segmentLengths[i];
+        }
+        return segmentLengths.length - 1;
+    }
+
     float getTotalLength() { return totalLength; }
 }

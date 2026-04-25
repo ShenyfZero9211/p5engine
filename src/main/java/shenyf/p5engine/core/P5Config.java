@@ -15,6 +15,10 @@ public class P5Config {
     private RenderMode renderMode = RenderMode.P2D;
     private int pixelDensity = 0; // 0 = auto
     private shenyf.p5engine.rendering.DisplayConfig displayConfig;
+    private boolean mouseConfined = false;
+    private boolean centerWindow = true;
+    private int windowX = -1;
+    private int windowY = -1;
 
     private P5Config() {
         this.width = 800;
@@ -140,5 +144,38 @@ public class P5Config {
                 .designHeight(height);
         }
         return displayConfig;
+    }
+
+    public P5Config mouseConfined(boolean mouseConfined) {
+        this.mouseConfined = mouseConfined;
+        return this;
+    }
+
+    public boolean isMouseConfined() {
+        return mouseConfined;
+    }
+
+    public P5Config centerWindow(boolean centerWindow) {
+        this.centerWindow = centerWindow;
+        return this;
+    }
+
+    public boolean isCenterWindow() {
+        return centerWindow;
+    }
+
+    public P5Config windowPosition(int x, int y) {
+        this.windowX = x;
+        this.windowY = y;
+        this.centerWindow = false;
+        return this;
+    }
+
+    public int getWindowX() {
+        return windowX;
+    }
+
+    public int getWindowY() {
+        return windowY;
     }
 }

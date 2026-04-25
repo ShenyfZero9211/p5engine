@@ -19,15 +19,29 @@ Window worldWindow;
 static int WORLD_W = 2400;
 static int WORLD_H = 1600;
 
+static final String GAME_VERSION = "v0.0.6";
+
 TdState state = TdState.MENU;
 TdBuildMode buildMode = TdBuildMode.NONE;
 boolean keyScrollUp, keyScrollDown, keyScrollLeft, keyScrollRight;
 boolean wasKeyP;
+boolean wasKeyR;
+boolean showTowerRanges = false;
+
+// HUD UI components (managed by p5engine UI library)
+TdTopBar hudTopBar;
+TdBuildPanel hudBuildPanel;
+TdMinimapComponent hudMinimap;
+
+// Bullet object pools (zero-GC)
+shenyf.p5engine.pool.GenericObjectPool<Bullet> bulletDataPool;
+shenyf.p5engine.pool.GenericObjectPool<GameObject> bulletGoPool;
 
 public void settings() {
   P5Engine.configureDisplay(this, P5Config.defaults()
     .width(1280).height(720)
     .renderer(P5Config.RenderMode.P2D)
+    .centerWindow(true)
     .displayConfig(DisplayConfig.defaults()
       .designWidth(1280).designHeight(720).scaleMode(ScaleMode.FIT).resizable(true)));
 }
@@ -35,7 +49,15 @@ public void settings() {
 public void setup() {
   inst = this;
   engine = P5Engine.create(this, P5Config.defaults().logToFile(true));
+
+  // Center window and confine mouse (must be called before setResizable on P2D)
+  engine.centerWindow();
+  engine.setMouseConfined(true);
   engine.setApplicationTitle("TowerDefenseMin2");
+  engine.getDebugOverlay().toggle();
+  // Logger debug enabled for development
+  // shenyf.p5engine.util.Logger.setDebugEnabled(true);
+  // shenyf.p5engine.util.Logger.setLevel(shenyf.p5engine.util.Logger.Level.DEBUG);
   ui = new UIManager(this);
   ui.attach();
   sketchUi = new SketchUiCoordinator(this, ui);
@@ -55,6 +77,23 @@ public void setup() {
   bgGo.setRenderLayer(0);
   bgGo.setCullEnabled(false);
   gameScene.addGameObject(bgGo);
+
+  // Initialize bullet object pools
+  bulletDataPool = engine.createPool(
+    () -> new Bullet(),
+    b -> { b.dead = true; b.gameObject = null; }
+  );
+  bulletDataPool.preload(100);
+
+  bulletGoPool = engine.createPool(() -> {
+    GameObject go = GameObject.create("Bullet");
+    go.setTag("pooled_bullet");
+    go.setRenderLayer(15);
+    go.addComponent(new BulletRenderer());
+    gameScene.addGameObject(go);
+    return go;
+  });
+  bulletGoPool.preload(100);
 
   TdAssets.loadAll(this);
   TdSound.initTracks(this);
@@ -118,7 +157,7 @@ public void draw() {
   switch (state) {
     case PLAYING:
       TdGameWorld.update(dt);
-      TdCamera.updateEdgeScroll(dt);
+      TdCamera.updateEdgeScroll(dtReal);
       syncCameraToWindow();
       break;
     case PAUSED:
@@ -133,24 +172,38 @@ public void draw() {
   sketchUi.updateFrame(dtReal);
   sketchUi.renderFrame();
 
-  if (state == TdState.PLAYING) {
-    TdHUD.drawTopBar();
-    TdHUD.drawBuildPanel();
-    TdHUD.drawMinimap();
-  }
-
   if (state == TdState.PLAYING && buildMode != TdBuildMode.NONE) {
     TdGhost.update();
-    TdGhost.draw();
   }
 
+  // DEBUG: minimap hit test (disabled for release)
+  // if (state == TdState.PLAYING && hudMinimap != null) {
+  //   boolean hit = hudMinimap.containsPoint(mouseX, mouseY);
+  //   UIComponent rootHit = ui.getRoot().hitTest(mouseX, mouseY);
+  //   println("[DEBUG] mouse=" + mouseX + "," + mouseY + " minimapBounds=" + hudMinimap.getAbsoluteX() + "," + hudMinimap.getAbsoluteY() + "," + hudMinimap.getWidth() + "," + hudMinimap.getHeight() + " contains=" + hit + " rootHit=" + (rootHit != null ? rootHit.getId() : "null"));
+  // }
+
   if (state == TdState.PAUSED) {
-    TdHUD.drawPauseOverlay();
+    // Only show "PAUSED" text when pause menu is NOT open (ESC menu has its own UI)
+    boolean hasPauseMenu = false;
+    for (UIComponent c : ui.getRoot().getChildren()) {
+      if ("pause_overlay".equals(c.getId())) {
+        hasPauseMenu = true;
+        break;
+      }
+    }
+    if (!hasPauseMenu) {
+      TdHUD.drawPauseOverlay();
+    }
   }
 
   if (state == TdState.MENU) {
+    println("[DEBUG] draw() MENU titleProgress=" + TdMenuBg.titleProgress);
     TdMenuBg.drawTitle(this, TdAssets.i18n("menu.title"));
   }
+
+  // Render debug overlay
+  engine.renderDebugOverlay();
 }
 
 void handleKeyboardInput(InputManager im) {
@@ -161,16 +214,47 @@ void handleKeyboardInput(InputManager im) {
 
   boolean isP = im.isKeyDown(java.awt.event.KeyEvent.VK_P);
   if (isP && !wasKeyP) {
-    if (state == TdState.PLAYING) state = TdState.PAUSED;
-    else if (state == TdState.PAUSED) state = TdState.PLAYING;
+    if (state == TdState.PLAYING) {
+      TdFlow.showPauseMenu(this);
+    } else if (state == TdState.PAUSED) {
+      TdFlow.hidePauseMenu(this);
+    }
   }
   wasKeyP = isP;
+
+  boolean isR = im.isKeyDown(java.awt.event.KeyEvent.VK_R);
+  if (isR && !wasKeyR) {
+    showTowerRanges = !showTowerRanges;
+  }
+  wasKeyR = isR;
+}
+
+public void keyPressed() {
+  if (key == ESC) {
+    key = 0; // Block Processing default quit behavior
+    if (state == TdState.PLAYING) {
+      TdFlow.showPauseMenu(this);
+    } else if (state == TdState.PAUSED) {
+      TdFlow.hidePauseMenu(this);
+    }
+    return;
+  }
+
+  // Time scale controls (only during gameplay)
+  if (state == TdState.PLAYING) {
+    switch (key) {
+      case '1': engine.getGameTime().setTargetTimeScale(0.2f); break;
+      case '2': engine.getGameTime().setTargetTimeScale(0.5f); break;
+      case '3': engine.getGameTime().setTargetTimeScale(1.0f); break;
+      case '4': engine.getGameTime().setTargetTimeScale(2.0f); break;
+      case '5': engine.getGameTime().setTargetTimeScale(5.0f); break;
+    }
+  }
 }
 
 void handleMouseInput(InputManager im) {
   if (state != TdState.PLAYING || camera == null) return;
   handleMouseWheelZoom(im);
-  handleMouseDragPan(im);
   handleMouseClick(im);
 }
 
@@ -200,30 +284,52 @@ void handleMouseDragPan(InputManager im) {
   }
 }
 
+void setupHud() {
+  Panel root = ui.getRoot();
+
+  hudTopBar = new TdTopBar("hud_top");
+  hudTopBar.setZOrder(5);
+  root.add(hudTopBar);
+
+  hudBuildPanel = new TdBuildPanel("hud_build");
+  hudBuildPanel.setZOrder(5);
+  root.add(hudBuildPanel);
+
+  hudMinimap = new TdMinimapComponent("hud_minimap");
+  hudMinimap.setPosition(1280 - TdConfig.RIGHT_W + 16, 720 - TdMinimapComponent.MH - 16);
+  hudMinimap.setZOrder(10);  // higher zOrder so hitTest finds it before hud_build
+  root.add(hudMinimap);
+}
+
 void handleMouseClick(InputManager im) {
-  if (!im.isMouseJustPressed()) return;
   Vector2 dm = getDesignMousePos(im);
-  if (im.getMouseButton() == PApplet.LEFT) {
-    if (TdHUD.isPauseButtonHit(dm.x, dm.y)) {
-      state = TdState.PAUSED;
-    } else {
-      TdBuildMode clicked = TdHUD.getBuildModeAt(dm.x, dm.y);
-      if (clicked != null) {
-        buildMode = clicked;
-      } else if (TdMinimap.isMouseOver()) {
-        TdHUD.handleMinimapClick();
-      } else if (buildMode != TdBuildMode.NONE && TdGhost.isValid) {
-        TdGameWorld.tryPlaceTower(buildMode, TdGhost.gridX, TdGhost.gridY);
-        buildMode = TdBuildMode.NONE;
-      }
+
+  // Place tower on world viewport click
+  if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.LEFT) {
+    if (buildMode != TdBuildMode.NONE && TdGhost.isValid && !isMouseOverHud()) {
+      TdGameWorld.tryPlaceTower(buildMode, TdGhost.gridX, TdGhost.gridY);
+      buildMode = TdBuildMode.NONE;
+      TdGhost.cleanup(this);
     }
-  } else if (im.getMouseButton() == PApplet.RIGHT) {
+  }
+
+  // Right-click cancel
+  if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.RIGHT) {
     buildMode = TdBuildMode.NONE;
+    TdGhost.cleanup(this);
   }
 }
 
 Vector2 getDesignMousePos(InputManager im) {
   return engine.getDisplayManager().actualToDesign(new Vector2((int)im.getMouseX(), (int)im.getMouseY()));
+}
+
+boolean isMouseOverHud() {
+  if (ui == null) return false;
+  UIComponent hit = ui.getRoot().hitTest(mouseX, mouseY);
+  if (hit == null) return false;
+  String id = hit.getId();
+  return !id.equals("world_win") && !id.equals("world_vp") && !id.equals("ui_root");
 }
 
 void syncCameraToWindow() {

@@ -51,22 +51,24 @@ static class Tower {
     }
 
     void fireAt(Enemy target) {
-        Bullet b = new Bullet();
-        b.pos = new Vector2(worldX, worldY);
-        b.vel = target.pos.copy().sub(b.pos).normalize().mult(400);
-        b.damage = def.damage;
-        b.aoeRadius = def.aoeRadius;
-        b.laserBonus = def.laserBonus;
-        b.slowFactor = def.slowFactor;
-        b.life = 3.0f;
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+
+        // Acquire from object pools
+        Bullet b = app.bulletDataPool.acquire();
+        GameObject bGo = app.bulletGoPool.acquire();
+        bGo.setActive(true);
+
+        // Bind renderer
+        BulletRenderer renderer = bGo.getComponent(BulletRenderer.class);
+        renderer.bullet = b;
+
+        // Initialize bullet data
+        Vector2 dir = target.pos.copy().sub(worldX, worldY).normalize().mult(400);
+        b.reset(worldX, worldY, dir.x, dir.y, def.damage, def.aoeRadius, def.laserBonus, def.slowFactor);
+        b.gameObject = bGo;
+        bGo.getTransform().setPosition(b.pos.x, b.pos.y);
+
         TdGameWorld.bullets.add(b);
         TdAssets.playSfx(def.sfxFire);
-
-        GameObject bGo = GameObject.create("Bullet");
-        bGo.getTransform().setPosition(b.pos.x, b.pos.y);
-        bGo.setRenderLayer(15);
-        bGo.addComponent(new BulletRenderer(b));
-        TowerDefenseMin2.inst.gameScene.addGameObject(bGo);
-        b.gameObject = bGo;
     }
 }

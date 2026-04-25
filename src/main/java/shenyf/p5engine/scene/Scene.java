@@ -298,6 +298,25 @@ public class Scene {
         collisionCheckCount++;
     }
 
+    /**
+     * Release all GameObjects with the given tag, invoking an optional callback for each.
+     * Useful for bulk-recycling pooled objects (e.g. bullets) without individual markForDestroy.
+     */
+    public void releaseAllWithTag(String tag, java.util.function.Consumer<GameObject> releaseCallback) {
+        for (int i = gameObjects.size() - 1; i >= 0; i--) {
+            GameObject go = gameObjects.get(i);
+            if (go.getTag().equals(tag)) {
+                gameObjects.remove(i);
+                go.setScene(null);
+                if (releaseCallback != null) {
+                    releaseCallback.accept(go);
+                }
+            }
+        }
+        addQueue.removeIf(go -> go.getTag().equals(tag));
+        destroyQueue.removeIf(go -> go.getTag().equals(tag));
+    }
+
     public void clear() {
         Logger.info("Scene '" + name + "': clear() — gameObjects=" + gameObjects.size()
             + ", addQueue=" + addQueue.size() + ", destroyQueue=" + destroyQueue.size());
