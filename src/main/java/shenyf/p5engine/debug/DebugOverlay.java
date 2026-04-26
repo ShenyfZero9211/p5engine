@@ -6,6 +6,7 @@ import shenyf.p5engine.core.P5Engine;
 import shenyf.p5engine.scene.Component;
 import shenyf.p5engine.scene.GameObject;
 import shenyf.p5engine.scene.Scene;
+import shenyf.p5engine.input.InputManager;
 import shenyf.p5engine.scene.Transform;
 
 import java.util.ArrayList;
@@ -26,8 +27,23 @@ public class DebugOverlay {
     private boolean showTree = true;
     private boolean showHud = true;
 
+    // Scene Tree panel position (draggable)
+    private float treeX = 10;
+    private float treeY = 190;
+    private static final float TREE_W = 280;
+    private static final float TREE_TITLE_H = 22;
+
+    // Dragging state
+    private boolean isDraggingTree;
+    private float dragOffsetX;
+    private float dragOffsetY;
+
+    // Scrolling state
+    private float treeScrollY;
+
     public void toggle() {
         enabled = !enabled;
+        System.out.println("[DEBUGOVERLAY] " + (enabled ? "enabled" : "disabled"));
     }
 
     public void toggleGizmos() {
@@ -46,21 +62,57 @@ public class DebugOverlay {
         return enabled;
     }
 
+    public void update(InputManager input, int screenW, int screenH) {
+        if (!enabled) return;
+
+        float mx = input.getMouseX();
+        float my = input.getMouseY();
+        boolean pressed = input.isMousePressed();
+
+        float titleBarH = TREE_TITLE_H;
+        boolean overTitle = mx >= treeX && mx <= treeX + TREE_W
+                         && my >= treeY && my <= treeY + titleBarH;
+
+        if (input.isMouseJustPressed() && overTitle) {
+            isDraggingTree = true;
+            dragOffsetX = mx - treeX;
+            dragOffsetY = my - treeY;
+        }
+
+        if (isDraggingTree) {
+            if (pressed) {
+                treeX = mx - dragOffsetX;
+                treeY = my - dragOffsetY;
+                treeX = Math.max(0, Math.min(treeX, screenW - TREE_W));
+                treeY = Math.max(0, Math.min(treeY, screenH - titleBarH));
+            } else {
+                isDraggingTree = false;
+            }
+        }
+
+        float wheel = input.getMouseWheelDelta();
+        if (wheel != 0) {
+            float treeH = screenH - treeY - 10;
+            if (treeH < 60) treeH = 60;
+            boolean overContent = mx >= treeX && mx <= treeX + TREE_W
+                               && my >= treeY + titleBarH && my <= treeY + treeH;
+            if (overContent) {
+                treeScrollY -= wheel * 20;
+            }
+        }
+    }
+
     public void render(PApplet g, P5Engine engine) {
-        System.out.println("[DEBUGOVERLAY] render called, enabled=" + enabled);
         if (!enabled) {
-            System.out.println("[DEBUGOVERLAY] render skipped: not enabled");
             return;
         }
         Scene scene = engine.getActiveScene();
         if (scene == null) {
-            System.out.println("[DEBUGOVERLAY] render skipped: scene is null");
             return;
         }
 
         g.pushStyle();
         try {
-            System.out.println("[DEBUGOVERLAY] rendering overlay, showHud=" + showHud + ", showGizmos=" + showGizmos + ", showTree=" + showTree);
             if (showHud) renderHud(g, engine, scene);
             if (showGizmos) renderGizmos(g, scene);
             if (showTree) renderTree(g, scene);
@@ -72,7 +124,11 @@ public class DebugOverlay {
     // ==================== HUD ====================
 
     private void renderHud(PApplet g, P5Engine engine, Scene scene) {
-        float x = 10, y = 10, w = 170, h = 130;
+        float x = 10, y = 10, w = 260;
+        float lineH = 18;
+        int rowCount = 7;
+        if (shenyf.p5engine.util.Logger.isFileLogging()) rowCount++;
+        float h = lineH * rowCount + 16;
 
         g.fill(0, 0, 0, 160);
         g.stroke(80, 80, 80);
@@ -82,7 +138,6 @@ public class DebugOverlay {
         g.fill(200, 255, 200);
         g.textAlign(PApplet.LEFT, PApplet.TOP);
         g.textSize(12);
-        float lineH = 18;
         float ty = y + 8;
         int fps = Math.round(engine.getGameTime().getFrameRate());
         g.text("FPS: " + fps, x + 10, ty);
@@ -143,7 +198,9 @@ public class DebugOverlay {
     // ==================== Scene Tree ====================
 
     private void renderTree(PApplet g, Scene scene) {
-        float x = 10, y = 120, w = 280;
+        float x = treeX;
+        float y = treeY;
+        float w = TREE_W;
         float h = g.height - y - 10;
         if (h < 60) h = 60;
 
@@ -172,26 +229,54 @@ public class DebugOverlay {
         g.rect(x, y, w, h);
 
         // Title bar
-        g.fill(30, 30, 30, 220);
-        g.rect(x, y, w, 22);
+        if (isDraggingTree) {
+            g.fill(60, 60, 60, 220);
+        } else {
+            g.fill(30, 30, 30, 220);
+        }
+        g.rect(x, y, w, TREE_TITLE_H);
         g.fill(200, 255, 200);
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
         g.textSize(12);
-        g.text("Scene Tree (" + scene.getObjectCount() + ")", x + 8, y + 11);
+        g.text("Scene Tree (" + scene.getObjectCount() + ")", x + 8, y + TREE_TITLE_H * 0.5f);
 
         // Content clip area
-        float contentY = y + 26;
-        float contentH = h - 30;
+        float contentY = y + TREE_TITLE_H + 4;
+        float contentH = h - TREE_TITLE_H - 8;
         g.pushMatrix();
         g.clip((int) x, (int) contentY, (int) w, (int) contentH);
 
-        float cy = contentY;
+        // Calculate total content height and clamp scroll
+        float totalContentH = calcTreeContentHeight(roots, tree);
+        float maxScroll = Math.max(0, totalContentH - contentH);
+        treeScrollY = Math.max(0, Math.min(treeScrollY, maxScroll));
+
+        float cy = contentY - treeScrollY;
         for (GameObject root : roots) {
             cy = drawTreeNode(g, root, tree, x, cy, 0);
         }
 
         g.noClip();
         g.popMatrix();
+    }
+
+    private float calcTreeContentHeight(List<GameObject> roots, Map<GameObject, List<GameObject>> tree) {
+        float h = 0;
+        for (GameObject root : roots) {
+            h += calcNodeHeight(root, tree);
+        }
+        return h;
+    }
+
+    private float calcNodeHeight(GameObject go, Map<GameObject, List<GameObject>> tree) {
+        float h = 14;
+        List<GameObject> children = tree.get(go);
+        if (children != null) {
+            for (GameObject child : children) {
+                h += calcNodeHeight(child, tree);
+            }
+        }
+        return h;
     }
 
     private float drawTreeNode(PApplet g, GameObject go,

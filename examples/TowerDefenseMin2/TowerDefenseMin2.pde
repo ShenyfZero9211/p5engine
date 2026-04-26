@@ -54,7 +54,7 @@ public void setup() {
   engine.centerWindow();
   engine.setMouseConfined(true);
   engine.setApplicationTitle("TowerDefenseMin2");
-  engine.getDebugOverlay().toggle();
+  // engine.getDebugOverlay().toggle();
   // Logger debug enabled for development
   // shenyf.p5engine.util.Logger.setDebugEnabled(true);
   // shenyf.p5engine.util.Logger.setLevel(shenyf.p5engine.util.Logger.Level.DEBUG);
@@ -125,6 +125,7 @@ void setupWorldViewport() {
   worldWindow.setZOrder(0);
   worldWindow.hideTitleBar();
   worldWindow.setResizable(false);
+  worldWindow.setMovable(false);
   ui.getRoot().add(worldWindow);
 
   worldViewport = new SceneViewport("world_vp");
@@ -198,7 +199,7 @@ public void draw() {
   }
 
   if (state == TdState.MENU) {
-    println("[DEBUG] draw() MENU titleProgress=" + TdMenuBg.titleProgress);
+    // println("[DEBUG] draw() MENU titleProgress=" + TdMenuBg.titleProgress);
     TdMenuBg.drawTitle(this, TdAssets.i18n("menu.title"));
   }
 

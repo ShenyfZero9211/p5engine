@@ -97,11 +97,12 @@ static final class TowerDef {
     final int iconColor;
     final String sfxFire;
     final String sfxPlace;
+    final String sfxComplete;
 
     TowerDef(TowerType type, String nameKey, String descKey, int cost, float range,
              float firePeriod, float damage, float aoeRadius, float laserBonus,
              float slowFactor, float buildTime, int iconColor,
-             String sfxFire, String sfxPlace) {
+             String sfxFire, String sfxPlace, String sfxComplete) {
         this.type = type;
         this.nameKey = nameKey;
         this.descKey = descKey;
@@ -116,6 +117,7 @@ static final class TowerDef {
         this.iconColor = iconColor;
         this.sfxFire = sfxFire;
         this.sfxPlace = sfxPlace;
+        this.sfxComplete = sfxComplete;
     }
 }
 

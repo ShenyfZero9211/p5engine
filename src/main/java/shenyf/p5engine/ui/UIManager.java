@@ -293,7 +293,7 @@ public final class UIManager {
                 }
 
                 // Title bar drag
-                if (win.isTitleBarHit(mx, my)) {
+                if (win.isMovable() && win.isTitleBarHit(mx, my)) {
                     dragManager.beginDrag(win, mx, my);
                 }
             }
@@ -350,7 +350,7 @@ public final class UIManager {
                 applet.cursor(PApplet.CROSS);
                 return;
             }
-            if (w.isTitleBarHit(mx, my)) {
+            if (w.isMovable() && w.isTitleBarHit(mx, my)) {
                 applet.cursor(PApplet.MOVE);
                 return;
             }

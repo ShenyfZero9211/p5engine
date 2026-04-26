@@ -8,6 +8,7 @@ static final class TdSound {
     static final String SFX_SHOT  = "sounds/synthetic-spike.wav";
     static final String SFX_LASER = "sounds/resonant-twang.wav";
     static final String SFX_PLACE = "sounds/percussive-knock.wav";
+    static final String SFX_TOWER_SELECT = "sounds/keypunch.wav";
     static final String BGM_MENU  = "music/TopGun.ogg";
 
     static TinyMusicClip currentBgm = null;

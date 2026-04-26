@@ -18,6 +18,8 @@ import shenyf.p5engine.util.ScreenshotTool;
 import shenyf.p5engine.audio.AudioManager;
 import shenyf.p5engine.debug.DebugOverlay;
 import shenyf.p5engine.i18n.I18n;
+import shenyf.p5engine.resource.ppak.PPak;
+import java.io.File;
 import java.awt.Frame;
 import java.util.ArrayList;
 import java.util.List;
@@ -675,6 +677,11 @@ public class P5Engine {
 
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
         inputManager.postUpdate();
+
+        if (debugOverlay != null && debugOverlay.isEnabled()) {
+            debugOverlay.update(inputManager, applet.width, applet.height);
+        }
+
         scheduler.update(gameTime.getDeltaTime(), gameTime.getRealDeltaTime());
         tweenManager.update(gameTime);
         audioManager.update();
@@ -816,6 +823,32 @@ public class P5Engine {
                 Logger.warn("OnDisposeListener error: " + e.getMessage());
             }
         }
+
+        // Clean up TinySound temp files
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+        if (tmpDir.exists() && tmpDir.isDirectory()) {
+            File[] files = tmpDir.listFiles();
+            if (files != null) {
+                int count = 0;
+                for (File f : files) {
+                    String name = f.getName();
+                    if (f.isFile() && name.startsWith("tiny") && name.endsWith("sound")) {
+                        if (f.delete()) count++;
+                    }
+                }
+                if (count > 0) {
+                    Logger.info("Cleaned up " + count + " TinySound temp files");
+                }
+            }
+        }
+
+        // Clean up PPak temp files and resources
+        try {
+            PPak.reset();
+        } catch (Exception e) {
+            Logger.warn("PPak cleanup error: " + e.getMessage());
+        }
+
         Logger.info("P5Engine destroyed");
     }
 
@@ -935,7 +968,6 @@ public class P5Engine {
      * Call this at the end of your sketch's {@code draw()} if you are not using {@link #render()}.
      */
     public void renderDebugOverlay() {
-        System.out.println("[P5ENGINE] renderDebugOverlay called, debugOverlay=" + (debugOverlay != null));
         if (debugOverlay != null) {
             debugOverlay.render(applet, this);
         }

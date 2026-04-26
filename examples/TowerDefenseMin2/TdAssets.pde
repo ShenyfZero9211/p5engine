@@ -69,7 +69,8 @@ static final class TdAssets {
             ((Number) t.get("buildTime")).floatValue(),
             iconColor,
             sfx != null ? (String) sfx.get("fire") : null,
-            sfx != null ? (String) sfx.get("place") : null
+            sfx != null ? (String) sfx.get("place") : null,
+            sfx != null ? (String) sfx.get("complete") : null
         );
     }
 

@@ -11,6 +11,7 @@ public class Button extends UIComponent {
     private String i18nKey;
     private Object[] i18nArgs;
     private Runnable localeListener;
+    private String sfxPath;
 
     public Button(String id) {
         super(id);
@@ -65,6 +66,14 @@ public class Button extends UIComponent {
         this.action = action;
     }
 
+    public void setSfxPath(String path) {
+        this.sfxPath = path;
+    }
+
+    public String getSfxPath() {
+        return sfxPath;
+    }
+
     @Override
     public void update(PApplet applet, float dt) {
         hover = isEnabled() && isVisible() && containsPoint(applet.mouseX, applet.mouseY);
@@ -91,6 +100,16 @@ public class Button extends UIComponent {
                     pressedVisual = false;
                     if (containsPoint(absMouseX, absMouseY) && action != null) {
                         action.run();
+                        if (sfxPath != null) {
+                            var engine = shenyf.p5engine.core.P5Engine.getInstance();
+                            if (engine != null) {
+                                try {
+                                    engine.getAudio().playOneShot(sfxPath, "sfx");
+                                } catch (Exception e) {
+                                    // ignore audio errors
+                                }
+                            }
+                        }
                     }
                     return true;
                 }

@@ -13,14 +13,15 @@ towers:
     iconColor: [74, 158, 255]
     sfx:
       fire: sounds/synthetic-spike.wav
-      place: sounds/percussive-knock.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/percussive-bongo-hi.wav
 
   missile:
     nameKey: tower.missile.name
     descKey: tower.missile.desc
     cost: 150
     range: 280
-    firePeriod: 1.2
+    firePeriod: 1.5
     damage: 40
     aoeRadius: 80
     laserBonus: 0
@@ -29,14 +30,15 @@ towers:
     iconColor: [255, 100, 60]
     sfx:
       fire: sounds/synthetic-bass.wav
-      place: sounds/percussive-knock.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/percussive-bongo-lo.wav
 
   laser:
     nameKey: tower.laser.name
     descKey: tower.laser.desc
     cost: 200
     range: 180
-    firePeriod: 0.08
+    firePeriod: 2.0
     damage: 6
     aoeRadius: 0
     laserBonus: 3.0
@@ -44,15 +46,16 @@ towers:
     buildTime: 1.2
     iconColor: [60, 220, 120]
     sfx:
-      fire: sounds/resonant-twang.wav
-      place: sounds/percussive-knock.wav
+      fire: sounds/synthetic-rave.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/resonant-flute.wav
 
   slow:
     nameKey: tower.slow.name
     descKey: tower.slow.desc
     cost: 120
     range: 160
-    firePeriod: 0.5
+    firePeriod: 2.5
     damage: 0
     aoeRadius: 100
     laserBonus: 0
@@ -60,5 +63,6 @@ towers:
     buildTime: 0.6
     iconColor: [200, 120, 220]
     sfx:
-      fire: sounds/synthetic-honk.wav
-      place: sounds/percussive-knock.wav
+      fire: sounds/ambient-swoosh.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/ambient-glass.wav

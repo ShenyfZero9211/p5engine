@@ -3,14 +3,14 @@
   subtitleKey: level.1.subtitle
   initialMoney: 30000
   initialOrbs: 1
-  totalWaves: 1
+  totalWaves: 10
   worldWidth: 1600
   worldHeight: 1200
   enemy:
     hpBase: 80
     hpPerWave: 40
     speed: 60
-    countBase: 3
+    countBase: 5
     countPerWave: 2
   spawnCooldown: 0.6
   interWaveDelay: 6.0

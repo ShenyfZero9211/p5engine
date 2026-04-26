@@ -243,6 +243,7 @@ static class TdBuildPanel extends Panel {
             final TdBuildMode mode = TowerType.toBuildMode(tt);
             TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, initials[i]);
             btn.setPosition(8, by);
+            btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
             btn.setAction(() -> {
                 TowerDefenseMin2 app = TowerDefenseMin2.inst;
                 app.buildMode = mode;

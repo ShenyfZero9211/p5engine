@@ -24,7 +24,10 @@ static class Tower {
     void update(float dt) {
         if (!built) {
             buildProgress += dt;
-            if (buildProgress >= def.buildTime) built = true;
+            if (buildProgress >= def.buildTime) {
+                built = true;
+                TdAssets.playSfx(def.sfxComplete);
+            }
             return;
         }
         cooldown -= dt;
@@ -39,11 +42,13 @@ static class Tower {
 
     Enemy findTarget() {
         Enemy best = null;
-        float bestDist = def.range;
+        float bestPathDist = -1;
+        Vector2 towerPos = new Vector2(worldX, worldY);
         for (Enemy e : TdGameWorld.enemies) {
-            float d = e.pos.distance(new Vector2(worldX, worldY));
-            if (d <= bestDist) {
-                bestDist = d;
+            if (e.hp <= 0) continue;
+            float d = e.pos.distance(towerPos);
+            if (d <= def.range && e.pathDistance > bestPathDist) {
+                bestPathDist = e.pathDistance;
                 best = e;
             }
         }

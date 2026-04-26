@@ -17,6 +17,7 @@ public class Window extends Container {
     // Window state
     private boolean minimized = false;
     private boolean maximized = false;
+    private boolean movable = true;
 
     // Restore bounds (x, y, w, h)
     private final float[] restoreBounds = new float[4];
@@ -89,6 +90,9 @@ public class Window extends Container {
 
     public boolean isPaintBackground() { return paintBackground; }
     public void setPaintBackground(boolean v) { this.paintBackground = v; }
+
+    public boolean isMovable() { return movable; }
+    public void setMovable(boolean v) { this.movable = v; }
 
     // ── State ──
 

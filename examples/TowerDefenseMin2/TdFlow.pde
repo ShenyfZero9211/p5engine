@@ -4,21 +4,22 @@
 static final class TdFlow {
 
     static void buildMainMenu(TowerDefenseMin2 app) {
-        println("[DEBUG] buildMainMenu called, current state=" + app.state);
+        // println("[DEBUG] buildMainMenu called, current state=" + app.state);
         TdSaveData.saveSettings();
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
-        println("[DEBUG] root.removeAllChildren done");
+        // println("[DEBUG] root.removeAllChildren done");
 
         TweenManager tm = app.engine.getTweenManager();
-        println("[DEBUG] tween active count before killAll=" + tm.getActiveCount());
+        // println("[DEBUG] tween active count before killAll=" + tm.getActiveCount());
         tm.killAll();
-        println("[DEBUG] tween active count after killAll=" + tm.getActiveCount());
+        // println("[DEBUG] tween active count after killAll=" + tm.getActiveCount());
         tm.setUseUnscaledTime(true);
 
         Window win = new Window("menu_win");
         win.setBounds(340, 300, 600, 360);
         win.setTitle(TdAssets.i18n("menu.title"));
+        win.setMovable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -51,13 +52,13 @@ static final class TdFlow {
         win.add(panel);
 
         // Title animation: start from center, float up with outBack
-        println("[DEBUG] titleProgress before=" + TdMenuBg.titleProgress);
+        // println("[DEBUG] titleProgress before=" + TdMenuBg.titleProgress);
         TdMenuBg.titleProgress = 0f;
-        println("[DEBUG] titleProgress after reset=" + TdMenuBg.titleProgress);
+        // println("[DEBUG] titleProgress after reset=" + TdMenuBg.titleProgress);
         tm.toFloat(0f, 1f, 0.8f, v -> {
             TdMenuBg.titleProgress = v;
         }).ease(Ease::outBack).start();
-        println("[DEBUG] title tween started, active count=" + tm.getActiveCount());
+        // println("[DEBUG] title tween started, active count=" + tm.getActiveCount());
 
         // Buttons start below their final position (keep existing staggered animation)
         Button btnStart = new Button("btn_start");
@@ -92,9 +93,9 @@ static final class TdFlow {
         tm.toY(btnQuit, 180, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
         tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
 
-        println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
+        // println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
         app.state = TdState.MENU;
-        println("[DEBUG] buildMainMenu set state=MENU");
+        // println("[DEBUG] buildMainMenu set state=MENU");
         TdSound.playBgmMenu();
     }
 
@@ -169,6 +170,7 @@ static final class TdFlow {
         Window win = new Window("settings_win");
         win.setBounds(340, 160, 600, 480);
         win.setTitle(TdAssets.i18n("settings.title"));
+        win.setMovable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -358,6 +360,7 @@ static final class TdFlow {
         Window win = new Window("win_win");
         win.setBounds(390, 260, 500, 240);
         win.setTitle(TdAssets.i18n("game.win"));
+        win.setMovable(false);
         win.setZOrder(20);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -384,7 +387,7 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
-            println("[DEBUG] WIN btnMenu clicked");
+            // println("[DEBUG] WIN btnMenu clicked");
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);
@@ -416,6 +419,7 @@ static final class TdFlow {
         Window win = new Window("pause_win");
         win.setBounds(440, 260, 400, 240);
         win.setTitle(TdAssets.i18n("game.pause"));
+        win.setMovable(false);
         win.setZOrder(51);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -459,7 +463,7 @@ static final class TdFlow {
     }
 
     static void showLose(TowerDefenseMin2 app) {
-        println("[DEBUG] showLose called");
+        // println("[DEBUG] showLose called");
         TdSaveData.incGamesLost();
         TdSaveData.saveSettings();
         app.state = TdState.LOSE;
@@ -471,6 +475,7 @@ static final class TdFlow {
         Window win = new Window("lose_win");
         win.setBounds(390, 260, 500, 240);
         win.setTitle(TdAssets.i18n("game.lose"));
+        win.setMovable(false);
         win.setZOrder(20);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -496,11 +501,11 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
-            println("[DEBUG] btnMenu clicked, calling buildMainMenu");
+            // println("[DEBUG] btnMenu clicked, calling buildMainMenu");
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);
         panel.add(btnMenu);
-        println("[DEBUG] showLose done");
+        // println("[DEBUG] showLose done");
     }
 }
