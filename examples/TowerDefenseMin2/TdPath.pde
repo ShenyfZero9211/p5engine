@@ -2,9 +2,9 @@
  * Path system: polyline with distance sampling for enemy movement.
  */
 static final class TdPath {
-    Vector2[] points;
-    float[] segmentLengths;
-    float totalLength;
+    public Vector2[] points;
+    public float[] segmentLengths;
+    public float totalLength;
 
     TdPath(Vector2[] points) {
         this.points = points;

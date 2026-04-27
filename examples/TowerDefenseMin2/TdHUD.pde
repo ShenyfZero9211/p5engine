@@ -22,8 +22,15 @@ static final class TdHUD {
         app.fill(TdTheme.TEXT);
         app.textAlign(PApplet.LEFT, PApplet.CENTER);
         app.textSize(14);
-        app.text("$ " + TdGameWorld.money + "  ♦ " + TdGameWorld.orbits + "  波 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.totalWaves : 0),
-            x + 16, y + h * 0.5f);
+        String statusText;
+        if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
+            statusText = "$ " + TdGameWorld.money + "  逃 " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
+                + "  波 " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
+        } else {
+            statusText = "$ " + TdGameWorld.money + "  ♦ " + TdGameWorld.orbits
+                + "  波 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
+        }
+        app.text(statusText, x + 16, y + h * 0.5f);
 
         // Pause button
         float btnW = 72;
@@ -174,12 +181,20 @@ static final class TdHUD {
         float btnH = 56;
         float gap = 8;
         float by = y + 16;
-        TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
-        for (int i = 0; i < types.length; i++) {
-            TowerDef def = TdAssets.loadTowerDef(types[i]);
+        TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
+        TowerType[] allowed = (TdGameWorld.level != null && TdGameWorld.level.allowedTowers != null)
+            ? TdGameWorld.level.allowedTowers : allTypes;
+        for (int i = 0; i < allTypes.length; i++) {
+            TowerType tt = allTypes[i];
+            boolean isAllowed = false;
+            for (TowerType a : allowed) {
+                if (a == tt) { isAllowed = true; break; }
+            }
+            if (!isAllowed) continue;
+            TowerDef def = TdAssets.loadTowerDef(tt);
             if (def == null) continue;
             if (mx >= x + 8 && mx <= x + w - 8 && my >= by && my <= by + btnH) {
-                return TowerType.toBuildMode(types[i]);
+                return TowerType.toBuildMode(tt);
             }
             by += btnH + gap;
         }

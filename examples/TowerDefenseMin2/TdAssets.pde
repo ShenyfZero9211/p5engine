@@ -29,6 +29,7 @@ static final class TdAssets {
 
     static java.util.Map towerYamlRoot;
     static java.util.List levelYamlList;
+    static java.util.Map enemyYamlRoot;
 
     static void loadConfigs(PApplet app) {
         org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
@@ -40,6 +41,10 @@ static final class TdAssets {
         java.io.InputStream lis = app.createInput("config/levels.yaml");
         if (lis == null) throw new RuntimeException("Cannot load config/levels.yaml");
         levelYamlList = (java.util.List) yaml.load(lis);
+
+        java.io.InputStream eis = app.createInput("config/enemies.yaml");
+        if (eis == null) throw new RuntimeException("Cannot load config/enemies.yaml");
+        enemyYamlRoot = (java.util.Map) yaml.load(eis);
     }
 
     static TowerDef loadTowerDef(TowerType type) {
@@ -66,6 +71,8 @@ static final class TdAssets {
             ((Number) t.get("aoeRadius")).floatValue(),
             ((Number) t.get("laserBonus")).floatValue(),
             ((Number) t.get("slowFactor")).floatValue(),
+            t.containsKey("slowDuration") ? ((Number) t.get("slowDuration")).floatValue() : 0f,
+            t.containsKey("laserDelay") ? ((Number) t.get("laserDelay")).floatValue() : 0f,
             ((Number) t.get("buildTime")).floatValue(),
             iconColor,
             sfx != null ? (String) sfx.get("fire") : null,
@@ -89,26 +96,40 @@ static final class TdAssets {
         return levelYamlList != null ? levelYamlList.size() : 0;
     }
 
+    static EnemyDef loadEnemyDef(String typeKey) {
+        if (enemyYamlRoot == null) return null;
+        java.util.Map enemies = (java.util.Map) enemyYamlRoot.get("enemies");
+        java.util.Map e = (java.util.Map) enemies.get(typeKey);
+        if (e == null) return null;
+        String sfxDeath = (String) e.get("sfxDeath");
+        if (sfxDeath == null) sfxDeath = TdSound.SFX_DEATH;
+        return new EnemyDef(
+            typeKey,
+            (String) e.get("nameKey"),
+            ((Number) e.get("speedMultiplier")).floatValue(),
+            ((Number) e.get("hpMultiplier")).floatValue(),
+            ((Number) e.get("orbCapacity")).intValue(),
+            ((Number) e.get("radius")).floatValue(),
+            sfxDeath
+        );
+    }
+
     private static LevelDef parseLevel(java.util.Map lvl) {
         LevelDef ld = new LevelDef();
         ld.id = ((Number) lvl.get("id")).intValue();
         ld.nameKey = (String) lvl.get("nameKey");
         ld.subtitleKey = (String) lvl.get("subtitleKey");
+        String lt = (String) lvl.get("levelType");
+        ld.levelType = "SURVIVAL".equals(lt) ? LevelType.SURVIVAL : LevelType.DEFEND_BASE;
         ld.initialMoney = ((Number) lvl.get("initialMoney")).intValue();
-        ld.initialOrbs = ((Number) lvl.get("initialOrbs")).intValue();
-        ld.totalWaves = ((Number) lvl.get("totalWaves")).intValue();
+        if (ld.levelType == LevelType.DEFEND_BASE) {
+            ld.baseOrbs = ((Number) lvl.get("baseOrbs")).intValue();
+        } else {
+            ld.maxEscapeCount = ((Number) lvl.get("maxEscapeCount")).intValue();
+        }
         ld.worldW = ((Number) lvl.get("worldWidth")).intValue();
         ld.worldH = ((Number) lvl.get("worldHeight")).intValue();
-
-        java.util.Map enemy = (java.util.Map) lvl.get("enemy");
-        ld.enemyHpBase = ((Number) enemy.get("hpBase")).floatValue();
-        ld.enemyHpPerWave = ((Number) enemy.get("hpPerWave")).floatValue();
-        ld.enemySpeed = ((Number) enemy.get("speed")).floatValue();
-        ld.enemyCountBase = ((Number) enemy.get("countBase")).intValue();
-        ld.enemyCountPerWave = ((Number) enemy.get("countPerWave")).intValue();
-
-        ld.spawnCooldown = ((Number) lvl.get("spawnCooldown")).floatValue();
-        ld.interWaveDelay = ((Number) lvl.get("interWaveDelay")).floatValue();
+        ld.enemyHpBase = ((Number) lvl.get("enemyHpBase")).floatValue();
 
         // Positions
         java.util.Map base = (java.util.Map) lvl.get("basePos");
@@ -118,12 +139,107 @@ static final class TdAssets {
         java.util.Map spawn = (java.util.Map) lvl.get("spawnPos");
         ld.spawnPos = new Vector2(((Number)spawn.get("x")).floatValue(), ((Number)spawn.get("y")).floatValue());
 
-        // Path points
+        // Paths — new multi-path format
+        java.util.List pathList = (java.util.List) lvl.get("paths");
+        if (pathList != null) {
+            ld.paths = new PathRoute[pathList.size()];
+            for (int i = 0; i < pathList.size(); i++) {
+                java.util.Map p = (java.util.Map) pathList.get(i);
+                String pid = (String) p.get("id");
+                String ptype = (String) p.get("type");
+                RouteType rt = RouteType.INBOUND;
+                if ("OUTBOUND".equalsIgnoreCase(ptype)) rt = RouteType.OUTBOUND;
+                else if ("DIRECT".equalsIgnoreCase(ptype)) rt = RouteType.DIRECT;
+                java.util.List ppts = (java.util.List) p.get("points");
+                Vector2[] points = new Vector2[ppts.size()];
+                for (int j = 0; j < ppts.size(); j++) {
+                    java.util.Map pm = (java.util.Map) ppts.get(j);
+                    points[j] = new Vector2(((Number)pm.get("x")).floatValue(), ((Number)pm.get("y")).floatValue());
+                }
+                ld.paths[i] = new PathRoute(pid, rt, points, ld.basePos);
+            }
+        }
+
+        // Legacy pathPoints — auto-convert to PathRoute(s)
         java.util.List pts = (java.util.List) lvl.get("pathPoints");
-        ld.pathPoints = new Vector2[pts.size()];
-        for (int i = 0; i < pts.size(); i++) {
-            java.util.Map p = (java.util.Map) pts.get(i);
-            ld.pathPoints[i] = new Vector2(((Number)p.get("x")).floatValue(), ((Number)p.get("y")).floatValue());
+        if (pts != null) {
+            ld.pathPoints = new Vector2[pts.size()];
+            for (int i = 0; i < pts.size(); i++) {
+                java.util.Map p = (java.util.Map) pts.get(i);
+                ld.pathPoints[i] = new Vector2(((Number)p.get("x")).floatValue(), ((Number)p.get("y")).floatValue());
+            }
+            // Auto-build PathRoutes from legacy pathPoints if paths not provided
+            if (ld.paths == null && ld.pathPoints.length > 1) {
+                // Find point closest to basePos
+                int baseIdx = 0;
+                float bestD = Float.MAX_VALUE;
+                for (int i = 0; i < ld.pathPoints.length; i++) {
+                    float d = ld.pathPoints[i].distance(ld.basePos);
+                    if (d < bestD) {
+                        bestD = d;
+                        baseIdx = i;
+                    }
+                }
+                if (ld.levelType == LevelType.DEFEND_BASE) {
+                    ld.paths = new PathRoute[2];
+                    // INBOUND: spawn -> base
+                    Vector2[] inbound = new Vector2[baseIdx + 1];
+                    System.arraycopy(ld.pathPoints, 0, inbound, 0, baseIdx + 1);
+                    ld.paths[0] = new PathRoute("legacy_inbound", RouteType.INBOUND, inbound, ld.basePos);
+                    // OUTBOUND: base -> exit
+                    Vector2[] outbound = new Vector2[ld.pathPoints.length - baseIdx];
+                    System.arraycopy(ld.pathPoints, baseIdx, outbound, 0, ld.pathPoints.length - baseIdx);
+                    ld.paths[1] = new PathRoute("legacy_outbound", RouteType.OUTBOUND, outbound, ld.basePos);
+                } else {
+                    // SURVIVAL: single DIRECT path
+                    ld.paths = new PathRoute[1];
+                    ld.paths[0] = new PathRoute("legacy_direct", RouteType.DIRECT, ld.pathPoints, null);
+                }
+            }
+        }
+
+        // Waves
+        java.util.List waveList = (java.util.List) lvl.get("waves");
+        if (waveList != null) {
+            ld.waves = new WaveDef[waveList.size()];
+            for (int i = 0; i < waveList.size(); i++) {
+                java.util.Map w = (java.util.Map) waveList.get(i);
+                float delay = ((Number) w.get("delay")).floatValue();
+                java.util.List spawnList = (java.util.List) w.get("spawns");
+                WaveSpawn[] spawns = new WaveSpawn[spawnList != null ? spawnList.size() : 0];
+                for (int j = 0; j < spawns.length; j++) {
+                    java.util.Map s = (java.util.Map) spawnList.get(j);
+                    spawns[j] = new WaveSpawn(
+                        (String) s.get("type"),
+                        ((Number) s.get("count")).intValue(),
+                        ((Number) s.get("interval")).floatValue(),
+                        (String) s.get("route")
+                    );
+                }
+                ld.waves[i] = new WaveDef(delay, spawns);
+            }
+        }
+
+        // Allowed towers (optional, default all)
+        java.util.List towerList = (java.util.List) lvl.get("allowedTowers");
+        if (towerList != null) {
+            ld.allowedTowers = new TowerType[towerList.size()];
+            for (int i = 0; i < towerList.size(); i++) {
+                String tt = (String) towerList.get(i);
+                try {
+                    ld.allowedTowers[i] = TowerType.valueOf(tt.toUpperCase());
+                } catch (Exception ex) {
+                    ld.allowedTowers[i] = null;
+                }
+            }
+        }
+
+        // Earn money on kill (optional, default true)
+        Object earnObj = lvl.get("earnMoneyOnKill");
+        if (earnObj != null) {
+            ld.earnMoneyOnKill = Boolean.parseBoolean(earnObj.toString());
+        } else {
+            ld.earnMoneyOnKill = true;
         }
 
         return ld;

@@ -154,9 +154,18 @@ public final class DefaultTheme implements Theme {
     public void drawLabel(PApplet g, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
         g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.noStroke();
-        g.textAlign(textAlign, PApplet.CENTER);
         g.textSize(Math.min(14, h * 0.5f));
-        g.text(text != null ? text : "", x, y, w, h);
+        float tx;
+        if (textAlign == PApplet.CENTER) {
+            tx = x + w * 0.5f;
+        } else if (textAlign == PApplet.RIGHT) {
+            tx = x + w - 4;
+        } else {
+            tx = x + 4;
+        }
+        g.textAlign(textAlign, PApplet.BASELINE);
+        float ty = y + h * 0.5f + (g.textAscent() - g.textDescent()) * 0.5f;
+        g.text(text != null ? text : "", tx, ty);
     }
 
     @Override

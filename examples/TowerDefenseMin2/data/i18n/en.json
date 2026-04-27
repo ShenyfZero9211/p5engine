@@ -22,6 +22,7 @@
   "game.wave": "Wave",
   "game.enemyCount": "Enemies",
   "game.pause": "Paused",
+  "game.menu": "Menu",
   "game.resume": "Resume",
   "game.win": "Victory!",
   "game.lose": "Defeat...",
@@ -46,5 +47,11 @@
   "level.1.name": "First Contact",
   "level.1.subtitle": "A simple path",
   "level.2.name": "Zigzag",
-  "level.2.subtitle": "A winding route"
+  "level.2.subtitle": "A winding route",
+  "level.3.name": "Multi-Pronged",
+  "level.3.subtitle": "Enemies from multiple directions",
+  "level.4.name": "Mixed Assault",
+  "level.4.subtitle": "Multiple rhythms per wave",
+  "level.5.name": "Proving Ground",
+  "level.5.subtitle": "Test towers and enemies"
 }

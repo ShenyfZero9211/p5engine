@@ -1,0 +1,32 @@
+enemies:
+  level1:
+    nameKey: enemy.level1.name
+    speedMultiplier: 1.0
+    hpMultiplier: 1.0
+    orbCapacity: 1
+    radius: 12
+    sfxDeath: sounds/resonant-reverb.wav
+
+  level2:
+    nameKey: enemy.level2.name
+    speedMultiplier: 1.5
+    hpMultiplier: 1.5
+    orbCapacity: 2
+    radius: 14
+    sfxDeath: sounds/resonant-reverb.wav
+
+  level3:
+    nameKey: enemy.level3.name
+    speedMultiplier: 2.0
+    hpMultiplier: 2.2
+    orbCapacity: 1
+    radius: 16
+    sfxDeath: sounds/synthetic-spike.wav
+
+  level4:
+    nameKey: enemy.level4.name
+    speedMultiplier: 0.5
+    hpMultiplier: 25
+    orbCapacity: 3
+    radius: 20
+    sfxDeath: sounds/percussive-gong.wav

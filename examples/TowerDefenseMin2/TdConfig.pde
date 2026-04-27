@@ -80,6 +80,110 @@ enum TowerType {
 }
 
 /**
+ * Level type enum.
+ */
+enum LevelType {
+    DEFEND_BASE,   // 守护基地：保护能量球不被全部夺走
+    SURVIVAL       // 生存模式：控制敌人逃离数量
+}
+
+/**
+ * Route type for multi-path levels.
+ */
+enum RouteType {
+    INBOUND,    // spawn -> base
+    OUTBOUND,   // base -> exit
+    DIRECT      // spawn -> exit (no base)
+}
+
+/**
+ * A named path route in a level. Reuses TdPath as the underlying polyline.
+ */
+static final class PathRoute {
+    public String id;
+    public RouteType type;
+    public TdPath path;
+    public int baseIndex;      // index of base point in path.points (-1 if not applicable)
+    public float baseDistance; // distance along path to the base point
+
+    PathRoute(String id, RouteType type, Vector2[] points, Vector2 basePos) {
+        this.id = id;
+        this.type = type;
+        this.path = new TdPath(points);
+        if (basePos != null) {
+            this.baseDistance = this.path.closestDistanceTo(basePos);
+            // Find closest point index
+            this.baseIndex = -1;
+            float bestD = Float.MAX_VALUE;
+            for (int i = 0; i < points.length; i++) {
+                float d = points[i].distance(basePos);
+                if (d < bestD) {
+                    bestD = d;
+                    baseIndex = i;
+                }
+            }
+        } else {
+            this.baseDistance = -1;
+            this.baseIndex = -1;
+        }
+    }
+}
+
+/**
+ * Enemy definition loaded from enemies.yaml.
+ */
+static final class EnemyDef {
+    final String key;
+    final String nameKey;
+    final float speedMultiplier;
+    final float hpMultiplier;
+    final int orbCapacity;
+    final float radius;
+    final String sfxDeath;
+
+    EnemyDef(String key, String nameKey, float speedMultiplier, float hpMultiplier,
+             int orbCapacity, float radius, String sfxDeath) {
+        this.key = key;
+        this.nameKey = nameKey;
+        this.speedMultiplier = speedMultiplier;
+        this.hpMultiplier = hpMultiplier;
+        this.orbCapacity = orbCapacity;
+        this.radius = radius;
+        this.sfxDeath = sfxDeath;
+    }
+}
+
+/**
+ * Per-enemy-type spawn config within a wave.
+ */
+static final class WaveSpawn {
+    final String enemyType;
+    final int count;
+    final float interval;
+    final String route;      // optional path route id
+
+    WaveSpawn(String enemyType, int count, float interval, String route) {
+        this.enemyType = enemyType;
+        this.count = count;
+        this.interval = interval;
+        this.route = route;
+    }
+}
+
+/**
+ * Per-wave configuration.
+ */
+static final class WaveDef {
+    final float delay;
+    final WaveSpawn[] spawns;
+
+    WaveDef(float delay, WaveSpawn[] spawns) {
+        this.delay = delay;
+        this.spawns = spawns;
+    }
+}
+
+/**
  * Mutable tower definition loaded from towers.yaml.
  */
 static final class TowerDef {
@@ -93,6 +197,8 @@ static final class TowerDef {
     final float aoeRadius;
     final float laserBonus;
     final float slowFactor;
+    final float slowDuration;
+    final float laserDelay;
     final float buildTime;
     final int iconColor;
     final String sfxFire;
@@ -101,7 +207,7 @@ static final class TowerDef {
 
     TowerDef(TowerType type, String nameKey, String descKey, int cost, float range,
              float firePeriod, float damage, float aoeRadius, float laserBonus,
-             float slowFactor, float buildTime, int iconColor,
+             float slowFactor, float slowDuration, float laserDelay, float buildTime, int iconColor,
              String sfxFire, String sfxPlace, String sfxComplete) {
         this.type = type;
         this.nameKey = nameKey;
@@ -113,6 +219,8 @@ static final class TowerDef {
         this.aoeRadius = aoeRadius;
         this.laserBonus = laserBonus;
         this.slowFactor = slowFactor;
+        this.slowDuration = slowDuration;
+        this.laserDelay = laserDelay;
         this.buildTime = buildTime;
         this.iconColor = iconColor;
         this.sfxFire = sfxFire;
@@ -128,31 +236,19 @@ static final class LevelDef {
     int id;
     String nameKey;
     String subtitleKey;
+    LevelType levelType;
     int initialMoney;
-    int initialOrbs;
-    int totalWaves;
+    int baseOrbs;        // DEFEND_BASE: 基地能量球总数
+    int maxEscapeCount;  // SURVIVAL: 最大允许逃离敌人数
     float enemyHpBase;
-    float enemyHpPerWave;
-    float enemySpeed;
-    int enemyCountBase;
-    int enemyCountPerWave;
-    float spawnCooldown;
-    float interWaveDelay;
-    Vector2[] pathPoints;
+    Vector2[] pathPoints;      // legacy single-path format (kept for compatibility)
+    PathRoute[] paths;         // new multi-path format
     Vector2 basePos;
     Vector2 exitPos;
     Vector2 spawnPos;
     int worldW;
     int worldH;
-}
-
-/**
- * Per-wave configuration.
- */
-static final class WaveDef {
-    int enemyCount;
-    float hp;
-    float speed;
-    float interval;
-    float reward;
+    WaveDef[] waves;
+    TowerType[] allowedTowers; // null = all towers allowed
+    boolean earnMoneyOnKill;   // default true
 }

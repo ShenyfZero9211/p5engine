@@ -516,7 +516,7 @@ static class Bullet {
     }
 }
 /**
- * Enemy instance on the path.
+ * Enemy instance on a path route.
  */
 
 enum EnemyState {
@@ -537,8 +537,10 @@ static class Enemy {
     EnemyDef enemyDef;
     int orbsCarried = 0;
 
-    TdPath path;
-    float pathDistance;
+    PathRoute inboundRoute;   // route from spawn to base
+    PathRoute outboundRoute;  // route from base to exit (assigned after steal)
+    PathRoute activeRoute;    // currently active route
+    float routeProgress;
     GameObject gameObject;
 
     EnemyState state = EnemyState.MOVE_TO_BASE;
@@ -550,13 +552,13 @@ static class Enemy {
     static final float TURN_DURATION = 0.2f;
 
     public void update(float dt) {
-        if (path == null) return;
+        if (activeRoute == null || activeRoute.path == null) return;
 
         switch (state) {
             case MOVE_TO_BASE:
-                pathDistance += speed * slowFactor * dt;
-                if (pathDistance >= TdGameWorld.basePathDist) {
-                    pathDistance = TdGameWorld.basePathDist;
+                routeProgress += speed * slowFactor * dt;
+                if (routeProgress >= activeRoute.baseDistance) {
+                    routeProgress = activeRoute.baseDistance;
                     state = EnemyState.STEAL;
                 }
                 break;
@@ -567,11 +569,13 @@ static class Enemy {
                 orbsCarried = stealCount;
                 TdGameWorld.orbits -= stealCount;
                 TdSaveData.incOrbsLost(stealCount);
+                // Switch to a random outbound route
+                pickOutboundRoute();
                 state = EnemyState.FLEE;
                 break;
             case FLEE:
-                pathDistance += speed * slowFactor * dt;
-                if (pathDistance >= path.getTotalLength()) {
+                routeProgress += speed * slowFactor * dt;
+                if (routeProgress >= activeRoute.path.getTotalLength()) {
                     reachedEnd = true;
                 }
                 break;
@@ -579,26 +583,42 @@ static class Enemy {
                 return;
         }
 
-        if (pathDistance >= path.getTotalLength()) {
-            pos = path.sample(path.getTotalLength());
+        if (routeProgress >= activeRoute.path.getTotalLength()) {
+            pos = activeRoute.path.sample(activeRoute.path.getTotalLength());
         } else {
-            pos = path.sample(pathDistance);
+            pos = activeRoute.path.sample(routeProgress);
         }
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
         }
 
         // Detect segment change and trigger smooth rotation
-        int newSegment = path.getSegmentIndex(pathDistance);
+        int newSegment = activeRoute.path.getSegmentIndex(routeProgress);
         if (newSegment != currentSegment) {
             currentSegment = newSegment;
             triggerSmoothTurn();
         }
     }
 
+    public void pickOutboundRoute() {
+        if (TdGameWorld.level == null || TdGameWorld.level.paths == null) return;
+        java.util.ArrayList<PathRoute> candidates = new java.util.ArrayList<>();
+        for (PathRoute pr : TdGameWorld.level.paths) {
+            if (pr.type == RouteType.OUTBOUND) candidates.add(pr);
+        }
+        if (candidates.isEmpty()) {
+            // Fallback: keep using current route if no outbound defined
+            return;
+        }
+        outboundRoute = candidates.get(TdGameWorld.pathRng.nextInt(candidates.size()));
+        activeRoute = outboundRoute;
+        routeProgress = 0;
+        currentSegment = 0;
+    }
+
     public void triggerSmoothTurn() {
         if (gameObject == null) return;
-        Vector2 dir = path.direction(pathDistance);
+        Vector2 dir = activeRoute.path.direction(routeProgress);
         if (dir == null) return;
         float targetAngle = PApplet.atan2(dir.y, dir.x);
         float currentAngle = gameObject.getTransform().getRotation();
@@ -619,7 +639,7 @@ static class Enemy {
 }
 
 /**
- * Orb: energy ball returning to base along the path.
+ * Orb: energy ball returning to base along its route.
  * Can be re-captured by enemies along the way.
  */
 static class Orb {
@@ -628,19 +648,20 @@ static class Orb {
     static final float RETURN_SPEED = 80f;
     static final float CAPTURE_RADIUS = 20f;
     GameObject gameObject;
+    PathRoute route; // the route this orb is traveling on
 
     public void update(float dt) {
-        if (TdGameWorld.path == null) return;
+        if (route == null || route.path == null) return;
         pathDistance -= RETURN_SPEED * dt;
         if (pathDistance < 0) pathDistance = 0;
-        pos = TdGameWorld.path.sample(pathDistance);
+        pos = route.path.sample(pathDistance);
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
         }
     }
 
     public boolean reachedBase() {
-        return pathDistance <= TdGameWorld.basePathDist;
+        return pathDistance <= route.baseDistance;
     }
 
     public Enemy findNearbyEnemy() {
@@ -808,12 +829,63 @@ static final class TdAssets {
         java.util.Map spawn = (java.util.Map) lvl.get("spawnPos");
         ld.spawnPos = new Vector2(((Number)spawn.get("x")).floatValue(), ((Number)spawn.get("y")).floatValue());
 
-        // Path points
+        // Paths \u2014 new multi-path format
+        java.util.List pathList = (java.util.List) lvl.get("paths");
+        if (pathList != null) {
+            ld.paths = new PathRoute[pathList.size()];
+            for (int i = 0; i < pathList.size(); i++) {
+                java.util.Map p = (java.util.Map) pathList.get(i);
+                String pid = (String) p.get("id");
+                String ptype = (String) p.get("type");
+                RouteType rt = RouteType.INBOUND;
+                if ("OUTBOUND".equalsIgnoreCase(ptype)) rt = RouteType.OUTBOUND;
+                else if ("DIRECT".equalsIgnoreCase(ptype)) rt = RouteType.DIRECT;
+                java.util.List ppts = (java.util.List) p.get("points");
+                Vector2[] points = new Vector2[ppts.size()];
+                for (int j = 0; j < ppts.size(); j++) {
+                    java.util.Map pm = (java.util.Map) ppts.get(j);
+                    points[j] = new Vector2(((Number)pm.get("x")).floatValue(), ((Number)pm.get("y")).floatValue());
+                }
+                ld.paths[i] = new PathRoute(pid, rt, points, ld.basePos);
+            }
+        }
+
+        // Legacy pathPoints \u2014 auto-convert to PathRoute(s)
         java.util.List pts = (java.util.List) lvl.get("pathPoints");
-        ld.pathPoints = new Vector2[pts.size()];
-        for (int i = 0; i < pts.size(); i++) {
-            java.util.Map p = (java.util.Map) pts.get(i);
-            ld.pathPoints[i] = new Vector2(((Number)p.get("x")).floatValue(), ((Number)p.get("y")).floatValue());
+        if (pts != null) {
+            ld.pathPoints = new Vector2[pts.size()];
+            for (int i = 0; i < pts.size(); i++) {
+                java.util.Map p = (java.util.Map) pts.get(i);
+                ld.pathPoints[i] = new Vector2(((Number)p.get("x")).floatValue(), ((Number)p.get("y")).floatValue());
+            }
+            // Auto-build PathRoutes from legacy pathPoints if paths not provided
+            if (ld.paths == null && ld.pathPoints.length > 1) {
+                // Find point closest to basePos
+                int baseIdx = 0;
+                float bestD = Float.MAX_VALUE;
+                for (int i = 0; i < ld.pathPoints.length; i++) {
+                    float d = ld.pathPoints[i].distance(ld.basePos);
+                    if (d < bestD) {
+                        bestD = d;
+                        baseIdx = i;
+                    }
+                }
+                if (ld.levelType == LevelType.DEFEND_BASE) {
+                    ld.paths = new PathRoute[2];
+                    // INBOUND: spawn -> base
+                    Vector2[] inbound = new Vector2[baseIdx + 1];
+                    System.arraycopy(ld.pathPoints, 0, inbound, 0, baseIdx + 1);
+                    ld.paths[0] = new PathRoute("legacy_inbound", RouteType.INBOUND, inbound, ld.basePos);
+                    // OUTBOUND: base -> exit
+                    Vector2[] outbound = new Vector2[ld.pathPoints.length - baseIdx];
+                    System.arraycopy(ld.pathPoints, baseIdx, outbound, 0, ld.pathPoints.length - baseIdx);
+                    ld.paths[1] = new PathRoute("legacy_outbound", RouteType.OUTBOUND, outbound, ld.basePos);
+                } else {
+                    // SURVIVAL: single DIRECT path
+                    ld.paths = new PathRoute[1];
+                    ld.paths[0] = new PathRoute("legacy_direct", RouteType.DIRECT, ld.pathPoints, null);
+                }
+            }
         }
 
         // Waves
@@ -830,11 +902,34 @@ static final class TdAssets {
                     spawns[j] = new WaveSpawn(
                         (String) s.get("type"),
                         ((Number) s.get("count")).intValue(),
-                        ((Number) s.get("interval")).floatValue()
+                        ((Number) s.get("interval")).floatValue(),
+                        (String) s.get("route")
                     );
                 }
                 ld.waves[i] = new WaveDef(delay, spawns);
             }
+        }
+
+        // Allowed towers (optional, default all)
+        java.util.List towerList = (java.util.List) lvl.get("allowedTowers");
+        if (towerList != null) {
+            ld.allowedTowers = new TowerType[towerList.size()];
+            for (int i = 0; i < towerList.size(); i++) {
+                String tt = (String) towerList.get(i);
+                try {
+                    ld.allowedTowers[i] = TowerType.valueOf(tt.toUpperCase());
+                } catch (Exception ex) {
+                    ld.allowedTowers[i] = null;
+                }
+            }
+        }
+
+        // Earn money on kill (optional, default true)
+        Object earnObj = lvl.get("earnMoneyOnKill");
+        if (earnObj != null) {
+            ld.earnMoneyOnKill = Boolean.parseBoolean(earnObj.toString());
+        } else {
+            ld.earnMoneyOnKill = true;
         }
 
         return ld;
@@ -995,6 +1090,48 @@ enum LevelType {
 }
 
 /**
+ * Route type for multi-path levels.
+ */
+enum RouteType {
+    INBOUND,    // spawn -> base
+    OUTBOUND,   // base -> exit
+    DIRECT      // spawn -> exit (no base)
+}
+
+/**
+ * A named path route in a level. Reuses TdPath as the underlying polyline.
+ */
+static final class PathRoute {
+    public String id;
+    public RouteType type;
+    public TdPath path;
+    public int baseIndex;      // index of base point in path.points (-1 if not applicable)
+    public float baseDistance; // distance along path to the base point
+
+    PathRoute(String id, RouteType type, Vector2[] points, Vector2 basePos) {
+        this.id = id;
+        this.type = type;
+        this.path = new TdPath(points);
+        if (basePos != null) {
+            this.baseDistance = this.path.closestDistanceTo(basePos);
+            // Find closest point index
+            this.baseIndex = -1;
+            float bestD = Float.MAX_VALUE;
+            for (int i = 0; i < points.length; i++) {
+                float d = points[i].distance(basePos);
+                if (d < bestD) {
+                    bestD = d;
+                    baseIndex = i;
+                }
+            }
+        } else {
+            this.baseDistance = -1;
+            this.baseIndex = -1;
+        }
+    }
+}
+
+/**
  * Enemy definition loaded from enemies.yaml.
  */
 static final class EnemyDef {
@@ -1023,11 +1160,13 @@ static final class WaveSpawn {
     final String enemyType;
     final int count;
     final float interval;
+    final String route;      // optional path route id
 
-    WaveSpawn(String enemyType, int count, float interval) {
+    WaveSpawn(String enemyType, int count, float interval, String route) {
         this.enemyType = enemyType;
         this.count = count;
         this.interval = interval;
+        this.route = route;
     }
 }
 
@@ -1098,13 +1237,16 @@ static final class LevelDef {
     int baseOrbs;        // DEFEND_BASE: \u57fa\u5730\u80fd\u91cf\u7403\u603b\u6570
     int maxEscapeCount;  // SURVIVAL: \u6700\u5927\u5141\u8bb8\u9003\u79bb\u654c\u4eba\u6570
     float enemyHpBase;
-    Vector2[] pathPoints;
+    Vector2[] pathPoints;      // legacy single-path format (kept for compatibility)
+    PathRoute[] paths;         // new multi-path format
     Vector2 basePos;
     Vector2 exitPos;
     Vector2 spawnPos;
     int worldW;
     int worldH;
     WaveDef[] waves;
+    TowerType[] allowedTowers; // null = all towers allowed
+    boolean earnMoneyOnKill;   // default true
 }
 /**
  * Entity Components (Phase 3):
@@ -1639,8 +1781,7 @@ static final class TdGameWorld {
     static boolean waveInProgress;
     static int waveSpawnIndex;        // current spawn group within wave
     static int waveSpawnCount;        // how many spawned in current group
-    static TdPath path;
-    static float basePathDist;
+    static java.util.Random pathRng = new java.util.Random();
 
     public static void startLevel(TowerDefenseMin2 app, int levelId) {
         // Clean up old entities
@@ -1674,10 +1815,8 @@ static final class TdGameWorld {
         waveSpawnIndex = 0;
         waveSpawnCount = 0;
         waveInProgress = false;
-        waveTimer = 2.0f;
+        waveTimer = (level.waves != null && level.waves.length > 0) ? level.waves[0].delay : 9999f;
         spawnTimer = 0;
-        path = new TdPath(level.pathPoints);
-        basePathDist = path.closestDistanceTo(level.basePos);
 
         // Resize world
         TowerDefenseMin2.WORLD_W = level.worldW;
@@ -1696,9 +1835,10 @@ static final class TdGameWorld {
 
     public static void update(float dt) {
         if (level == null) return;
+        int totalWaves = (level.waves != null) ? level.waves.length : 0;
 
         // Wave management
-        if (!waveInProgress && currentWave < level.waves.length) {
+        if (!waveInProgress && currentWave < totalWaves) {
             waveTimer -= dt;
             if (waveTimer <= 0) {
                 currentWave++;
@@ -1710,13 +1850,13 @@ static final class TdGameWorld {
         }
 
         // Spawning
-        if (waveInProgress && currentWave <= level.waves.length) {
+        if (waveInProgress && currentWave <= totalWaves && level.waves != null) {
             WaveDef wave = level.waves[currentWave - 1];
             if (waveSpawnIndex < wave.spawns.length) {
                 WaveSpawn spawn = wave.spawns[waveSpawnIndex];
                 spawnTimer -= dt;
                 if (spawnTimer <= 0) {
-                    spawnEnemy(spawn.enemyType);
+                    spawnEnemy(spawn.enemyType, spawn.route);
                     waveSpawnCount++;
                     if (waveSpawnCount >= spawn.count) {
                         waveSpawnIndex++;
@@ -1728,7 +1868,7 @@ static final class TdGameWorld {
                 }
             } else {
                 waveInProgress = false;
-                waveTimer = (currentWave < level.waves.length)
+                waveTimer = (currentWave < totalWaves)
                     ? level.waves[currentWave].delay : 9999f;
             }
         }
@@ -1767,9 +1907,9 @@ static final class TdGameWorld {
                 e.state = EnemyState.DEAD;
                 // Drop carried orbs as returning Orbs
                 for (int j = 0; j < e.orbsCarried; j++) {
-                    releaseOrb(e.pathDistance);
+                    releaseOrb(e.routeProgress, e.activeRoute);
                 }
-                if (!e.hasStolen) {
+                if (!e.hasStolen && level != null && level.earnMoneyOnKill) {
                     money += TdConfig.KILL_REWARD_BASE;
                 }
                 TdSaveData.incEnemiesKilled();
@@ -1795,10 +1935,11 @@ static final class TdGameWorld {
         checkWinLose();
     }
 
-    public static void releaseOrb(float atPathDistance) {
+    public static void releaseOrb(float atPathDistance, PathRoute route) {
         Orb o = new Orb();
+        o.route = route;
         o.pathDistance = atPathDistance;
-        o.pos = path.sample(atPathDistance);
+        o.pos = route != null ? route.path.sample(atPathDistance) : new Vector2();
 
         GameObject go = GameObject.create("Orb");
         go.getTransform().setPosition(o.pos.x, o.pos.y);
@@ -1811,14 +1952,22 @@ static final class TdGameWorld {
     }
 
     public static void spawnEnemy(String enemyTypeKey) {
+        spawnEnemy(enemyTypeKey, null);
+    }
+
+    public static void spawnEnemy(String enemyTypeKey, String routeId) {
         EnemyDef def = TdAssets.loadEnemyDef(enemyTypeKey);
         if (def == null) return;
 
+        PathRoute route = pickSpawnRoute(routeId);
+        if (route == null) return;
+
         Enemy e = new Enemy();
         e.enemyDef = def;
-        e.path = path;
-        e.pathDistance = 0;
-        e.pos = path.sample(0);
+        e.inboundRoute = route;
+        e.activeRoute = route;
+        e.routeProgress = 0;
+        e.pos = route.path.sample(0);
         e.hp = level.enemyHpBase * def.hpMultiplier;
         e.maxHp = e.hp;
         e.speed = def.speedMultiplier * 60; // base speed 60
@@ -1837,19 +1986,51 @@ static final class TdGameWorld {
         enemies.add(e);
     }
 
+    public static PathRoute pickSpawnRoute(String routeId) {
+        if (level == null || level.paths == null) return null;
+        // If routeId specified, find it
+        if (routeId != null) {
+            for (PathRoute pr : level.paths) {
+                if (routeId.equals(pr.id)) return pr;
+            }
+        }
+        // Auto-pick based on level type
+        java.util.ArrayList<PathRoute> candidates = new java.util.ArrayList<>();
+        for (PathRoute pr : level.paths) {
+            if (level.levelType == LevelType.DEFEND_BASE) {
+                if (pr.type == RouteType.INBOUND) candidates.add(pr);
+            } else {
+                if (pr.type == RouteType.DIRECT) candidates.add(pr);
+                // Fallback: if no DIRECT, use INBOUND
+                if (candidates.isEmpty() && pr.type == RouteType.INBOUND) candidates.add(pr);
+            }
+        }
+        if (candidates.isEmpty()) return null;
+        return candidates.get(pathRng.nextInt(candidates.size()));
+    }
+
     public static void checkWinLose() {
         if (level == null) return;
+        int totalWaves = (level.waves != null) ? level.waves.length : 0;
 
         if (level.levelType == LevelType.DEFEND_BASE) {
-            // Lose: all orbs stolen and all escaped (none in base, none returning, all enemies gone)
+            // Lose: all orbs have been carried away to the exit by escaped enemies.
+            // Base is empty, no orbs returning, and no enemy on the field is still carrying orbs.
             boolean noOrbsLeft = orbits <= 0 && orbs.isEmpty();
-            boolean allWavesDone = currentWave >= level.waves.length;
-            boolean noEnemies = enemies.isEmpty();
-            if (noOrbsLeft && allWavesDone && noEnemies) {
+            boolean noCarriersOnField = true;
+            for (Enemy e : enemies) {
+                if (e.orbsCarried > 0) {
+                    noCarriersOnField = false;
+                    break;
+                }
+            }
+            if (noOrbsLeft && noCarriersOnField) {
                 TdFlow.showLose(TowerDefenseMin2.inst);
                 return;
             }
             // Win: all waves done, no enemies, and at least one orb in base or returning
+            boolean allWavesDone = currentWave >= totalWaves;
+            boolean noEnemies = enemies.isEmpty();
             if (allWavesDone && noEnemies && (orbits > 0 || !orbs.isEmpty())) {
                 TdFlow.showWin(TowerDefenseMin2.inst);
                 return;
@@ -1860,7 +2041,7 @@ static final class TdGameWorld {
                 TdFlow.showLose(TowerDefenseMin2.inst);
                 return;
             }
-            boolean allWavesDone = currentWave >= level.waves.length;
+            boolean allWavesDone = currentWave >= totalWaves;
             boolean noEnemies = enemies.isEmpty();
             if (allWavesDone && noEnemies && escapedEnemies < level.maxEscapeCount) {
                 TdFlow.showWin(TowerDefenseMin2.inst);
@@ -2024,8 +2205,15 @@ static final class TdHUD {
         app.fill(TdTheme.TEXT);
         app.textAlign(PApplet.LEFT, PApplet.CENTER);
         app.textSize(14);
-        app.text("$ " + TdGameWorld.money + "  \u2666 " + TdGameWorld.orbits + "  \u6ce2 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.totalWaves : 0),
-            x + 16, y + h * 0.5f);
+        String statusText;
+        if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
+            statusText = "$ " + TdGameWorld.money + "  \u9003 " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
+                + "  \u6ce2 " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
+        } else {
+            statusText = "$ " + TdGameWorld.money + "  \u2666 " + TdGameWorld.orbits
+                + "  \u6ce2 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
+        }
+        app.text(statusText, x + 16, y + h * 0.5f);
 
         // Pause button
         float btnW = 72;
@@ -2176,12 +2364,20 @@ static final class TdHUD {
         float btnH = 56;
         float gap = 8;
         float by = y + 16;
-        TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
-        for (int i = 0; i < types.length; i++) {
-            TowerDef def = TdAssets.loadTowerDef(types[i]);
+        TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
+        TowerType[] allowed = (TdGameWorld.level != null && TdGameWorld.level.allowedTowers != null)
+            ? TdGameWorld.level.allowedTowers : allTypes;
+        for (int i = 0; i < allTypes.length; i++) {
+            TowerType tt = allTypes[i];
+            boolean isAllowed = false;
+            for (TowerType a : allowed) {
+                if (a == tt) { isAllowed = true; break; }
+            }
+            if (!isAllowed) continue;
+            TowerDef def = TdAssets.loadTowerDef(tt);
             if (def == null) continue;
             if (mx >= x + 8 && mx <= x + w - 8 && my >= by && my <= by + btnH) {
-                return TowerType.toBuildMode(types[i]);
+                return TowerType.toBuildMode(tt);
             }
             by += btnH + gap;
         }
@@ -2449,6 +2645,13 @@ static final class TdMinimap {
             for (Tower t : TdGameWorld.towers) {
               app.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
             }
+            // Orbs
+            app.noStroke();
+            app.fill(0xFFFFD700);
+            for (Orb o : TdGameWorld.orbs) {
+              app.ellipse(mx + o.pos.x * sx, my + o.pos.y * sy, 4, 4);
+            }
+
             // Enemies
             app.noStroke();
             app.fill(0xFFFF4444);
@@ -2475,9 +2678,9 @@ static final class TdMinimap {
  * Path system: polyline with distance sampling for enemy movement.
  */
 static final class TdPath {
-    Vector2[] points;
-    float[] segmentLengths;
-    float totalLength;
+    public Vector2[] points;
+    public float[] segmentLengths;
+    public float totalLength;
 
     TdPath(Vector2[] points) {
         this.points = points;
@@ -2594,51 +2797,58 @@ static class WorldBgRenderer extends RendererComponent {
             g.line(0, gy, lv.worldW, gy);
         }
 
-        // Path with glow
-        if (lv.pathPoints != null && lv.pathPoints.length > 1) {
-            float t = (System.currentTimeMillis() % 2000) / 2000f;
-            // Outer glow
-            g.stroke(0xFF4A9EFF);
-            g.strokeWeight(18);
-            g.strokeCap(PApplet.ROUND);
-            g.strokeJoin(PApplet.ROUND);
-            for (int i = 1; i < lv.pathPoints.length; i++) {
-                g.line(lv.pathPoints[i-1].x, lv.pathPoints[i-1].y,
-                       lv.pathPoints[i].x, lv.pathPoints[i].y);
+        // Path with glow \u2014 draw all routes (new multi-path format) or legacy pathPoints
+        float t = (System.currentTimeMillis() % 2000) / 2000f;
+        Vector2[][] routesToDraw = null;
+        if (lv.paths != null && lv.paths.length > 0) {
+            routesToDraw = new Vector2[lv.paths.length][];
+            for (int r = 0; r < lv.paths.length; r++) {
+                routesToDraw[r] = lv.paths[r].path.points;
             }
-            // Inner core
-            g.stroke(0xFF88CCFF);
-            g.strokeWeight(8);
-            for (int i = 1; i < lv.pathPoints.length; i++) {
-                g.line(lv.pathPoints[i-1].x, lv.pathPoints[i-1].y,
-                       lv.pathPoints[i].x, lv.pathPoints[i].y);
-            }
-            // Animated dash \u2014 draw from endpoint toward startpoint so that
-            // drawn = -offset (negative) keeps dashes visible at segment joints
-            // while the visual flow still moves toward the path endpoint.
-            g.stroke(0xFFFFFFFF);
-            g.strokeWeight(3);
-            float dashLen = 40;
-            float gapLen = 60;
-            float cycle = dashLen + gapLen;
-            float offset = t * cycle;
-            for (int i = 1; i < lv.pathPoints.length; i++) {
-                Vector2 a = lv.pathPoints[i-1];
-                Vector2 b = lv.pathPoints[i];
-                float segLen = PApplet.dist(a.x, a.y, b.x, b.y);
-                // Reverse direction: b -> a, so negative drawn still produces
-                // visible dashes near the joint and the pattern flows toward b
-                float rdx = (a.x - b.x) / segLen;
-                float rdy = (a.y - b.y) / segLen;
-                float drawn = -offset;
-                while (drawn < segLen) {
-                    float start = PApplet.max(0, drawn);
-                    float end = PApplet.min(segLen, drawn + dashLen);
-                    if (end > start) {
-                        g.line(b.x + rdx * start, b.y + rdy * start,
-                               b.x + rdx * end, b.y + rdy * end);
+        } else if (lv.pathPoints != null && lv.pathPoints.length > 1) {
+            routesToDraw = new Vector2[][]{ lv.pathPoints };
+        }
+        if (routesToDraw != null) {
+            for (Vector2[] pts : routesToDraw) {
+                if (pts == null || pts.length < 2) continue;
+                // Outer glow
+                g.stroke(0xFF4A9EFF);
+                g.strokeWeight(18);
+                g.strokeCap(PApplet.ROUND);
+                g.strokeJoin(PApplet.ROUND);
+                for (int i = 1; i < pts.length; i++) {
+                    g.line(pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
+                }
+                // Inner core
+                g.stroke(0xFF88CCFF);
+                g.strokeWeight(8);
+                for (int i = 1; i < pts.length; i++) {
+                    g.line(pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
+                }
+                // Animated dash
+                g.stroke(0xFFFFFFFF);
+                g.strokeWeight(3);
+                float dashLen = 40;
+                float gapLen = 60;
+                float cycle = dashLen + gapLen;
+                float offset = t * cycle;
+                for (int i = 1; i < pts.length; i++) {
+                    Vector2 a = pts[i-1];
+                    Vector2 b = pts[i];
+                    float segLen = PApplet.dist(a.x, a.y, b.x, b.y);
+                    if (segLen <= 0) continue;
+                    float rdx = (a.x - b.x) / segLen;
+                    float rdy = (a.y - b.y) / segLen;
+                    float drawn = -offset;
+                    while (drawn < segLen) {
+                        float start = PApplet.max(0, drawn);
+                        float end = PApplet.min(segLen, drawn + dashLen);
+                        if (end > start) {
+                            g.line(b.x + rdx * start, b.y + rdy * start,
+                                   b.x + rdx * end, b.y + rdy * end);
+                        }
+                        drawn += cycle;
                     }
-                    drawn += cycle;
                 }
             }
         }
@@ -2698,8 +2908,8 @@ static class EnemyRenderer extends RendererComponent {
         float dir = 0;
         if (enemy.gameObject != null) {
             dir = enemy.gameObject.getTransform().getRotation();
-        } else if (enemy.path != null) {
-            Vector2 d = enemy.path.direction(enemy.pathDistance);
+        } else if (enemy.activeRoute != null && enemy.activeRoute.path != null) {
+            Vector2 d = enemy.activeRoute.path.direction(enemy.routeProgress);
             if (d != null) dir = PApplet.atan2(d.y, d.x);
         }
 
@@ -2707,31 +2917,38 @@ static class EnemyRenderer extends RendererComponent {
         g.translate(x, y);
         g.rotate(dir);
 
-        // Glow
+        // Glow \u2014 red by default, gold when carrying orbs
         g.noStroke();
-        if (enemy.state == EnemyState.MOVE_TO_BASE) {
-            g.fill(0xFFFF4444, 60);
-        } else if (enemy.state == EnemyState.FLEE) {
-            g.fill(0xFFFF8C42, 60);
+        if (enemy.orbsCarried > 0) {
+            g.fill(0xFFFFDD00, 80);
         } else {
-            g.fill(0xFF4A9EFF, 60);
+            g.fill(0xFFFF4444, 60);
         }
         g.ellipse(0, 0, r * 2.8f, r * 2.8f);
 
-        // Body \u2014 arrow shape
-        if (enemy.state == EnemyState.MOVE_TO_BASE) {
-            g.fill(0xFFFF6666);
-        } else if (enemy.state == EnemyState.FLEE) {
-            g.fill(0xFFFFAA44);
-        } else {
-            g.fill(0xFF66CCFF);
-        }
+        // Body \u2014 red by default, gold only when carrying orbs
+        int bodyColor = enemy.orbsCarried > 0 ? 0xFFFFDD00 : 0xFFFF6666;
+        g.fill(bodyColor);
         g.beginShape();
         g.vertex(r * 1.2f, 0);
         g.vertex(-r * 0.6f, -r * 0.7f);
         g.vertex(-r * 0.3f, 0);
         g.vertex(-r * 0.6f, r * 0.7f);
         g.endShape(PApplet.CLOSE);
+
+        // Orb capacity indicator \u2014 small dots behind body
+        if (enemy.enemyDef != null && enemy.enemyDef.orbCapacity > 1) {
+            g.noStroke();
+            g.fill(0xFFFFD700, 180);
+            float dotR = 2.5f;
+            float spacing = 7f;
+            float startY = -(enemy.enemyDef.orbCapacity - 1) * spacing * 0.5f;
+            for (int i = 0; i < enemy.enemyDef.orbCapacity; i++) {
+                int dotColor = (i < enemy.orbsCarried) ? 0xFFFFD700 : 0xFF888888;
+                g.fill(dotColor, 200);
+                g.ellipse(-r * 0.8f, startY + i * spacing, dotR * 2, dotR * 2);
+            }
+        }
 
         g.popMatrix();
 
@@ -3485,13 +3702,24 @@ static class TdMinimapComponent extends UIComponent {
             // Exit
             applet.fill(0xFFFF4444);
             applet.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
-            // Path
+            // Path \u2014 draw all routes (multi-path) or legacy pathPoints
             applet.stroke(0xFF4A9EFF);
             applet.strokeWeight(1);
-            Vector2[] pts = TdGameWorld.level.pathPoints;
-            for (int i = 1; i < pts.length; i++) {
-                applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
-                            mx + pts[i].x * sx, my + pts[i].y * sy);
+            if (TdGameWorld.level.paths != null && TdGameWorld.level.paths.length > 0) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
+                    Vector2[] pts = pr.path.points;
+                    for (int i = 1; i < pts.length; i++) {
+                        applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
+                                    mx + pts[i].x * sx, my + pts[i].y * sy);
+                    }
+                }
+            } else if (TdGameWorld.level.pathPoints != null) {
+                Vector2[] pts = TdGameWorld.level.pathPoints;
+                for (int i = 1; i < pts.length; i++) {
+                    applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
+                                mx + pts[i].x * sx, my + pts[i].y * sy);
+                }
             }
             // Towers
             applet.noStroke();
@@ -3591,7 +3819,15 @@ static class TdTopBar extends Panel {
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
-        lblStatus.setText("$ " + TdGameWorld.money + "  \u2666 " + TdGameWorld.orbits + "  \u6ce2 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.totalWaves : 0));
+        String statusText;
+        if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
+            statusText = "$ " + TdGameWorld.money + "  \u9003 " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
+                + "  \u6ce2 " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
+        } else {
+            statusText = "$ " + TdGameWorld.money + "  \u2666 " + TdGameWorld.orbits
+                + "  \u6ce2 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
+        }
+        lblStatus.setText(statusText);
 
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         boolean active = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
@@ -3602,20 +3838,34 @@ static class TdTopBar extends Panel {
 // \u2500\u2500\u2500 Build Panel \u2500\u2500\u2500
 
 static class TdBuildPanel extends Panel {
-    TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
-    String[] initials = { "M", "R", "L", "S" };
+    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
+    String[] allInitials = { "M", "R", "L", "S" };
 
     TdBuildPanel(String id) {
         super(id);
         setPaintBackground(true);
         setBounds(1280 - TdConfig.RIGHT_W, TdConfig.TOP_HUD, TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
         setLayoutManager(null);
+        rebuildButtons();
+    }
+
+    public void rebuildButtons() {
+        removeAllChildren();
+
+        TowerType[] allowed = (TdGameWorld.level != null && TdGameWorld.level.allowedTowers != null)
+            ? TdGameWorld.level.allowedTowers : allTypes;
 
         float by = 16;
-        for (int i = 0; i < types.length; i++) {
-            TowerType tt = types[i];
+        for (int i = 0; i < allTypes.length; i++) {
+            TowerType tt = allTypes[i];
+            boolean isAllowed = false;
+            for (TowerType a : allowed) {
+                if (a == tt) { isAllowed = true; break; }
+            }
+            if (!isAllowed) continue;
+
             final TdBuildMode mode = TowerType.toBuildMode(tt);
-            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, initials[i]);
+            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i]);
             btn.setPosition(8, by);
             btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
             btn.setAction(() -> {
@@ -3697,8 +3947,8 @@ static class Tower {
         for (Enemy e : TdGameWorld.enemies) {
             if (e.hp <= 0) continue;
             float d = e.pos.distance(towerPos);
-            if (d <= def.range && e.pathDistance > bestPathDist) {
-                bestPathDist = e.pathDistance;
+            if (d <= def.range && e.routeProgress > bestPathDist) {
+                bestPathDist = e.routeProgress;
                 best = e;
             }
         }

@@ -232,6 +232,10 @@ public class AudioManager {
         }
     }
 
+    public void registerMusic(TinyMusicClip clip) {
+        activeMusics.add(clip);
+    }
+
     public void unregisterMusic(TinyMusicClip clip) {
         activeMusics.remove(clip);
     }

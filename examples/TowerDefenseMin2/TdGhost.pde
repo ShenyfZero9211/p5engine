@@ -25,10 +25,10 @@ static final class TdGhost {
             if (ghostGo != null) ghostGo.setActive(false);
             return;
         }
-        // Don't show ghost when mouse is over HUD
+        // Don't show ghost tower preview when mouse is over HUD, but keep ghostGo active for restriction overlay
         if (app.isMouseOverHud()) {
             isValid = false;
-            if (ghostGo != null) ghostGo.setActive(false);
+            ensureGameObject(app);
             return;
         }
         ensureGameObject(app);
@@ -63,7 +63,21 @@ static class GhostRenderer extends RendererComponent {
     @Override
     protected void renderShape(PGraphics g) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        if (!TdGhost.isValid || app.buildMode == TdBuildMode.NONE) return;
+        if (app.buildMode == TdBuildMode.NONE) return;
+
+        // Blocked grid overlay — show all restricted cells in semi-transparent red
+        g.noStroke();
+        g.fill(0x55FF4444);
+        for (String key : TdGameWorld.blockedGrids) {
+            String[] parts = key.split(",");
+            int bgx = Integer.parseInt(parts[0]);
+            int bgy = Integer.parseInt(parts[1]);
+            float bx = bgx * TdConfig.GRID;
+            float by = bgy * TdConfig.GRID;
+            g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+        }
+
+        if (!TdGhost.isValid) return;
 
         float x = getTransform().getPosition().x;
         float y = getTransform().getPosition().y;
@@ -76,8 +90,8 @@ static class GhostRenderer extends RendererComponent {
         switch (app.buildMode) {
             case MG:      ghostColor = 0xFF4A9EFF; break;
             case MISSILE: ghostColor = 0xFFFF643C; break;
-            case LASER:   ghostColor = 0xFF3CDC78; break;
-            case SLOW:    ghostColor = 0xFFC878DC; break;
+            case LASER:   ghostColor = 0xFFC878DC; break;
+            case SLOW:    ghostColor = 0xFF3CDC78; break;
             default:      ghostColor = 0xFFFFFFFF;
         }
 

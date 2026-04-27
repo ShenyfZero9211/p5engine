@@ -1,5 +1,5 @@
 /**
- * Enemy instance on the path.
+ * Enemy instance on a path route.
  */
 
 enum EnemyState {
@@ -15,14 +15,28 @@ static class Enemy {
     float speed;
     float radius;
     float slowFactor = 1f;
+    float targetSlowFactor = 1f;
+    float slowTimer = 0f;   // remaining slow duration; 0 = no slow active
+    static final float SLOW_TRANSITION_SPEED = 3.0f;
     boolean reachedEnd;
 
-    TdPath path;
-    float pathDistance;
+    EnemyDef enemyDef;
+    int orbsCarried = 0;
+
+    PathRoute inboundRoute;   // route from spawn to base
+    PathRoute outboundRoute;  // route from base to exit (assigned after steal)
+    PathRoute activeRoute;    // currently active route
+    float routeProgress;
     GameObject gameObject;
 
     EnemyState state = EnemyState.MOVE_TO_BASE;
     boolean hasStolen = false;
+
+    // Status effects (hit marks, debuffs) rendered alongside the enemy
+    ArrayList<EnemyStatusEffect> statusEffects = new ArrayList<>();
+
+    // Hit flash: white body flash when damaged
+    float hitFlashTimer = 0;
 
     // Smooth turning state
     int currentSegment = 0;
@@ -30,25 +44,48 @@ static class Enemy {
     static final float TURN_DURATION = 0.2f;
 
     void update(float dt) {
-        if (path == null) return;
+        if (activeRoute == null || activeRoute.path == null) return;
+
+        // Slow timer: recover to full speed when expired
+        if (slowTimer > 0) {
+            slowTimer -= dt;
+            if (slowTimer <= 0) {
+                slowTimer = 0;
+                targetSlowFactor = 1f;
+            }
+        }
+        // Smooth transition between current and target slow factor
+        if (slowFactor != targetSlowFactor) {
+            float delta = targetSlowFactor - slowFactor;
+            if (Math.abs(delta) < 0.01f) {
+                slowFactor = targetSlowFactor;
+            } else {
+                slowFactor += Math.signum(delta) * Math.min(Math.abs(delta), SLOW_TRANSITION_SPEED * dt);
+            }
+        }
 
         switch (state) {
             case MOVE_TO_BASE:
-                pathDistance += speed * slowFactor * dt;
-                if (pathDistance >= TdGameWorld.basePathDist) {
-                    pathDistance = TdGameWorld.basePathDist;
+                routeProgress += speed * slowFactor * dt;
+                if (routeProgress >= activeRoute.baseDistance) {
+                    routeProgress = activeRoute.baseDistance;
                     state = EnemyState.STEAL;
                 }
                 break;
             case STEAL:
                 hasStolen = true;
-                TdGameWorld.orbits--;
-                TdSaveData.incOrbsLost();
+                // Steal up to orbCapacity or remaining orbs
+                int stealCount = Math.min(enemyDef.orbCapacity, TdGameWorld.orbits);
+                orbsCarried = stealCount;
+                TdGameWorld.orbits -= stealCount;
+                TdSaveData.incOrbsLost(stealCount);
+                // Switch to a random outbound route
+                pickOutboundRoute();
                 state = EnemyState.FLEE;
                 break;
             case FLEE:
-                pathDistance += speed * slowFactor * dt;
-                if (pathDistance >= path.getTotalLength()) {
+                routeProgress += speed * slowFactor * dt;
+                if (routeProgress >= activeRoute.path.getTotalLength()) {
                     reachedEnd = true;
                 }
                 break;
@@ -56,26 +93,53 @@ static class Enemy {
                 return;
         }
 
-        if (pathDistance >= path.getTotalLength()) {
-            pos = path.sample(path.getTotalLength());
+        if (routeProgress >= activeRoute.path.getTotalLength()) {
+            pos = activeRoute.path.sample(activeRoute.path.getTotalLength());
         } else {
-            pos = path.sample(pathDistance);
+            pos = activeRoute.path.sample(routeProgress);
         }
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
         }
 
+        // Update status effects
+        for (int i = statusEffects.size() - 1; i >= 0; i--) {
+            if (!statusEffects.get(i).update(dt)) {
+                statusEffects.remove(i);
+            }
+        }
+
+        // Hit flash timer
+        if (hitFlashTimer > 0) hitFlashTimer -= dt;
+
         // Detect segment change and trigger smooth rotation
-        int newSegment = path.getSegmentIndex(pathDistance);
+        int newSegment = activeRoute.path.getSegmentIndex(routeProgress);
         if (newSegment != currentSegment) {
             currentSegment = newSegment;
             triggerSmoothTurn();
         }
     }
 
+    void pickOutboundRoute() {
+        if (TdGameWorld.level == null || TdGameWorld.level.paths == null) return;
+        java.util.ArrayList<PathRoute> candidates = new java.util.ArrayList<>();
+        for (PathRoute pr : TdGameWorld.level.paths) {
+            if (pr.type == RouteType.OUTBOUND) candidates.add(pr);
+        }
+        if (candidates.isEmpty()) {
+            // Fallback: keep using current route if no outbound defined
+            return;
+        }
+        outboundRoute = candidates.get(TdGameWorld.pathRng.nextInt(candidates.size()));
+        activeRoute = outboundRoute;
+        routeProgress = 0;
+        currentSegment = 0;
+        triggerSmoothTurn();   // immediately face the new outbound direction
+    }
+
     void triggerSmoothTurn() {
         if (gameObject == null) return;
-        Vector2 dir = path.direction(pathDistance);
+        Vector2 dir = activeRoute.path.direction(routeProgress);
         if (dir == null) return;
         float targetAngle = PApplet.atan2(dir.y, dir.x);
         float currentAngle = gameObject.getTransform().getRotation();

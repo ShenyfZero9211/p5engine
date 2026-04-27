@@ -47,7 +47,7 @@ static final class TdSaveData {
     static void incTowersBuilt()   { cfg.set("stats", "towersBuilt", towersBuilt() + 1); }
     static void incEnemiesKilled() { cfg.set("stats", "enemiesKilled", enemiesKilled() + 1); }
     static void incGamesLost()     { cfg.set("stats", "gamesLost", gamesLost() + 1); }
-    static void incOrbsLost()      { cfg.set("stats", "orbsLost", orbsLost() + 1); }
+    static void incOrbsLost(int count) { cfg.set("stats", "orbsLost", orbsLost() + count); }
 
     // ── Settings (not auto-saved; call saveSettings() manually) ──
 

@@ -8,19 +8,25 @@ static class Bullet {
     float aoeRadius;
     float laserBonus;
     float slowFactor;
+    float slowDuration;
     float life;
     boolean dead;
     GameObject gameObject;
+    float lastSmokeX, lastSmokeY;
+    TowerType towerType;
 
-    void reset(float x, float y, float vx, float vy, float dmg, float aoe, float laser, float slow) {
+    void reset(float x, float y, float vx, float vy, float dmg, float aoe, float laser, float slow, float slowDur) {
         pos.set(x, y);
         vel.set(vx, vy);
         damage = dmg;
         aoeRadius = aoe;
         laserBonus = laser;
         slowFactor = slow;
+        slowDuration = slowDur;
         life = 3.0f;
         dead = false;
+        lastSmokeX = x;
+        lastSmokeY = y;
     }
 
     void update(float dt) {
@@ -36,6 +42,15 @@ static class Bullet {
         pos.y += vel.y * dt;
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
+        }
+
+        // Emit smoke trail every ~10px
+        float smokeDx = pos.x - lastSmokeX;
+        float smokeDy = pos.y - lastSmokeY;
+        if (smokeDx * smokeDx + smokeDy * smokeDy >= 100) {
+            TdGameWorld.effects.add(new MissileSmokeEffect(pos.x, pos.y, vel.x, vel.y));
+            lastSmokeX = pos.x;
+            lastSmokeY = pos.y;
         }
 
         for (Enemy e : TdGameWorld.enemies) {
@@ -54,7 +69,11 @@ static class Bullet {
         float dmg = damage;
         if (laserBonus > 0) dmg += laserBonus;
         e.hp -= dmg;
-        if (slowFactor > 0) e.slowFactor = Math.min(e.slowFactor, slowFactor);
+        e.hitFlashTimer = 0.15f;
+        if (slowFactor > 0) {
+            e.slowFactor = Math.min(e.slowFactor, slowFactor);
+            e.slowTimer = Math.max(e.slowTimer, slowDuration);
+        }
 
         if (aoeRadius > 0) {
             for (Enemy ne : TdGameWorld.enemies) {
@@ -63,10 +82,14 @@ static class Bullet {
                     float dy = e.pos.y - ne.pos.y;
                     if (dx * dx + dy * dy <= aoeRadius * aoeRadius) {
                         ne.hp -= dmg * 0.5f;
+                        ne.hitFlashTimer = 0.15f;
                     }
                 }
             }
+            TdGameWorld.effects.add(new ExplosionEffect(pos.x, pos.y, aoeRadius));
         }
+        // Hit mark on primary target
+        e.statusEffects.add(new MissileHitMark());
     }
 
     void recycle() {

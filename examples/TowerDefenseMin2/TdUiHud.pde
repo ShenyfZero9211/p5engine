@@ -8,11 +8,13 @@
 static class TowerButton extends Button {
     TowerType towerType;
     String initial;
+    String hotkey;
 
-    TowerButton(String id, TowerType type, String initial) {
+    TowerButton(String id, TowerType type, String initial, String hotkey) {
         super(id);
         this.towerType = type;
         this.initial = initial;
+        this.hotkey = hotkey;
         setSize(TdConfig.RIGHT_W - 16, 56);
     }
 
@@ -41,24 +43,71 @@ static class TowerButton extends Button {
         applet.noFill();
         applet.rect(getAbsoluteX() + 0.5f, getAbsoluteY() + 0.5f, getWidth() - 1, getHeight() - 1);
 
-        // Icon
+        // Icon — tower shape preview
         float iconSize = 32;
         float iconX = getAbsoluteX() + 8;
         float iconY = getAbsoluteY() + (getHeight() - iconSize) * 0.5f;
         applet.noStroke();
-        applet.fill(TdConfig.C_ACCENT);
-        applet.rect(iconX, iconY, iconSize, iconSize);
-        applet.fill(TdTheme.BG_DARK);
-        applet.textAlign(PApplet.CENTER, PApplet.CENTER);
-        applet.textSize(14);
-        applet.text(initial, iconX + iconSize * 0.5f, iconY + iconSize * 0.5f);
+        if (def != null) {
+            float icx = iconX + iconSize * 0.5f;
+            float icy = iconY + iconSize * 0.5f;
+            float isize = iconSize * 0.85f;
+            float ihalf = isize * 0.5f;
+            applet.fill(def.iconColor);
+            switch (towerType) {
+                case MG:
+                    applet.rect(icx - ihalf, icy - ihalf, isize, isize, 3);
+                    applet.fill(0xFFFFFFFF, 120);
+                    applet.rect(icx - ihalf + 4, icy - ihalf + 4, isize - 8, 4, 1);
+                    break;
+                case MISSILE:
+                    applet.ellipse(icx, icy, isize, isize);
+                    applet.fill(0xFFFFFFFF, 120);
+                    applet.ellipse(icx, icy, isize * 0.4f, isize * 0.4f);
+                    break;
+                case LASER: {
+                    float lsize = isize * 0.75f;
+                    float lhalf = lsize * 0.5f;
+                    applet.pushMatrix();
+                    applet.translate(icx, icy);
+                    applet.rotate(PApplet.PI / 4);
+                    applet.rect(-lhalf, -lhalf, lsize, lsize, 3);
+                    applet.popMatrix();
+                    applet.fill(0xFFFFFFFF, 120);
+                    applet.ellipse(icx, icy, lsize * 0.3f, lsize * 0.3f);
+                    break;
+                }
+                case SLOW:
+                    drawTowerIconHexagon(applet, icx, icy, ihalf * 0.9f);
+                    applet.fill(0xFFFFFFFF, 120);
+                    applet.ellipse(icx, icy, isize * 0.35f, isize * 0.35f);
+                    break;
+            }
+        } else {
+            applet.fill(TdConfig.C_ACCENT);
+            applet.rect(iconX, iconY, iconSize, iconSize);
+            applet.fill(TdTheme.BG_DARK);
+            applet.textAlign(PApplet.CENTER, PApplet.CENTER);
+            applet.textSize(14);
+            applet.text(initial, iconX + iconSize * 0.5f, iconY + iconSize * 0.5f);
+        }
 
         // Name and cost
         if (def != null) {
             applet.fill(TdTheme.TEXT);
             applet.textAlign(PApplet.LEFT, PApplet.CENTER);
             applet.textSize(13);
-            applet.text(TdAssets.i18n(def.nameKey), iconX + iconSize + 10, getAbsoluteY() + getHeight() * 0.35f);
+            String name = TdAssets.i18n(def.nameKey);
+            float nameX = iconX + iconSize + 10;
+            float nameY = getAbsoluteY() + getHeight() * 0.35f;
+            applet.text(name, nameX, nameY);
+            // Hotkey hint next to name
+            if (hotkey != null && !hotkey.isEmpty()) {
+                float nameW = applet.textWidth(name);
+                applet.textSize(10);
+                applet.fill(TdTheme.TEXT_DIM);
+                applet.text("[" + hotkey + "]", nameX + nameW + 6, nameY);
+            }
             applet.fill(TdTheme.TEXT_DIM);
             applet.textSize(11);
             applet.text("$" + def.cost, iconX + iconSize + 10, getAbsoluteY() + getHeight() * 0.7f);
@@ -75,12 +124,21 @@ static class TowerButton extends Button {
             setEnabled(TdGameWorld.money >= def.cost);
         }
     }
+
+    private void drawTowerIconHexagon(PApplet g, float cx, float cy, float r) {
+        g.beginShape();
+        for (int i = 0; i < 6; i++) {
+            float a = PApplet.TWO_PI / 6 * i - PApplet.PI / 2;
+            g.vertex(cx + PApplet.cos(a) * r, cy + PApplet.sin(a) * r);
+        }
+        g.endShape(PApplet.CLOSE);
+    }
 }
 
 // ─── Minimap Component ───
 
 static class TdMinimapComponent extends UIComponent {
-    static final float MW = 180, MH = 120;
+    static float MW = 180, MH = 120;
 
     TdMinimapComponent(String id) {
         super(id);
@@ -108,22 +166,67 @@ static class TdMinimapComponent extends UIComponent {
             // Base
             applet.fill(0xFF4A9EFF);
             applet.ellipse(mx + TdGameWorld.level.basePos.x * sx, my + TdGameWorld.level.basePos.y * sy, 6, 6);
-            // Exit
+            // Spawns
+            applet.fill(0xFFFF8C42);
+            if (TdGameWorld.level.spawnPos != null) {
+                applet.ellipse(mx + TdGameWorld.level.spawnPos.x * sx, my + TdGameWorld.level.spawnPos.y * sy, 5, 5);
+            }
+            // Exits
             applet.fill(0xFFFF4444);
-            applet.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
-            // Path
+            if (TdGameWorld.level.exitPos != null) {
+                applet.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+            }
+            // Multi-path spawns and exits
+            if (TdGameWorld.level.paths != null) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
+                    Vector2 start = pr.path.points[0];
+                    Vector2 end = pr.path.points[pr.path.points.length - 1];
+                    // Spawn
+                    boolean spawnDistinct = (TdGameWorld.level.spawnPos == null) || start.distance(TdGameWorld.level.spawnPos) > 10f;
+                    if (spawnDistinct) {
+                        applet.fill(0xFFFF8C42);
+                        applet.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+                    }
+                    // Exit
+                    boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
+                    boolean isGlobalExit = (TdGameWorld.level.exitPos != null) && end.distance(TdGameWorld.level.exitPos) <= 10f;
+                    if (!isBase && !isGlobalExit) {
+                        applet.fill(0xFFFF4444);
+                        applet.ellipse(mx + end.x * sx, my + end.y * sy, 6, 6);
+                    }
+                }
+            }
+            // Path — draw all routes (multi-path) or legacy pathPoints
             applet.stroke(0xFF4A9EFF);
             applet.strokeWeight(1);
-            Vector2[] pts = TdGameWorld.level.pathPoints;
-            for (int i = 1; i < pts.length; i++) {
-                applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
-                            mx + pts[i].x * sx, my + pts[i].y * sy);
+            if (TdGameWorld.level.paths != null && TdGameWorld.level.paths.length > 0) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
+                    Vector2[] pts = pr.path.points;
+                    for (int i = 1; i < pts.length; i++) {
+                        applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
+                                    mx + pts[i].x * sx, my + pts[i].y * sy);
+                    }
+                }
+            } else if (TdGameWorld.level.pathPoints != null) {
+                Vector2[] pts = TdGameWorld.level.pathPoints;
+                for (int i = 1; i < pts.length; i++) {
+                    applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
+                                mx + pts[i].x * sx, my + pts[i].y * sy);
+                }
             }
             // Towers
             applet.noStroke();
             applet.fill(0xFF66FF66);
             for (Tower t : TdGameWorld.towers) {
-                applet.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
+                applet.rect(mx + t.worldX * sx - 1.5f, my + t.worldY * sy - 1.5f, 3, 3);
+            }
+            // Orbs
+            applet.noStroke();
+            applet.fill(0xFFFFD700);
+            for (Orb o : TdGameWorld.orbs) {
+                applet.ellipse(mx + o.pos.x * sx, my + o.pos.y * sy, 3, 3);
             }
             // Enemies
             applet.noStroke();
@@ -142,7 +245,11 @@ static class TdMinimapComponent extends UIComponent {
                 applet.noFill();
                 applet.stroke(0xFFFF8C42);
                 applet.strokeWeight(1);
-                applet.rect(mx + (cx - cw * 0.5f) * sx, my + (cy - ch * 0.5f) * sy, cw * sx, ch * sy);
+                float rx = mx + (cx - cw * 0.5f) * sx + 1;
+                float ry = my + (cy - ch * 0.5f) * sy + 1;
+                float rw = Math.max(1, cw * sx - 2);
+                float rh = Math.max(1, ch * sy - 2);
+                applet.rect(rx, ry, rw, rh);
             }
         }
         applet.popStyle();
@@ -150,6 +257,7 @@ static class TdMinimapComponent extends UIComponent {
 
     @Override
     public boolean onEvent(UIEvent event, float absMouseX, float absMouseY) {
+        if (TowerDefenseMin2.inst.sellMenuPanel != null) return false;
         if (event.getMouseButton() != PApplet.LEFT) return false;
         switch (event.getType()) {
             case MOUSE_PRESSED:
@@ -179,6 +287,9 @@ static class TdMinimapComponent extends UIComponent {
 
 static class TdTopBar extends Panel {
     Label lblStatus;
+    Label lblTime;
+    Label lblSpeed;
+    Label lblNextWave;
     Button btnRange;
 
     TdTopBar(String id) {
@@ -188,12 +299,27 @@ static class TdTopBar extends Panel {
         setLayoutManager(null);
 
         lblStatus = new Label("lbl_status");
-        lblStatus.setBounds(16, 0, 400, TdConfig.TOP_HUD);
+        lblStatus.setBounds(16, 0, 420, TdConfig.TOP_HUD);
         lblStatus.setTextAlign(PApplet.LEFT);
         add(lblStatus);
 
+        lblTime = new Label("lbl_time");
+        lblTime.setBounds(460, 0, 120, TdConfig.TOP_HUD);
+        lblTime.setTextAlign(PApplet.CENTER);
+        add(lblTime);
+
+        lblSpeed = new Label("lbl_speed");
+        lblSpeed.setBounds(600, 0, 70, TdConfig.TOP_HUD);
+        lblSpeed.setTextAlign(PApplet.CENTER);
+        add(lblSpeed);
+
+        lblNextWave = new Label("lbl_nextwave");
+        lblNextWave.setBounds(690, 0, 180, TdConfig.TOP_HUD);
+        lblNextWave.setTextAlign(PApplet.CENTER);
+        add(lblNextWave);
+
         btnRange = new Button("btn_range");
-        btnRange.setBounds(1280 - 72 - 12 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 80, 28);
+        btnRange.setBounds(1280 - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 80, 28);
         btnRange.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             app.showTowerRanges = !app.showTowerRanges;
@@ -202,7 +328,7 @@ static class TdTopBar extends Panel {
 
         Button btnPause = new Button("btn_pause");
         btnPause.setLabel(TdAssets.i18n("game.pause"));
-        btnPause.setBounds(1280 - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
+        btnPause.setBounds(1280 - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnPause.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             if (app.state == TdState.PLAYING) {
@@ -212,40 +338,101 @@ static class TdTopBar extends Panel {
             }
         });
         add(btnPause);
+
+        Button btnMenu = new Button("btn_menu");
+        btnMenu.setLabel(TdAssets.i18n("game.menu"));
+        btnMenu.setBounds(1280 - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
+        btnMenu.setAction(() -> {
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            if (app.state == TdState.PLAYING) {
+                TdFlow.showPauseMenu(app);
+            } else if (app.state == TdState.PAUSED) {
+                TdFlow.hidePauseMenu(app);
+            }
+        });
+        add(btnMenu);
     }
 
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
-        lblStatus.setText("$ " + TdGameWorld.money + "  ♦ " + TdGameWorld.orbits + "  波 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.totalWaves : 0));
+        String statusText;
+        if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
+            statusText = "资金 $" + TdGameWorld.money
+                + "   逃脱 " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
+                + "   波次 " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
+        } else {
+            statusText = "资金 $" + TdGameWorld.money
+                + "   基地能量球 " + TdGameWorld.orbits
+                + "   波次 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
+        }
+        lblStatus.setText(statusText);
 
+        // Game time
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        float total = app.engine.getGameTime().getTotalTime() - TdGameWorld.levelStartTotalTime;
+        int minutes = (int)(total / 60);
+        int seconds = (int)(total % 60);
+        lblTime.setText(String.format("%02d:%02d", minutes, seconds));
+
+        // Game speed
+        float ts = app.engine.getGameTime().getTimeScale();
+        lblSpeed.setText(String.format("%.1fx", ts));
+
+        // Next wave countdown
+        String nextWaveText;
+        if (TdGameWorld.waveInProgress) {
+            nextWaveText = "来袭中";
+        } else if (TdGameWorld.currentWave >= (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0)) {
+            nextWaveText = "最后一波";
+        } else {
+            nextWaveText = String.format("下一波 %.1fs", TdGameWorld.waveTimer);
+        }
+        lblNextWave.setText(nextWaveText);
+
         boolean active = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
-        btnRange.setLabel(TdAssets.i18n(active ? "game.rangeOn" : "game.rangeOff"));
+        String rangeLabel = TdAssets.i18n(active ? "game.rangeOn" : "game.rangeOff");
+        btnRange.setLabel("[T] " + rangeLabel);
     }
 }
 
 // ─── Build Panel ───
 
 static class TdBuildPanel extends Panel {
-    TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
-    String[] initials = { "M", "R", "L", "S" };
+    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
+    String[] allInitials = { "M", "W", "L", "S" };
 
     TdBuildPanel(String id) {
         super(id);
         setPaintBackground(true);
         setBounds(1280 - TdConfig.RIGHT_W, TdConfig.TOP_HUD, TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
         setLayoutManager(null);
+        rebuildButtons();
+    }
+
+    void rebuildButtons() {
+        removeAllChildren();
+
+        TowerType[] allowed = (TdGameWorld.level != null && TdGameWorld.level.allowedTowers != null)
+            ? TdGameWorld.level.allowedTowers : allTypes;
 
         float by = 16;
-        for (int i = 0; i < types.length; i++) {
-            TowerType tt = types[i];
+        for (int i = 0; i < allTypes.length; i++) {
+            TowerType tt = allTypes[i];
+            boolean isAllowed = false;
+            for (TowerType a : allowed) {
+                if (a == tt) { isAllowed = true; break; }
+            }
+            if (!isAllowed) continue;
+
             final TdBuildMode mode = TowerType.toBuildMode(tt);
-            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, initials[i]);
+            String[] hotkeys = { "Q", "W", "E", "R" };
+            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i], hotkeys[i]);
             btn.setPosition(8, by);
             btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
             btn.setAction(() -> {
                 TowerDefenseMin2 app = TowerDefenseMin2.inst;
+                app.closeSellMenu();
                 app.buildMode = mode;
             });
             add(btn);
@@ -258,6 +445,7 @@ static class TdBuildPanel extends Panel {
         btnCancel.setBounds(8, by, TdConfig.RIGHT_W - 16, 32);
         btnCancel.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            app.closeSellMenu();
             app.buildMode = TdBuildMode.NONE;
         });
         add(btnCancel);

@@ -25,13 +25,20 @@ TdState state = TdState.MENU;
 TdBuildMode buildMode = TdBuildMode.NONE;
 boolean keyScrollUp, keyScrollDown, keyScrollLeft, keyScrollRight;
 boolean wasKeyP;
-boolean wasKeyR;
+boolean wasKeyT;
+boolean wasKeyQ, wasKeyW, wasKeyE, wasKeyR;
+boolean wasKeySpace;
 boolean showTowerRanges = false;
 
 // HUD UI components (managed by p5engine UI library)
 TdTopBar hudTopBar;
 TdBuildPanel hudBuildPanel;
 TdMinimapComponent hudMinimap;
+Panel sellMenuPanel;
+Tower hoveredTower;
+
+// Lighting system
+TdLightingSystem lighting;
 
 // Bullet object pools (zero-GC)
 shenyf.p5engine.pool.GenericObjectPool<Bullet> bulletDataPool;
@@ -78,6 +85,20 @@ public void setup() {
   bgGo.setCullEnabled(false);
   gameScene.addGameObject(bgGo);
 
+  // Visual effects renderer — tracers, explosions, lasers, slow waves (layer 95)
+  GameObject fxGo = GameObject.create("effects");
+  fxGo.addComponent(new EffectRenderer());
+  fxGo.setRenderLayer(95);
+  fxGo.setCullEnabled(false);
+  gameScene.addGameObject(fxGo);
+
+  // Enemy HP bar renderer — drawn on top of all world objects (layer 99)
+  GameObject hpGo = GameObject.create("enemy_hp_bars");
+  hpGo.addComponent(new EnemyHpBarRenderer());
+  hpGo.setRenderLayer(99);
+  hpGo.setCullEnabled(false);
+  gameScene.addGameObject(hpGo);
+
   // Initialize bullet object pools
   bulletDataPool = engine.createPool(
     () -> new Bullet(),
@@ -94,6 +115,8 @@ public void setup() {
     return go;
   });
   bulletGoPool.preload(100);
+
+  lighting = new TdLightingSystem(this);
 
   TdAssets.loadAll(this);
   TdSound.initTracks(this);
@@ -141,6 +164,7 @@ void setupWorldViewport() {
 }
 
 public void draw() {
+  TdSound.update();
   engine.update();
   float dt = engine.getGameTime().getDeltaTime();
   float dtReal = engine.getGameTime().getRealDeltaTime();
@@ -158,7 +182,9 @@ public void draw() {
   switch (state) {
     case PLAYING:
       TdGameWorld.update(dt);
-      TdCamera.updateEdgeScroll(dtReal);
+      if (sellMenuPanel == null) {
+        TdCamera.updateEdgeScroll(dtReal);
+      }
       syncCameraToWindow();
       break;
     case PAUSED:
@@ -170,8 +196,45 @@ public void draw() {
 
   handleMouseInput(im);
 
+  // Tower hover detection (keep highlight when sell menu is open)
+  if (state == TdState.PLAYING && sellMenuPanel == null && !isMouseOverHud()) {
+    hoveredTower = getTowerAtMouse(im);
+  } else if (sellMenuPanel == null) {
+    hoveredTower = null;
+  }
+
   sketchUi.updateFrame(dtReal);
   sketchUi.renderFrame();
+
+  // Lighting overlay (only on world viewport during gameplay)
+  if ((state == TdState.PLAYING || state == TdState.PAUSED) && worldViewport != null) {
+    lighting.update(dt);
+    lighting.render(g, camera,
+      worldViewport.getAbsoluteX(), worldViewport.getAbsoluteY(),
+      worldViewport.getWidth(), worldViewport.getHeight());
+  }
+
+  // Re-draw menus on top of lighting (so they're not dimmed)
+  if (state == TdState.PAUSED) {
+    for (UIComponent c : ui.getRoot().getChildren()) {
+      if ("pause_overlay".equals(c.getId())) {
+        c.paint(this, ui.getTheme());
+        break;
+      }
+    }
+  }
+  if (sellMenuPanel != null) {
+    sellMenuPanel.paint(this, ui.getTheme());
+  }
+
+  // Win/Lose text animation
+  if (TdFlow.winLoseAnimator != null) {
+    TdFlow.winLoseAnimator.update(dtReal);
+    TdFlow.winLoseAnimator.render(g, width * 0.5f, height * 0.5f - 40);
+    if (TdFlow.winLoseAnimator.isDone()) {
+      TdFlow.winLoseAnimator = null;
+    }
+  }
 
   if (state == TdState.PLAYING && buildMode != TdBuildMode.NONE) {
     TdGhost.update();
@@ -223,11 +286,61 @@ void handleKeyboardInput(InputManager im) {
   }
   wasKeyP = isP;
 
-  boolean isR = im.isKeyDown(java.awt.event.KeyEvent.VK_R);
-  if (isR && !wasKeyR) {
+  // Tower range toggle (T)
+  boolean isT = im.isKeyDown(java.awt.event.KeyEvent.VK_T);
+  if (isT && !wasKeyT) {
     showTowerRanges = !showTowerRanges;
   }
-  wasKeyR = isR;
+  wasKeyT = isT;
+
+  // Space: jump camera to most dangerous enemy
+  boolean isSpace = im.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
+  if (isSpace && !wasKeySpace) {
+    jumpToMostDangerousEnemy();
+  }
+  wasKeySpace = isSpace;
+
+  // Build hotkeys (Q/W/E/R)
+  boolean isQ = im.isKeyDown(java.awt.event.KeyEvent.VK_Q);
+  if (isQ && !wasKeyQ && isTowerAllowed(TdBuildMode.MG))      buildMode = TdBuildMode.MG;
+  wasKeyQ = isQ;
+
+  boolean isW = im.isKeyDown(java.awt.event.KeyEvent.VK_W);
+  if (isW && !wasKeyW && isTowerAllowed(TdBuildMode.MISSILE)) buildMode = TdBuildMode.MISSILE;
+  wasKeyW = isW;
+
+  boolean isE = im.isKeyDown(java.awt.event.KeyEvent.VK_E);
+  if (isE && !wasKeyE && isTowerAllowed(TdBuildMode.LASER))   buildMode = TdBuildMode.LASER;
+  wasKeyE = isE;
+
+  boolean isR2 = im.isKeyDown(java.awt.event.KeyEvent.VK_R);
+  if (isR2 && !wasKeyR && isTowerAllowed(TdBuildMode.SLOW))   buildMode = TdBuildMode.SLOW;
+  wasKeyR = isR2;
+}
+
+void jumpToMostDangerousEnemy() {
+  Enemy best = null;
+  float bestDist = Float.MAX_VALUE;
+  for (Enemy e : TdGameWorld.enemies) {
+    if (e.hp <= 0) continue;
+    float rem = Tower.remainingDist(e);
+    if (rem < bestDist) {
+      bestDist = rem;
+      best = e;
+    }
+  }
+  if (best != null) {
+    camera.jumpCenterTo(best.pos.x, best.pos.y);
+  }
+}
+
+boolean isTowerAllowed(TdBuildMode mode) {
+  if (TdGameWorld.level == null || TdGameWorld.level.allowedTowers == null) return true;
+  TowerType tt = TowerType.fromBuildMode(mode);
+  for (TowerType a : TdGameWorld.level.allowedTowers) {
+    if (a == tt) return true;
+  }
+  return false;
 }
 
 public void keyPressed() {
@@ -297,9 +410,60 @@ void setupHud() {
   root.add(hudBuildPanel);
 
   hudMinimap = new TdMinimapComponent("hud_minimap");
-  hudMinimap.setPosition(1280 - TdConfig.RIGHT_W + 16, 720 - TdMinimapComponent.MH - 16);
+  TdMinimapComponent.MW = TdConfig.RIGHT_W - 16;
+  TdMinimapComponent.MH = TdMinimapComponent.MW * 120f / 180f;
+  hudMinimap.setSize(TdMinimapComponent.MW, TdMinimapComponent.MH);
+  int minimapX = 1280 - TdConfig.RIGHT_W + 8;
+  int minimapY = 720 - (int)TdMinimapComponent.MH - 8;
+  hudMinimap.setPosition(minimapX, minimapY);
   hudMinimap.setZOrder(10);  // higher zOrder so hitTest finds it before hud_build
   root.add(hudMinimap);
+}
+
+Tower getTowerAtMouse(InputManager im) {
+  if (camera == null) return null;
+  Vector2 dm = getDesignMousePos(im);
+  Vector2 world = camera.screenToWorld(dm);
+  int gx = Math.round(world.x / TdConfig.GRID - 0.5f);
+  int gy = Math.round(world.y / TdConfig.GRID - 0.5f);
+  for (Tower t : TdGameWorld.towers) {
+    if (t.gridX == gx && t.gridY == gy) return t;
+  }
+  return null;
+}
+
+void closeSellMenu() {
+  if (sellMenuPanel != null) {
+    Panel root = ui.getRoot();
+    root.remove(sellMenuPanel);
+    sellMenuPanel = null;
+  }
+}
+
+void showSellMenu(Tower tower) {
+  closeSellMenu();
+  Panel root = ui.getRoot();
+  sellMenuPanel = new Panel("sell_menu");
+  sellMenuPanel.setBounds((int)mouseX, (int)mouseY, 100, 80);
+  sellMenuPanel.setZOrder(999);
+  sellMenuPanel.setPaintBackground(true);
+
+  Button btnSell = new Button("btn_sell");
+  btnSell.setLabel("出售");
+  btnSell.setBounds(4, 4, 92, 32);
+  btnSell.setAction(() -> {
+    TdGameWorld.sellTower(tower.gridX, tower.gridY);
+    closeSellMenu();
+  });
+  sellMenuPanel.add(btnSell);
+
+  Button btnCancel = new Button("btn_cancel_sell");
+  btnCancel.setLabel("取消");
+  btnCancel.setBounds(4, 42, 92, 32);
+  btnCancel.setAction(() -> closeSellMenu());
+  sellMenuPanel.add(btnCancel);
+
+  root.add(sellMenuPanel);
 }
 
 void handleMouseClick(InputManager im) {
@@ -307,6 +471,12 @@ void handleMouseClick(InputManager im) {
 
   // Place tower on world viewport click
   if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.LEFT) {
+    if (sellMenuPanel != null) {
+      UIComponent hit = ui.getRoot().hitTest(mouseX, mouseY);
+      if (hit == null || !"sell_menu".equals(hit.getId()) && !hit.getId().startsWith("btn_")) {
+        closeSellMenu();
+      }
+    }
     if (buildMode != TdBuildMode.NONE && TdGhost.isValid && !isMouseOverHud()) {
       TdGameWorld.tryPlaceTower(buildMode, TdGhost.gridX, TdGhost.gridY);
       buildMode = TdBuildMode.NONE;
@@ -314,10 +484,19 @@ void handleMouseClick(InputManager im) {
     }
   }
 
-  // Right-click cancel
+  // Right-click: cancel build or show sell menu
   if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.RIGHT) {
-    buildMode = TdBuildMode.NONE;
-    TdGhost.cleanup(this);
+    if (buildMode != TdBuildMode.NONE) {
+      buildMode = TdBuildMode.NONE;
+      TdGhost.cleanup(this);
+    } else if (!isMouseOverHud()) {
+      Tower clicked = getTowerAtMouse(im);
+      if (clicked != null) {
+        showSellMenu(clicked);
+      } else {
+        closeSellMenu();
+      }
+    }
   }
 }
 

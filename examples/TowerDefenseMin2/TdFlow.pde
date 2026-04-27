@@ -1,7 +1,110 @@
 /**
+ * Win/Lose text animation: each character pops in with scale bounce,
+ * holds, then fades out before menu appears.
+ */
+static class WinLoseTextAnimator {
+    enum Phase { REVEALING, HOLDING, FADING, DONE }
+    Phase phase = Phase.REVEALING;
+    String text;
+    float charDelay = 0.08f;
+    float charAnimDuration = 0.3f;
+    float holdDuration = 1.8f;
+    float fadeDuration = 0.6f;
+    float timer = 0;
+    int revealedCount = 0;
+    Runnable onDone;
+    static final float SLIDE_OFFSET = 60;
+    static final int DIM_ALPHA = 180;
+
+    WinLoseTextAnimator(String text, Runnable onDone) {
+        this.text = text;
+        this.onDone = onDone;
+    }
+
+    void update(float dt) {
+        if (phase == Phase.DONE) return;
+        timer += dt;
+        switch (phase) {
+            case REVEALING:
+                int target = Math.min(text.length(), (int)(timer / charDelay) + 1);
+                if (target > revealedCount) revealedCount = target;
+                float totalReveal = text.length() * charDelay + charAnimDuration;
+                if (timer >= totalReveal) {
+                    phase = Phase.HOLDING;
+                    timer = 0;
+                }
+                break;
+            case HOLDING:
+                if (timer >= holdDuration) {
+                    phase = Phase.FADING;
+                    timer = 0;
+                }
+                break;
+            case FADING:
+                if (timer >= fadeDuration) {
+                    phase = Phase.DONE;
+                    timer = 0;
+                    if (onDone != null) onDone.run();
+                }
+                break;
+        }
+    }
+
+    void render(PGraphics g, float cx, float cy) {
+        if (phase == Phase.DONE || text == null || text.isEmpty()) return;
+
+        // Dim overlay
+        int dimAlpha;
+        if (phase == Phase.REVEALING) {
+            float revealProgress = Math.min(1, timer / (text.length() * charDelay + charAnimDuration));
+            dimAlpha = (int)(DIM_ALPHA * revealProgress);
+        } else if (phase == Phase.HOLDING) {
+            dimAlpha = DIM_ALPHA;
+        } else {
+            dimAlpha = (int)(DIM_ALPHA * (1 - timer / fadeDuration));
+        }
+        g.noStroke();
+        g.fill(0xFF000000, dimAlpha);
+        g.rect(0, 0, 1280, 720);
+
+        // Text characters slide in from above
+        g.textAlign(PApplet.CENTER, PApplet.CENTER);
+        g.textSize(56);
+        float totalW = g.textWidth(text);
+        float startX = cx - totalW * 0.5f;
+        for (int i = 0; i < revealedCount && i < text.length(); i++) {
+            float charT;
+            if (phase == Phase.REVEALING) {
+                float rawT = (timer - i * charDelay) / charAnimDuration;
+                charT = Math.max(0, Math.min(1, rawT));
+            } else {
+                charT = 1;
+            }
+
+            // Slide from above + fade in
+            float slideY = cy - SLIDE_OFFSET * (1 - charT);
+            int alpha = (int)(255 * charT);
+            if (phase == Phase.FADING) {
+                alpha = (int)(255 * (1 - timer / fadeDuration));
+            }
+
+            char c = text.charAt(i);
+            float charW = g.textWidth(String.valueOf(c));
+            float x = startX + g.textWidth(text.substring(0, i)) + charW * 0.5f;
+            g.fill(0xFFFFFFFF, alpha);
+            g.text(String.valueOf(c), x, slideY);
+        }
+    }
+
+    boolean isDone() { return phase == Phase.DONE; }
+}
+
+/**
  * Scene flow controller: Menu -> LevelSelect -> Playing -> Win/Lose.
  */
 static final class TdFlow {
+
+    static WinLoseTextAnimator winLoseAnimator = null;
 
     static void buildMainMenu(TowerDefenseMin2 app) {
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
@@ -349,9 +452,7 @@ static final class TdFlow {
         TdSound.playBgmGame();
     }
 
-    static void showWin(TowerDefenseMin2 app) {
-        TdSaveData.saveSettings();
-        app.state = TdState.WIN;
+    static void buildWinMenu(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
@@ -387,11 +488,22 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
-            // println("[DEBUG] WIN btnMenu clicked");
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);
         panel.add(btnMenu);
+    }
+
+    static void showWin(TowerDefenseMin2 app) {
+        TdSaveData.saveSettings();
+        app.state = TdState.WIN;
+        app.engine.getTweenManager().killAll();
+        app.engine.getTweenManager().setUseUnscaledTime(true);
+        winLoseAnimator = new WinLoseTextAnimator(TdAssets.i18n("game.win"), () -> {
+            Panel root = app.ui.getRoot();
+            root.removeAllChildren();
+            buildWinMenu(app);
+        });
     }
 
     static void showPauseMenu(TowerDefenseMin2 app) {
@@ -434,14 +546,27 @@ static final class TdFlow {
 
         Button btnResume = new Button("btn_resume");
         btnResume.setLabel(TdAssets.i18n("game.resume"));
-        btnResume.setBounds(100, 60, 200, 44);
+        btnResume.setBounds(100, 50, 200, 40);
         btnResume.setAction(() -> hidePauseMenu(app));
         btnResume.appear(0.1f);
         panel.add(btnResume);
 
+        Button btnRetry = new Button("btn_retry");
+        btnRetry.setLabel(TdAssets.i18n("game.retry"));
+        btnRetry.setBounds(100, 100, 200, 40);
+        btnRetry.setAction(() -> {
+            hidePauseMenu(app);
+            if (TdGameWorld.level != null) {
+                TdGameWorld.startLevel(app, TdGameWorld.level.id);
+                app.state = TdState.PLAYING;
+            }
+        });
+        btnRetry.appear(0.15f);
+        panel.add(btnRetry);
+
         Button btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
-        btnMenu.setBounds(100, 120, 200, 44);
+        btnMenu.setBounds(100, 150, 200, 40);
         btnMenu.setAction(() -> {
             hidePauseMenu(app);
             buildMainMenu(app);
@@ -462,11 +587,7 @@ static final class TdFlow {
         app.state = TdState.PLAYING;
     }
 
-    static void showLose(TowerDefenseMin2 app) {
-        // println("[DEBUG] showLose called");
-        TdSaveData.incGamesLost();
-        TdSaveData.saveSettings();
-        app.state = TdState.LOSE;
+    static void buildLoseMenu(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
@@ -501,11 +622,22 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
-            // println("[DEBUG] btnMenu clicked, calling buildMainMenu");
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);
         panel.add(btnMenu);
-        // println("[DEBUG] showLose done");
+    }
+
+    static void showLose(TowerDefenseMin2 app) {
+        TdSaveData.incGamesLost();
+        TdSaveData.saveSettings();
+        app.state = TdState.LOSE;
+        app.engine.getTweenManager().killAll();
+        app.engine.getTweenManager().setUseUnscaledTime(true);
+        winLoseAnimator = new WinLoseTextAnimator(TdAssets.i18n("game.lose"), () -> {
+            Panel root = app.ui.getRoot();
+            root.removeAllChildren();
+            buildLoseMenu(app);
+        });
     }
 }

@@ -22,11 +22,12 @@
   "game.wave": "波次",
   "game.enemyCount": "敌人",
   "game.pause": "暂停",
+  "game.menu": "菜单",
   "game.resume": "继续",
   "game.win": "胜利！",
-  "game.lose": "失败…",
+  "game.lose": "失败",
   "game.nextLevel": "下一关",
-  "game.retry": "重试",
+  "game.retry": "重玩本关",
   "game.mainMenu": "主菜单",
   "game.build.mg": "机枪塔",
   "game.build.missile": "导弹塔",
@@ -46,5 +47,11 @@
   "level.1.name": "初入战场",
   "level.1.subtitle": "简单的直线路径",
   "level.2.name": "迂回战术",
-  "level.2.subtitle": "曲折的路径"
+  "level.2.subtitle": "曲折的路径",
+  "level.3.name": "多路并进",
+  "level.3.subtitle": "敌人从多个方向来袭",
+  "level.4.name": "混合攻势",
+  "level.4.subtitle": "同波次多节奏",
+  "level.5.name": "试炼场",
+  "level.5.subtitle": "测试塔与敌人的靶场"
 }

@@ -52,12 +52,62 @@ static final class TdMinimap {
         if (TdGameWorld.level != null) {
             float sx = MW / TdGameWorld.level.worldW;
             float sy = MH / TdGameWorld.level.worldH;
+            println("[MINIMAP] spawnPos=" + TdGameWorld.level.spawnPos + " exitPos=" + TdGameWorld.level.exitPos + " basePos=" + TdGameWorld.level.basePos);
+            println("[MINIMAP] paths=" + (TdGameWorld.level.paths != null ? TdGameWorld.level.paths.length : "null"));
+            if (TdGameWorld.level.paths != null) {
+                for (int i = 0; i < TdGameWorld.level.paths.length; i++) {
+                    PathRoute pr = TdGameWorld.level.paths[i];
+                    if (pr.path != null && pr.path.points != null) {
+                        println("[MINIMAP] path[" + i + "] start=" + pr.path.points[0] + " end=" + pr.path.points[pr.path.points.length-1]);
+                    }
+                }
+            }
             // Base
             app.fill(0xFF4A9EFF);
             app.ellipse(mx + TdGameWorld.level.basePos.x * sx, my + TdGameWorld.level.basePos.y * sy, 6, 6);
-            // Exit
+            // Spawns (global + per-path)
+            app.fill(0xFFFF8C42);
+            if (TdGameWorld.level.spawnPos != null) {
+                app.ellipse(mx + TdGameWorld.level.spawnPos.x * sx, my + TdGameWorld.level.spawnPos.y * sy, 6, 6);
+            }
+            if (TdGameWorld.level.paths != null) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 1) continue;
+                    Vector2 start = pr.path.points[0];
+                    boolean distinct = (TdGameWorld.level.spawnPos == null) || start.distance(TdGameWorld.level.spawnPos) > 10f;
+                    if (distinct) {
+                        app.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+                    }
+                }
+            } else if (TdGameWorld.level.pathPoints != null && TdGameWorld.level.pathPoints.length > 0) {
+                // legacy single-path: first point as spawn
+                Vector2 start = TdGameWorld.level.pathPoints[0];
+                app.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+            }
+
+            // Exits (global + per-path endpoints)
             app.fill(0xFFFF4444);
-            app.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+            if (TdGameWorld.level.exitPos != null) {
+                app.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+            }
+            if (TdGameWorld.level.paths != null) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
+                    Vector2 end = pr.path.points[pr.path.points.length - 1];
+                    boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
+                    boolean isGlobalExit = (TdGameWorld.level.exitPos != null) && end.distance(TdGameWorld.level.exitPos) <= 10f;
+                    if (!isBase && !isGlobalExit) {
+                        app.ellipse(mx + end.x * sx, my + end.y * sy, 5, 5);
+                    }
+                }
+            } else if (TdGameWorld.level.pathPoints != null && TdGameWorld.level.pathPoints.length > 1) {
+                // legacy single-path: last point as exit (if not base)
+                Vector2 end = TdGameWorld.level.pathPoints[TdGameWorld.level.pathPoints.length - 1];
+                boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
+                if (!isBase) {
+                    app.ellipse(mx + end.x * sx, my + end.y * sy, 5, 5);
+                }
+            }
             // Path
             app.stroke(0xFF4A9EFF);
             app.strokeWeight(1);
@@ -72,6 +122,13 @@ static final class TdMinimap {
             for (Tower t : TdGameWorld.towers) {
               app.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
             }
+            // Orbs
+            app.noStroke();
+            app.fill(0xFFFFD700);
+            for (Orb o : TdGameWorld.orbs) {
+              app.ellipse(mx + o.pos.x * sx, my + o.pos.y * sy, 4, 4);
+            }
+
             // Enemies
             app.noStroke();
             app.fill(0xFFFF4444);
