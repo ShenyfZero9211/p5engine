@@ -5,9 +5,9 @@ static final class TdHUD {
 
     static void drawTopBar() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(0, 0));
-        float x = d.x, y = d.y;
-        float w = app.width;
+        DisplayManager dm = app.engine.getDisplayManager();
+        float x = 0, y = 0;
+        float w = dm.getDesignWidth();
         float h = TdConfig.TOP_HUD;
 
         app.pushStyle();
@@ -37,8 +37,8 @@ static final class TdHUD {
         float btnH = 28;
         float btnX = x + w - btnW - 12;
         float btnY = y + (h - btnH) * 0.5f;
-        Vector2 dm = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
-        boolean pauseHover = dm.x >= btnX && dm.x <= btnX + btnW && dm.y >= btnY && dm.y <= btnY + btnH;
+        Vector2 dMouse = dm.actualToDesign(new Vector2(app.mouseX, app.mouseY));
+        boolean pauseHover = dMouse.x >= btnX && dMouse.x <= btnX + btnW && dMouse.y >= btnY && dMouse.y <= btnY + btnH;
         int pauseFill = pauseHover ? TdTheme.BTN_HOVER : TdTheme.BTN_BG;
         app.noStroke();
         app.fill(pauseFill);
@@ -57,11 +57,11 @@ static final class TdHUD {
 
     static void drawBuildPanel() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(app.width, 0));
-        float x = d.x - TdConfig.RIGHT_W;
+        DisplayManager dm = app.engine.getDisplayManager();
+        float x = dm.getDesignWidth() - TdConfig.RIGHT_W;
         float y = TdConfig.TOP_HUD;
         float w = TdConfig.RIGHT_W;
-        float h = d.y + app.height - y;
+        float h = dm.getDesignHeight() - y;
 
         app.pushStyle();
         app.noStroke();
@@ -78,13 +78,13 @@ static final class TdHUD {
         float by = y + 16;
         TowerType[] types = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
         String[] initials = { "M", "R", "L", "S" };
-        Vector2 dm = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
+        Vector2 dMouse = dm.actualToDesign(new Vector2(app.mouseX, app.mouseY));
         for (int i = 0; i < types.length; i++) {
             TowerType tt = types[i];
             TowerDef def = TdAssets.loadTowerDef(tt);
             if (def == null) continue;
             boolean selected = app.buildMode == TowerType.toBuildMode(tt);
-            boolean hover = dm.x >= x + 8 && dm.x <= x + w - 8 && dm.y >= by && dm.y <= by + btnH;
+            boolean hover = dMouse.x >= x + 8 && dMouse.x <= x + w - 8 && dMouse.y >= by && dMouse.y <= by + btnH;
             int fill = selected ? TdTheme.BTN_PRESS : (hover ? TdTheme.BTN_HOVER : TdTheme.BTN_BG);
             app.noStroke();
             app.fill(fill);
@@ -121,7 +121,7 @@ static final class TdHUD {
         // Cancel button
         by += 8;
         float cancelH = 32;
-        boolean cancelHover = dm.x >= x + 8 && dm.x <= x + w - 8 && dm.y >= by && dm.y <= by + cancelH;
+        boolean cancelHover = dMouse.x >= x + 8 && dMouse.x <= x + w - 8 && dMouse.y >= by && dMouse.y <= by + cancelH;
         int cancelFill = cancelHover ? TdTheme.BTN_HOVER : TdTheme.BTN_BG;
         app.noStroke();
         app.fill(cancelFill);
@@ -148,22 +148,23 @@ static final class TdHUD {
 
     static void drawPauseOverlay() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        DisplayManager dm = app.engine.getDisplayManager();
         app.pushStyle();
         app.fill(0x66000000);
         app.noStroke();
-        app.rect(0, 0, app.width, app.height);
+        app.rect(0, 0, dm.getDesignWidth(), dm.getDesignHeight());
         app.fill(TdTheme.TEXT);
         app.textAlign(PApplet.CENTER, PApplet.CENTER);
         app.textSize(32);
-        app.text("PAUSED", app.width * 0.5f, app.height * 0.5f);
+        app.text("PAUSED", dm.getDesignWidth() * 0.5f, dm.getDesignHeight() * 0.5f);
         app.popStyle();
     }
 
     static boolean isPauseButtonHit(float mx, float my) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(0, 0));
-        float x = d.x, y = d.y;
-        float w = app.width;
+        DisplayManager dm = app.engine.getDisplayManager();
+        float x = 0, y = 0;
+        float w = dm.getDesignWidth();
         float h = TdConfig.TOP_HUD;
         float btnW = 72;
         float btnH = 28;
@@ -174,8 +175,8 @@ static final class TdHUD {
 
     static TdBuildMode getBuildModeAt(float mx, float my) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(app.width, 0));
-        float x = d.x - TdConfig.RIGHT_W;
+        DisplayManager dm = app.engine.getDisplayManager();
+        float x = dm.getDesignWidth() - TdConfig.RIGHT_W;
         float y = TdConfig.TOP_HUD;
         float w = TdConfig.RIGHT_W;
         float btnH = 56;

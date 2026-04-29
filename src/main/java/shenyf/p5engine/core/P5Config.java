@@ -15,10 +15,14 @@ public class P5Config {
     private RenderMode renderMode = RenderMode.P2D;
     private int pixelDensity = 0; // 0 = auto
     private shenyf.p5engine.rendering.DisplayConfig displayConfig;
+    private shenyf.p5engine.rendering.ResolutionPreset resolutionPreset;
+    private shenyf.p5engine.rendering.ResolutionInfo resolutionInfo;
+    private shenyf.p5engine.rendering.DisplayMode displayMode;
     private boolean mouseConfined = false;
     private boolean centerWindow = true;
     private int windowX = -1;
     private int windowY = -1;
+    // Window state is always auto-managed by P5Engine via p5engine.ini
 
     private P5Config() {
         this.width = 800;
@@ -63,11 +67,29 @@ public class P5Config {
         return this;
     }
 
+    /**
+     * Returns the effective render width.
+     * If a {@link DisplayConfig} is attached with a resolution preset, returns
+     * {@code displayConfig.getRenderWidth()}; otherwise returns the raw config width.
+     */
     public int getWidth() {
+        if (displayConfig != null) {
+            int rw = displayConfig.getRenderWidth();
+            if (rw > 0) return rw;
+        }
         return width;
     }
 
+    /**
+     * Returns the effective render height.
+     * If a {@link DisplayConfig} is attached with a resolution preset, returns
+     * {@code displayConfig.getRenderHeight()}; otherwise returns the raw config height.
+     */
     public int getHeight() {
+        if (displayConfig != null) {
+            int rh = displayConfig.getRenderHeight();
+            if (rh > 0) return rh;
+        }
         return height;
     }
 
@@ -143,7 +165,43 @@ public class P5Config {
                 .designWidth(width)
                 .designHeight(height);
         }
+        // Sync resolution preset, resolution info, and display mode if explicitly set on P5Config
+        if (resolutionInfo != null) {
+            displayConfig.resolution(resolutionInfo);
+        } else if (resolutionPreset != null) {
+            displayConfig.resolutionPreset(resolutionPreset);
+        }
+        if (displayMode != null) {
+            displayConfig.displayMode(displayMode);
+        }
         return displayConfig;
+    }
+
+    public P5Config resolutionPreset(shenyf.p5engine.rendering.ResolutionPreset preset) {
+        this.resolutionPreset = preset;
+        return this;
+    }
+
+    public shenyf.p5engine.rendering.ResolutionPreset getResolutionPreset() {
+        return resolutionPreset;
+    }
+
+    public P5Config resolution(shenyf.p5engine.rendering.ResolutionInfo info) {
+        this.resolutionInfo = info;
+        return this;
+    }
+
+    public shenyf.p5engine.rendering.ResolutionInfo getResolution() {
+        return resolutionInfo;
+    }
+
+    public P5Config displayMode(shenyf.p5engine.rendering.DisplayMode mode) {
+        this.displayMode = mode;
+        return this;
+    }
+
+    public shenyf.p5engine.rendering.DisplayMode getDisplayMode() {
+        return displayMode;
     }
 
     public P5Config mouseConfined(boolean mouseConfined) {
@@ -178,4 +236,5 @@ public class P5Config {
     public int getWindowY() {
         return windowY;
     }
+
 }

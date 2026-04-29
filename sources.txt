@@ -72,6 +72,7 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Image.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Label.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\LayoutManager.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\List.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Dropdown.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Menu.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\MenuBar.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\MenuPopup.java
@@ -118,3 +119,7 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\SceneViewport.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\MinimapViewport.java
 
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\pool\GenericObjectPool.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\ResolutionInfo.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\ResolutionPreset.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\rendering\DisplayMode.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\core\WindowManager.java

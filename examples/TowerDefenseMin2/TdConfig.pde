@@ -252,3 +252,6 @@ static final class LevelDef {
     TowerType[] allowedTowers; // null = all towers allowed
     boolean earnMoneyOnKill;   // default true
 }
+
+enum TdState { MENU, LEVEL_SELECT, PLAYING, PAUSED, WIN, LOSE }
+enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW }

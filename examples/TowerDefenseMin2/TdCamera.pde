@@ -32,12 +32,13 @@ static final class TdCamera {
     static boolean isMouseInViewport() {
         Camera2D cam = TowerDefenseMin2.inst.camera;
         if (cam == null) return false;
-        Vector2 dm = TowerDefenseMin2.inst.engine.getDisplayManager().actualToDesign(
-            new Vector2(TowerDefenseMin2.inst.mouseX, TowerDefenseMin2.inst.mouseY));
+        // Use actual screen coordinates since camera viewport now matches full screen
+        float mx = TowerDefenseMin2.inst.mouseX;
+        float my = TowerDefenseMin2.inst.mouseY;
         float left   = cam.getViewportOffsetX();
         float top    = cam.getViewportOffsetY();
         float right  = left + cam.getViewportWidth();
         float bottom = top + cam.getViewportHeight();
-        return dm.x >= left && dm.x <= right && dm.y >= top && dm.y <= bottom;
+        return mx >= left && mx <= right && my >= top && my <= bottom;
     }
 }

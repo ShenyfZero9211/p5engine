@@ -727,3 +727,350 @@ if (app.isMouseOverHud()) {
 - 光源半径自动跟随相机 zoom 缩放
 
 需要截图验证视觉效果吗？或者调整亮度/光源参数？
+
+
+## p5engine 项目架构全面分析
+
+---
+
+### 一、项目概览
+
+**p5engine** 是一个基于 **Processing 4.5.2** 构建的 2D 游戏引擎库，采用 Java 17 开发，面向 Processing 生态提供组件化的游戏开发框架。引擎以库（Library）形式存在，用户通过导入 `p5engine.jar` 在 PDE  sketch 中使用。
+
+| 属性 | 值 |
+|------|-----|
+| 名称 | p5engine |
+| 版本 | 0.1.0-M1 |
+| 语言 | Java 17 |
+| 目标平台 | Windows（开发环境）|
+| 包根 | `shenyf.p5engine.*` |
+| 核心依赖 | Processing core 4.5.2, TinySound |
+
+---
+
+### 二、关键配置文件与构建系统
+
+本项目**不使用 Maven 或 Gradle**，采用自定义 PowerShell 脚本构建：
+
+| 文件 | 作用 |
+|------|------|
+| `library.properties` | Processing 库描述文件（名称、版本、作者、分类）|
+| `compile-jar.ps1` | 核心构建脚本：编译源码 → 打包 fat-jar → 可选覆盖 Processing 库目录 |
+| `build.ps1` | Processing 导出 + JLink 自定义 JRE 精简脚本 |
+| `scripts/export_game.ps1` | 游戏发布导出脚本（处理 PPAK 数据 + CLI 导出）|
+| `sources.txt` | javac 编译源文件列表（手动维护）|
+
+**构建流程：**
+```
+sources.txt → javac (--release 17) → build/classes/ → jar cf p5engine.jar
+                ↑                    ↑
+        (依赖: core-4.5.2.jar,       (TinySound 解包合并入 fat-jar)
+         TinySound.jar, JNA)
+```
+
+**运行验证要求（AGENTS.md 强制）：**
+- 每次修改 Java 源码后必须运行 `compile-jar.ps1`
+- 必须将 `library\p5engine.jar` 复制到示例工程根目录的 `code\` 文件夹
+- 修改 PDE 后必须用 Processing CLI 验证编译：`processing.exe cli --sketch=... --build`
+
+---
+
+### 三、代码组织与模块划分
+
+引擎源码位于 `src/main/java/shenyf/p5engine/`，按功能划分为 **14 个核心模块**：
+
+```
+shenyf.p5engine
+├── core/               # 引擎入口 (P5Engine, P5Config)
+├── scene/              # 场景/游戏对象系统 (GameObject, Component, Transform, Scene, SceneManager)
+├── rendering/          # 渲染管线 (Camera2D, DisplayManager, SpriteRenderer, Minimap, PostProcessor)
+├── ui/                 # UI框架 (Button, Panel, Window, 多种LayoutManager, Theme系统)
+├── audio/              # 音频管理 (AudioManager, TinySound集成, BGM/SFX)
+├── time/               # 时间系统 (P5GameTime, Timer, Scheduler, Tween, Sequence)
+├── tween/              # 补间动画 (Ease, Tween, TweenManager)
+├── config/             # 配置系统 (SketchConfig, INI解析, 注解驱动配置)
+├── event/              # 事件系统 (EventSystem, GameEvent)
+├── input/              # 输入管理 (InputManager)
+├── collision/          # 碰撞检测 (CircleCollider, CollisionUtils)
+├── resource/ppak/      # 自定义资源包 (PPAK打包/解压, 支持图片/音频/字体/视频)
+├── pool/               # 对象池 (ObjectPool, GenericObjectPool)
+├── math/               # 数学工具 (Vector2, Rect, Color/Colors)
+├── i18n/               # 国际化 (I18n)
+├── debug/              # 调试覆盖层 (DebugOverlay)
+└── util/               # 工具类 (Logger, ScreenshotTool, SingleInstanceGuard)
+```
+
+**架构模式：** 采用 **组件-实体系统（Component-Entity）** 结合 **场景管理器** 模式：
+- `GameObject` 作为实体容器，通过 `addComponent()` 挂载行为组件
+- `Scene` 管理一组 GameObject，负责 update/render 分发
+- `P5Engine` 作为单例 Facade，统筹所有子系统
+
+---
+
+### 四、技术栈深度解析
+
+#### 4.1 渲染系统
+- **双渲染器支持**：JAVA2D 和 P2D（OpenGL/JOGL）
+- **DisplayManager**：设计分辨率与实际窗口的映射（NO_SCALE / STRETCH / FIT / FILL）
+- **Camera2D**：支持平滑跟随、缩放、视口边界、世界坐标/屏幕坐标转换
+- **RenderLayer + zIndex**：层级排序渲染，layer ≥ 100 为屏幕空间（不受相机影响）
+- **PostProcessor**：后处理效果链（基于 PGraphics）
+
+#### 4.2 UI 系统
+- 独立完整的 retained-mode UI 框架
+- 组件：Button, Label, TextInput, Checkbox, RadioButton, Slider, ProgressBar, List, Menu/MenuBar, TabPane, ScrollPane 等
+- 布局：AbsoluteLayout, BorderLayout, FlowLayout, GridLayout, AnchorLayout
+- 主题系统：Theme / DefaultTheme 支持外观定制
+- 协调器：SketchUiCoordinator 桥接 UI 与 sketch 生命周期
+
+#### 4.3 资源系统 (PPAK)
+- 自定义二进制打包格式 `.ppak`
+- Python CLI 工具集 (`tools/ppak/`)：pack, unpack, list, run, build, export
+- 支持资源类型：Image, Audio, Font, Video
+- 集成到引擎：运行时从 PPAK 加载资源，自动清理临时文件
+
+#### 4.4 音频系统
+- 基于 **TinySound** 库
+- 支持 BGM（背景乐）和 SFX（音效）
+- OGG 解码通过 jorbis + tritonus_share + vorbisspi（SPI 方式，不打包入 fat-jar）
+
+---
+
+### 五、示例项目
+
+`examples/` 下包含 **16 个示例**，覆盖引擎主要功能：
+
+| 示例 | 说明 |
+|------|------|
+| `HelloWorld` | 最基础用法，组件控制移动 |
+| `RenderDemo` | 渲染系统展示（Camera2D、5000+精灵、Minimap、DisplayManager、PostFX）|
+| `UIDemo` | UI框架完整演示 |
+| `TweenDemo` | 补间动画 |
+| `AudioDemo` | 音频系统 |
+| `PPakDemo` | 资源包加载 |
+| `TimerTest` | 定时器 |
+| `ConfigTest` | 配置系统 |
+| `ImageLab` | 图像处理实验室 |
+| `TowerDefenseMin/TowerDefenseMin2` | 塔防游戏示例 |
+| `ViewportGridTest` | 视口网格测试 |
+| `WindowPosTest` | 窗口位置 |
+| `SingleInstanceTest` | 单实例模式 |
+| `ExampleExportDemo` | 导出示例 |
+
+**示例结构规范：**
+```
+ExampleName/
+├── ExampleName.pde          # 主 sketch 文件
+├── code/p5engine.jar        # 引擎库副本（必须手动同步）
+├── p5engine.ini             # 可选：引擎配置文件
+├── data/                    # 可选：资源文件
+└── build/ or _build_cli/    # CLI 编译输出
+```
+
+---
+
+### 六、测试策略
+
+测试位于 `src/test/java/`，使用 **JUnit 5**：
+
+| 测试类 | 覆盖内容 |
+|--------|----------|
+| `Vector2Test` | 向量数学运算 |
+| `GameObjectTest` | 游戏对象生命周期、组件增删查 |
+| `TransformTest` | 变换组件 |
+
+**现状：** 测试覆盖率较低，主要集中在底层数学和场景模型，缺乏对渲染、UI、音频等子系统的自动化测试。
+
+---
+
+### 七、部署与导出流程
+
+1. **开发阶段**：`compile-jar.ps1` 编译引擎，`processing.exe cli --sketch=... --build` 验证示例
+2. **资源打包**：Python `ppak_cli.py` 将资源打包为 `.ppak`
+3. **应用导出**：`export_game.ps1` → Processing CLI `--export` → 生成 Windows 可执行文件
+4. **JRE 精简**（可选）：`build.ps1` 使用 `jdeps` 分析依赖 → `jlink` 生成定制 JRE
+
+---
+
+### 八、开发约定与工作流（基于 AGENTS.md）
+
+本项目有一份极为详细的 `AGENTS.md`，定义了 AI Agent 的工作规范：
+
+1. **计划管理**：所有任务必须在 `plans/` 目录创建 `.plan.md` 文件，遵循 `{主题}_{8位hash}.plan.md` 命名
+2. **删除权限**：**绝对禁止**自行删除任何文件，必须用户明确批准
+3. **最小修改原则**：只改与任务直接相关的代码，不顺便重构/格式化
+4. **编译验证**：改 Java 后必须 `compile-jar.ps1`，改 PDE 后必须 CLI build
+5. **PDE 语法注意**：预处理器不支持 Java 静态字段作为方法引用，必须用 `Ease::outQuad` 而非 `Ease.outQuad`
+6. **Git 规范**：禁止自动 commit/push/tag，必须用户明确说出"提交/推送"
+7. **文档输出**：架构调整/Bug修复/功能新增后，需在 `docs/` 创建总结文档
+
+---
+
+### 九、总结与接下来的工作流
+
+#### 技术栈快照
+```
+语言: Java 17
+运行时: Processing 4.5.2 (PApplet)
+构建: PowerShell + javac/jar (无Maven/Gradle)
+测试: JUnit 5 (覆盖率有限)
+音频: TinySound + OGG SPI
+渲染: Processing PGraphics (JAVA2D/P2D)
+资源: 自定义PPAK格式 (Python工具链)
+导出: Processing CLI + JLink
+```
+
+#### 推荐工作流
+1. **启动任务前**：在 `plans/` 创建 `.plan.md`，明确目标、步骤、验收标准
+2. **编码阶段**：
+   - 修改 `src/main/java/...` 下的引擎代码
+   - 运行 `.\compile-jar.ps1 -NoCopy` 编译验证
+   - 将 `library\p5engine.jar` 复制到目标示例的 `code\` 目录
+   - 用 `processing.exe cli --sketch=... --build` 验证 PDE 编译
+3. **验证阶段**：运行示例确认效果，必要时截图
+4. **收尾阶段**：更新计划文件标记完成，如有架构/修复类改动则写 `docs/` 总结
+5. **Git**：不自动提交，等用户明确指令
+
+这个项目的架构清晰，模块边界明确，是一个功能较完整的轻量级2D游戏引擎。主要技术债务在于测试覆盖率低，以及手动维护 `sources.txt` 的构建方式在大规模重构时容易出错。
+
+
+重构完成！以下是本次工作的全面总结：
+
+---
+
+## 重构成果
+
+### 核心目标达成
+**`TowerDefenseMin2.pde` 从 532 行 → 67 行**，实现了"一眼就能看到清晰框架"的目标。
+
+当前主 PDE 结构：
+```java
+// 1. import 语句
+// 2. 分区注释的变量声明（核心引用 / 游戏常量 / 输入状态 / HUD / 子系统）
+// 3. settings() — 窗口配置
+// 4. setup()   — 委托给 TdAppSetup
+// 5. draw()    — 委托给 TdAppLoop
+// 6. keyPressed() — 委托给 TdAppInput
+// 7. 两个必要的兼容性委托（setupWorldViewport / setupHud）
+```
+
+### 文件变更清单
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| **新增** | `TdAppCore.pde` (~490行) | 承载全部游戏逻辑：TdAppSetup(初始化)、TdAppLoop(主循环)、TdAppInput(输入)、TdAppUtils(工具) |
+| **重写** | `TowerDefenseMin2.pde` (67行) | 精简为骨架，仅保留变量声明 + 4个框架函数 + 2个单行委托 |
+| **修改** | `TdConfig.pde` | 追加 `TdState`、`TdBuildMode` 枚举 |
+| **修改** | `TdGhost.pde` | 1处：`app.isMouseOverHud()` → `TdAppUtils.isMouseOverHud(app)` |
+| **修改** | `TdUiHud.pde` | 2处：`app.closeSellMenu()` → `TdAppUtils.closeSellMenu(app)` |
+
+其余 **26 个 PDE 文件零修改**。
+
+### 编译与运行验证
+
+- ✅ Processing CLI 编译通过，无错误无警告
+- ✅ 游戏正常启动（日志确认：P5Engine 初始化成功、音频加载、窗口居中）
+- ✅ 运行 5 秒无异常退出
+
+### 关键技术决策
+
+**为什么 TdAppSetup 是非 static 类，而其他三个是 static？**
+
+Processing PDE 中定义的类（如 `TdTheme`、`Bullet`、`EffectRenderer`）默认是 `TowerDefenseMin2` 的**非静态内部类**。在 static 方法中 `new TdTheme()` 会报 `No enclosing instance` 错误。因此负责初始化的 `TdAppSetup` 设计为**非 static 内部类**，可直接访问外层字段并自由实例化 PDE 内部类。而 `TdAppLoop`/`TdAppInput`/`TdAppUtils` 不创建 PDE 内部类，保持 static 以避免每帧 new 对象的开销。
+
+编译通过，运行正常。
+
+## 问题根因
+
+之前的 `×0.5f` 是**乘法权重**，但 `FLEE` 敌人切换 `OUTBOUND` 路径后 `routeProgress` 从 **0** 重新开始，导致初始 score 非常大：
+
+| 敌人 | 状态 | 计算 | score |
+|------|------|------|-------|
+| A | FLEE（刚偷完开始跑）| `(2000 - 0) × 0.5` | **1000** |
+| B | INBOUND（快到达基地）| `100 - 95` | **5** |
+
+塔选 B（5 < 1000），所以 FLEE 被忽略。
+
+## 修复：状态层级偏移
+
+把乘法权重改为**加法层级**，用固定的状态优先级偏移量彻底拉开差距：
+
+```java
+case STEAL:       return 0;                            // 最紧急
+case FLEE:        return 1000f + remainingDist;        // 任何 FLEE 都 < 任何 INBOUND
+case MOVE_TO_BASE: return 10000f + remainingDist;      // 最低优先级
+```
+
+现在 score 区间：
+- **FLEE**: [1000, ~6000]
+- **INBOUND**: [10000, ~14000]
+
+**任何 FLEE 敌人（即使刚出发）的优先级都高于任何 INBOUND 敌人（即使已到基地门口）**。同状态内仍然按 remainingDist 排序。
+
+`FLEE` 是敌人的**逃跑状态**——表示该敌人已经偷完能量球，正在沿撤离路径逃往出口。
+
+## 敌人完整状态流转
+
+```
+spawn ──► MOVE_TO_BASE ──► STEAL ──► FLEE ──► reachedEnd (逃离成功)
+   ↑         (走向基地)     (偷球)    (逃向撤离点)
+   │                                    │
+   └───── DEAD (被塔击杀) ◄─────────────┘
+```
+
+## FLEE 状态的详细行为（代码层面）
+
+**进入条件：** 敌人在 `STEAL` 状态偷完球后自动切换
+```java
+case STEAL:
+    hasStolen = true;
+    orbsCarried = stealCount;          // 身上携带了偷来的能量球
+    TdGameWorld.orbits -= stealCount;  // 基地能量球减少
+    pickOutboundRoute();                // 随机选择一条 OUTBOUND 路径
+    state = EnemyState.FLEE;
+```
+
+**FLEE 状态的行为：**
+```java
+case FLEE:
+    routeProgress += speed * slowFactor * dt;
+    if (routeProgress >= activeRoute.path.getTotalLength()) {
+        reachedEnd = true;  // 成功逃离！
+    }
+```
+
+关键点：
+- `routeProgress` **从 0 重新开始**（因为切换到了新的 OUTBOUND 路径）
+- 敌人沿 `base → exit` 的路径走向撤离点
+- 一旦 `reachedEnd = true`，该敌人逃离成功，身上携带的能量球**永久损失**
+
+## 为什么 FLEE 敌人最危险
+
+| 状态 | 威胁说明 |
+|------|---------|
+| `MOVE_TO_BASE` | 还没偷到球，杀了不会损失什么 |
+| `STEAL` | 正在偷球，很紧急但持续时间短 |
+| **`FLEE`** | **已经偷了球在身上**，如果让它跑到终点，能量球就没了 |
+| `DEAD` | 已击杀，身上如果有球会掉出来变成返回基地的 Orb |
+
+这也是刚才 `getThreatScore()` 给 `FLEE` 权重 `×0.5` 的原因——**同等路径距离下，FLEE 敌人的优先级是 INBOUND 敌人的 2 倍**，确保塔优先拦截"已经偷了东西正在逃跑"的敌人，而不是只打"还没偷到"的敌人。
+
+**成了！** 问题果然是**参数顺序**！
+
+Processing CLI 的文档说得很明确：
+> **"--build, --run, --present, or --export must be the final parameter"**
+
+`--build` 必须是**最后一个参数**，否则它会把后面的 `--output` 当成 sketch 的参数而忽略掉。
+
+**正确写法：**
+```powershell
+& "D:\Processing\Processing.exe" cli `
+    --sketch="E:\projects\kilo\p5engine\examples\TowerDefenseMin2" `
+    --output="E:\projects\kilo\p5engine\examples\TowerDefenseMin2\build" `
+    --force `
+    --build        ← 必须放最后！
+```
+
+现在 `build_final/source/TowerDefenseMin2.java` 已经生成了（213 KB）。
+
+要查看预处理器生成的 Java 源文件，用这个命令就对了。

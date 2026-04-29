@@ -4,6 +4,8 @@ import processing.core.PApplet;
 import processing.core.PFont;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
+import shenyf.p5engine.rendering.DisplayManager;
+import shenyf.p5engine.rendering.ScaleMode;
 import shenyf.p5engine.util.Logger;
 
 import java.util.HashMap;
@@ -17,6 +19,8 @@ public final class UIManager {
 
     private static UIManager paintingUi;
     private static UIManager lastInstance;
+    private static float designMouseX;
+    private static float designMouseY;
 
     public static boolean isPaintingContext(UIComponent c) {
         return paintingUi != null && paintingUi.focusManager.getFocused() == c;
@@ -24,6 +28,16 @@ public final class UIManager {
 
     public static PApplet getActiveApplet() {
         return lastInstance != null ? lastInstance.applet : null;
+    }
+
+    /** Returns the current mouse X in design-resolution coordinates (for hover detection). */
+    public static float getDesignMouseX() {
+        return designMouseX;
+    }
+
+    /** Returns the current mouse Y in design-resolution coordinates (for hover detection). */
+    public static float getDesignMouseY() {
+        return designMouseY;
     }
 
     private final PApplet applet;
@@ -39,6 +53,7 @@ public final class UIManager {
     private boolean attached;
     private UIComponent pressedTarget;
     private Window resizeWindow;
+    private DisplayManager displayManager;
 
     public UIManager(PApplet applet) {
         this.applet = applet;
@@ -201,12 +216,36 @@ public final class UIManager {
         return uiFont;
     }
 
+    /**
+     * Sets the {@link DisplayManager} used for resolution scaling.
+     * When set, UI coordinates are interpreted in the design resolution space
+     * and automatically scaled to the actual window size during rendering.
+     */
+    public void setDisplayManager(DisplayManager displayManager) {
+        this.displayManager = displayManager;
+    }
+
+    public DisplayManager getDisplayManager() {
+        return displayManager;
+    }
+
     public Panel getRoot() {
         return root;
     }
 
     public void update(float dt) {
-        root.setBounds(0, 0, applet.width, applet.height);
+        if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
+            root.setBounds(0, 0, displayManager.getDesignWidth(), displayManager.getDesignHeight());
+            shenyf.p5engine.math.Vector2 design = displayManager.actualToDesign(
+                new shenyf.p5engine.math.Vector2(applet.mouseX, applet.mouseY));
+            designMouseX = design.x;
+            designMouseY = design.y;
+
+        } else {
+            root.setBounds(0, 0, applet.width, applet.height);
+            designMouseX = applet.mouseX;
+            designMouseY = applet.mouseY;
+        }
         if (root.isLayoutDirty()) {
             root.measure(applet);
             root.layout(applet);
@@ -232,6 +271,16 @@ public final class UIManager {
         int act = e.getAction();
         float mx = e.getX();
         float my = e.getY();
+
+        // Convert screen coordinates to design-resolution coordinates
+        if (displayManager != null) {
+            shenyf.p5engine.math.Vector2 design = displayManager.actualToDesign(
+                new shenyf.p5engine.math.Vector2(mx, my));
+            mx = design.x;
+            my = design.y;
+
+        }
+
         UIComponent hit = root.hitTest(mx, my);
 
         if (act == MouseEvent.WHEEL) {

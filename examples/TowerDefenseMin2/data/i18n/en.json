@@ -11,6 +11,7 @@
   "settings.masterVolume": "Master Volume",
   "settings.bgmVolume": "Music Volume",
   "settings.sfxVolume": "SFX Volume",
+  "settings.fullscreen": "Fullscreen",
   "settings.resolution": "Resolution",
   "settings.language": "Language",
   "settings.lang.zh": "中文",

@@ -47,6 +47,7 @@ public class P5Engine {
     private final I18n i18n;
     private shenyf.p5engine.rendering.PostProcessor postProcessor;
     private shenyf.p5engine.rendering.DisplayManager displayManager;
+    private shenyf.p5engine.core.WindowManager windowManager;
 
     private final List<Runnable> onDisposeListeners = new ArrayList<>();
     private float lastMouseX;
@@ -165,11 +166,16 @@ public class P5Engine {
      * Configure sketch display (size, renderer, pixel density) from a {@link P5Config}.
      * Must be called inside the sketch's {@code settings()} method.
      *
+     * <p>If a {@link shenyf.p5engine.rendering.DisplayConfig} is attached, the render resolution
+     * is taken from {@code displayConfig.getRenderWidth() / getRenderHeight()} rather than
+     * {@code config.getWidth() / getHeight()}.</p>
+     *
      * <pre>
      *   void settings() {
      *       P5Engine.configureDisplay(this, P5Config.defaults()
-     *           .width(1280).height(720)
-     *           .renderer(P5Config.RenderMode.P2D));
+     *           .renderer(P5Config.RenderMode.P2D)
+     *           .displayConfig(DisplayConfig.defaults()
+     *               .resolutionPreset(ResolutionPreset.R1080)));
      *   }
      * </pre>
      */
@@ -181,16 +187,77 @@ public class P5Engine {
         } else {
             applyRecommendedPixelDensity(applet);
         }
+
+        // Resolve render resolution from DisplayConfig if available
+        shenyf.p5engine.rendering.DisplayConfig dc = config.getDisplayConfig();
+        int renderW = dc != null ? dc.getRenderWidth() : config.getWidth();
+        int renderH = dc != null ? dc.getRenderHeight() : config.getHeight();
+        if (renderW < 1) renderW = config.getWidth();
+        if (renderH < 1) renderH = config.getHeight();
+        Logger.info("configureDisplay: render=" + renderW + "x" + renderH + " design=" + (dc != null ? dc.getDesignWidth() + "x" + dc.getDesignHeight() : "null") + " preset=" + (dc != null ? dc.getResolutionPreset() : "null"));
+
         switch (config.getRenderMode()) {
             case P2D:
-                applet.size(config.getWidth(), config.getHeight(), processing.core.PConstants.P2D);
+                applet.size(renderW, renderH, processing.core.PConstants.P2D);
                 break;
             case FX2D:
-                applet.size(config.getWidth(), config.getHeight(), processing.core.PConstants.FX2D);
+                applet.size(renderW, renderH, processing.core.PConstants.FX2D);
                 break;
             default:
-                applet.size(config.getWidth(), config.getHeight());
+                applet.size(renderW, renderH);
                 break;
+        }
+    }
+
+    /**
+     * Configures fullscreen mode for the sketch, with automatic DPI-scaling fallback.
+     *
+     * <p>On Windows with display scaling &gt; 100% (e.g. 125%), {@code fullScreen(P2D)}
+     * returns scaled logical pixels instead of physical pixels, causing the window
+     * to not cover the entire screen. This method detects such scaling and falls back
+     * to borderless windowed mode ({@code size()} + later {@code setSize()} correction).
+     *
+     * <p>Must be called inside the sketch's {@code settings()} method.</p>
+     *
+     * @param applet the Processing sketch
+     */
+    public static void configureFullscreen(PApplet applet) {
+        if (applet == null) return;
+
+        boolean dpiScaling = false;
+        int physicalW = -1;
+        int physicalH = -1;
+        try {
+            java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
+            java.awt.GraphicsDevice device = ge.getDefaultScreenDevice();
+            java.awt.DisplayMode dm = device.getDisplayMode();
+            physicalW = dm.getWidth();
+            physicalH = dm.getHeight();
+
+            // Primary detection: use GraphicsConfiguration transform (reliable on Java 11+)
+            java.awt.GraphicsConfiguration gc = device.getDefaultConfiguration();
+            java.awt.geom.AffineTransform transform = gc.getDefaultTransform();
+            double scaleX = transform.getScaleX();
+            double scaleY = transform.getScaleY();
+            dpiScaling = (scaleX != 1.0 || scaleY != 1.0);
+
+            // Fallback: compare displayWidth with physical size
+            if (!dpiScaling) {
+                dpiScaling = (applet.displayWidth != physicalW);
+            }
+        } catch (Exception e) {
+            Logger.debug("configureFullscreen: could not detect physical screen size: " + e.getMessage());
+        }
+
+        applyRecommendedPixelDensity(applet);
+
+        if (dpiScaling) {
+            Logger.info("configureFullscreen: DPI scaling detected (physical=" + physicalW + "x" + physicalH + 
+                        ", scale=" + (dpiScaling ? ">1.0" : "1.0") + "), using size() with physical pixels");
+            applet.size(physicalW, physicalH, processing.core.PConstants.P2D);
+        } else {
+            Logger.info("configureFullscreen: no DPI scaling detected, using fullScreen(P2D)");
+            applet.fullScreen(processing.core.PConstants.P2D);
         }
     }
 
@@ -199,7 +266,34 @@ public class P5Engine {
 
         Logger.info("P5Engine initializing...");
         Logger.info("  Version: " + shenyf.p5engine.Constants.ENGINE_VERSION);
-        Logger.info("  Window: " + config.getWidth() + "x" + config.getHeight());
+        int winW = applet.width > 0 ? applet.width : config.getWidth();
+        int winH = applet.height > 0 ? applet.height : config.getHeight();
+        Logger.info("  Window: " + winW + "x" + winH);
+
+        // Auto-load saved window state from p5engine.ini.
+        // Only override P5Config defaults when values were explicitly saved.
+        String savedW = sketchConfig.get(SketchConfig.SECTION_WINDOW_SIZE, SketchConfig.KEY_WIDTH);
+        String savedH = sketchConfig.get(SketchConfig.SECTION_WINDOW_SIZE, SketchConfig.KEY_HEIGHT);
+        if (savedW != null && savedH != null) {
+            int w = Integer.parseInt(savedW);
+            int h = Integer.parseInt(savedH);
+            config.width(w).height(h);
+            if (config.getDisplayConfig() != null) {
+                config.getDisplayConfig().windowedSize(w, h);
+            }
+            Logger.info("  Loaded window size from p5engine.ini: " + savedW + "x" + savedH);
+        }
+        String savedX = sketchConfig.get(SketchConfig.SECTION_WINDOW_POSITION, SketchConfig.KEY_POS_X);
+        String savedY = sketchConfig.get(SketchConfig.SECTION_WINDOW_POSITION, SketchConfig.KEY_POS_Y);
+        if (savedX != null && savedY != null) {
+            boolean wasCenterWindow = config.isCenterWindow();
+            config.windowPosition(Integer.parseInt(savedX), Integer.parseInt(savedY));
+            // Restore center-window flag if it was explicitly enabled (e.g. in settings())
+            if (wasCenterWindow) {
+                config.centerWindow(true);
+            }
+            Logger.info("  Loaded window position from p5engine.ini: " + savedX + "," + savedY);
+        }
 
         syncConfigToFile();
 
@@ -254,6 +348,15 @@ public class P5Engine {
             setMouseConfined(true);
         }
 
+        // Initialize window manager (needs nativeSurface already cached)
+        this.windowManager = new WindowManager(applet, config);
+
+        // Sync DisplayManager with actual window size (applet.width/height may differ from config defaults)
+        if (applet.width > 0 && applet.height > 0) {
+            displayManager.onWindowResize(applet.width, applet.height);
+            Logger.info("DisplayManager synced to actual window: " + applet.width + "x" + applet.height);
+        }
+
         Logger.info("P5Engine initialized successfully");
     }
 
@@ -262,6 +365,8 @@ public class P5Engine {
      * Works with P2D/P3D (JOGL) and JAVA2D renderers.
      * Call from {@code setup()} before any {@code surface.setResizable()} calls
      * to avoid JOGL EDT conflicts.
+     * <p>This method only works once per session; use {@link #recenterWindow()}
+     * to re-center after a resolution change.</p>
      */
     public void centerWindow() {
         if (nativeSurface == null) {
@@ -271,11 +376,66 @@ public class P5Engine {
         if (windowPositionApplied) {
             return;
         }
+        doCenterWindow();
+    }
+
+    /**
+     * Re-centers the window, ignoring the one-shot guard.
+     * Use this after resizing the window at runtime.
+     */
+    public void recenterWindow() {
+        if (nativeSurface == null) {
+            Logger.debug("recenterWindow: nativeSurface not available");
+            return;
+        }
+        windowPositionApplied = false;
+        doCenterWindow();
+    }
+
+    /**
+     * Re-centers the window using the specified dimensions.
+     * Use this when the window size has been changed but applet.width/height
+     * has not yet been updated (e.g. after a resolution switch).
+     */
+    public void recenterWindow(int width, int height) {
+        if (nativeSurface == null) {
+            Logger.debug("recenterWindow: nativeSurface not available");
+            return;
+        }
+        windowPositionApplied = false;
+        doCenterWindow(width, height);
+    }
+
+    /**
+     * Re-applies mouse confinement without moving the cursor.
+     * Call this after a window resize to refresh the confinement boundary.
+     * Uses disable-then-re-enable sequence (same as focus restore) to force
+     * NEWT to recalculate the ClipCursor rectangle with the new window size.
+     */
+    public void refreshMouseConfinement() {
+        if (!mouseConfinedEnabled || nativeSurface == null) return;
+        try {
+            java.lang.reflect.Method m = nativeSurface.getClass().getMethod("confinePointer", boolean.class);
+            // Disable then re-enable to force NEWT to recalculate the boundary
+            m.invoke(nativeSurface, false);
+            m.invoke(nativeSurface, true);
+            Logger.info("Mouse confinement refreshed after resize");
+        } catch (Exception e) {
+            Logger.debug("refreshMouseConfinement failed: " + e.getMessage());
+        }
+    }
+
+    private void doCenterWindow() {
+        doCenterWindow(
+            applet.width > 0 ? applet.width : config.getWidth(),
+            applet.height > 0 ? applet.height : config.getHeight()
+        );
+    }
+
+    private void doCenterWindow(int winW, int winH) {
         try {
             String clsName = nativeSurface.getClass().getName();
             boolean isJOGL = clsName.contains("newt") || clsName.contains("jogamp");
-            int winW = applet.width > 0 ? applet.width : config.getWidth();
-            int winH = applet.height > 0 ? applet.height : config.getHeight();
 
             if (isJOGL) {
                 java.lang.reflect.Method getScreen = nativeSurface.getClass().getMethod("getScreen");
@@ -340,6 +500,39 @@ public class P5Engine {
         } catch (Exception e) {
             Logger.debug("setWindowPosition failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Returns the current window position as {x, y}.
+     * Returns {-1, -1} if the position cannot be determined.
+     */
+    public int[] getWindowPosition() {
+        if (windowManager != null) {
+            return windowManager.getWindowPosition();
+        }
+        // Fallback: try nativeSurface directly if WindowManager not initialized yet
+        if (nativeSurface == null) {
+            return new int[]{-1, -1};
+        }
+        try {
+            String clsName = nativeSurface.getClass().getName();
+            boolean isJOGL = clsName.contains("newt") || clsName.contains("jogamp");
+            if (isJOGL) {
+                java.lang.reflect.Method getX = nativeSurface.getClass().getMethod("getX");
+                java.lang.reflect.Method getY = nativeSurface.getClass().getMethod("getY");
+                int x = (Integer) getX.invoke(nativeSurface);
+                int y = (Integer) getY.invoke(nativeSurface);
+                return new int[]{x, y};
+            } else {
+                Frame frame = getFrameFromSurface();
+                if (frame != null) {
+                    return new int[]{frame.getX(), frame.getY()};
+                }
+            }
+        } catch (Exception e) {
+            Logger.debug("getWindowPosition failed: " + e.getMessage());
+        }
+        return new int[]{-1, -1};
     }
 
     private void applyWindowPosition() {
@@ -565,6 +758,8 @@ public class P5Engine {
                 debugOverlay.toggleHud();
             } else if (code == java.awt.event.KeyEvent.VK_F5) {
                 Logger.cycleLevel();
+            } else if (code == java.awt.event.KeyEvent.VK_F11) {
+                if (windowManager != null) windowManager.toggleFullscreen();
             } else if (k == '.') {
                 boolean saveToFile = sketchConfig.isScreenshotToFile();
                 String outputDir = sketchConfig.getScreenshotDir();
@@ -810,6 +1005,32 @@ public class P5Engine {
 
     public void destroy() {
         Logger.info("P5Engine shutting down...");
+
+        // Save window state to p5engine.ini.
+        // If currently fullscreen, persist the *windowed* size/position so next
+        // launch starts in windowed mode (toggleFullscreen() will switch later).
+        // Only overwrite window size if user hasn't explicitly set one in this session
+        // (e.g. via the settings menu while in fullscreen).
+        if (windowManager != null && windowManager.isFullscreen()) {
+            int[] savedSize = windowManager.getSavedWindowSize();
+            int[] savedPos = windowManager.getSavedWindowPosition();
+            String currentW = sketchConfig.get(SketchConfig.SECTION_WINDOW_SIZE, SketchConfig.KEY_WIDTH);
+            if (currentW == null) {
+                if (savedSize[0] > 0 && savedSize[1] > 0) {
+                    sketchConfig.setWindowSize(savedSize[0], savedSize[1]);
+                }
+            }
+            if (savedPos[0] >= 0 && savedPos[1] >= 0) {
+                sketchConfig.setWindowPosition(savedPos[0], savedPos[1]);
+            }
+        } else {
+            sketchConfig.setWindowSize(applet.width, applet.height);
+            int[] pos = getWindowPosition();
+            if (pos[0] >= 0 && pos[1] >= 0) {
+                sketchConfig.setWindowPosition(pos[0], pos[1]);
+            }
+        }
+
         setMouseConfined(false);
         audioManager.shutdown();
         sceneManager.destroy();
@@ -961,6 +1182,10 @@ public class P5Engine {
             postProcessor = new shenyf.p5engine.rendering.PostProcessor();
         }
         return postProcessor;
+    }
+
+    public shenyf.p5engine.core.WindowManager getWindowManager() {
+        return windowManager;
     }
 
     /**

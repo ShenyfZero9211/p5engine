@@ -176,7 +176,7 @@
   subtitleKey: level.3.subtitle
   levelType: DEFEND_BASE
   initialMoney: 400
-  baseOrbs: 6
+  baseOrbs: 60
   enemyHpBase: 130
   worldWidth: 2000
   worldHeight: 1600
@@ -376,7 +376,7 @@
   nameKey: level.5.name
   subtitleKey: level.5.subtitle
   levelType: SURVIVAL
-  initialMoney: 9999
+  initialMoney: 9999999
   maxEscapeCount: 50
   enemyHpBase: 80
   worldWidth: 1600
@@ -403,19 +403,19 @@
     # Wave 2: fast swarm
     - delay: 2.0
       spawns:
-        - type: level1
+        - type: level2
           count: 10
           interval: 1.5
     # Wave 3: slow medium
     - delay: 2.0
       spawns:
-        - type: level1
+        - type: level3
           count: 5
           interval: 1.5
     # Wave 4: fast medium
     - delay: 2.0
       spawns:
-        - type: level2
+        - type: level4
           count: 5
           interval: 1.2
     # Wave 5: speedsters

@@ -73,3 +73,8 @@ examples/**/logs/
 examples/**/output/
 examples/**/save.json
 examples/**/settings.json
+
+# Processing CLI final build output
+examples/**/build_final/
+examples/**/_build_check/
+

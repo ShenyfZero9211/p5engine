@@ -412,7 +412,12 @@ static final class TdGameWorld {
     static boolean tryPlaceTower(TdBuildMode mode, int gx, int gy) {
         if (!canPlaceTower(gx, gy)) return false;
         TowerDef def = TdAssets.loadTowerDef(TowerType.fromBuildMode(mode));
-        if (def == null || money < def.cost) return false;
+        if (def == null || money < def.cost) {
+            if (def != null && TowerDefenseMin2.inst != null && TowerDefenseMin2.inst.hudBuildPanel != null) {
+                TowerDefenseMin2.inst.hudBuildPanel.flashButton(TowerType.fromBuildMode(mode));
+            }
+            return false;
+        }
         money -= def.cost;
         Tower t = new Tower(def, gx, gy);
         TdSaveData.incTowersBuilt();

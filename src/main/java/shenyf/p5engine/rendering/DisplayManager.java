@@ -1,5 +1,6 @@
 package shenyf.p5engine.rendering;
 
+import shenyf.p5engine.math.Rect;
 import shenyf.p5engine.math.Vector2;
 
 /**
@@ -160,5 +161,64 @@ public class DisplayManager {
     public void setScaleMode(ScaleMode mode) {
         this.scaleMode = mode;
         recalculate();
+    }
+
+    /**
+     * Returns the current uniform scale factor (minimum of scaleX and scaleY).
+     * This is the factor that maps design-resolution units to actual screen pixels.
+     */
+    public float getRenderScale() {
+        return uniformScale;
+    }
+
+    // ── SafeArea & WorldArea ──
+
+    /**
+     * Returns the safe area rectangle in screen pixels.
+     * This is the region where UI rendered with FIT scaling is visible.
+     * For NO_SCALE/STRETCH modes, this equals the full window.
+     */
+    public Rect getSafeAreaRect() {
+        switch (scaleMode) {
+            case FIT:
+                return new Rect(offsetX, offsetY,
+                    config.getDesignWidth() * uniformScale,
+                    config.getDesignHeight() * uniformScale);
+            case FILL:
+                return new Rect(offsetX, offsetY,
+                    config.getDesignWidth() * uniformScale,
+                    config.getDesignHeight() * uniformScale);
+            case NO_SCALE:
+            case STRETCH:
+            default:
+                return new Rect(0, 0, actualWidth, actualHeight);
+        }
+    }
+
+    /**
+     * Returns the full window area in screen pixels.
+     * This is where the world layer renders (no black bars).
+     */
+    public Rect getWorldAreaRect() {
+        return new Rect(0, 0, actualWidth, actualHeight);
+    }
+
+    /** Convert a screen pixel point to design-resolution coordinates. */
+    public Vector2 screenToDesign(Vector2 screenPos) {
+        return actualToDesign(screenPos);
+    }
+
+    /** Convert a design-resolution point to screen pixel coordinates. */
+    public Vector2 designToScreen(Vector2 designPos) {
+        return designToActual(designPos);
+    }
+
+    /**
+     * Returns true if scaling is active (i.e. scale mode is not NO_SCALE and
+     * the actual window size differs from the design resolution).
+     */
+    public boolean isScaleActive() {
+        return scaleMode != ScaleMode.NO_SCALE
+            && (actualWidth != getDesignWidth() || actualHeight != getDesignHeight());
     }
 }

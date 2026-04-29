@@ -23,11 +23,14 @@ static final class TdMenuBg {
 
     static void init() {
         if (initialized) return;
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        int dw = app.engine.getDisplayManager().getDesignWidth();
+        int dh = app.engine.getDisplayManager().getDesignHeight();
         java.util.Random rng = new java.util.Random(42);
         for (int i = 0; i < STAR_COUNT; i++) {
             stars.add(new Star(
-                rng.nextFloat() * 1280,
-                rng.nextFloat() * 720,
+                rng.nextFloat() * dw,
+                rng.nextFloat() * dh,
                 rng.nextFloat() * 2 + 0.5f,
                 rng.nextFloat() * 200 + 55
             ));
@@ -40,9 +43,13 @@ static final class TdMenuBg {
     }
 
     static void drawTitle(PApplet g, String title) {
-        // Animated position: center (360) -> final (120)
-        float startY = 360f;
-        float endY = 120f;
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        int dw = app.engine.getDisplayManager().getDesignWidth();
+        int dh = app.engine.getDisplayManager().getDesignHeight();
+        float cx = dw * 0.5f;
+        // Animated position: center (dh*0.5) -> final (dh*0.167)
+        float startY = dh * 0.5f;
+        float endY = dh * 0.167f;
         float curY = startY + (endY - startY) * titleProgress;
 
         // Animated alpha: 0 -> 255
@@ -59,19 +66,22 @@ static final class TdMenuBg {
 
         // Glow shadow
         g.fill(74, 158, 255, (int)(60 * titleProgress));
-        g.text(title, 642, curY + 2);
-        g.text(title, 638, curY - 2);
+        g.text(title, cx + 2, curY + 2);
+        g.text(title, cx - 2, curY - 2);
         // Main text
         g.fill(224, 230, 240, alpha);
-        g.text(title, 640, curY);
+        g.text(title, cx, curY);
         // Accent underline
         g.stroke(74, 158, 255, (int)(180 * titleProgress));
         g.strokeWeight(2);
-        g.line(640 - tw * 0.5f, curY + 32, 640 + tw * 0.5f, curY + 32);
+        g.line(cx - tw * 0.5f, curY + 32, cx + tw * 0.5f, curY + 32);
     }
 
     static void draw(PApplet g) {
         init();
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        int dw = app.engine.getDisplayManager().getDesignWidth();
+        int dh = app.engine.getDisplayManager().getDesignHeight();
 
         // Deep space background
         g.background(14, 18, 34);
@@ -89,21 +99,21 @@ static final class TdMenuBg {
         // Subtle perspective grid
         g.stroke(40, 60, 100, 40);
         g.strokeWeight(1);
-        float horizonY = 400;
+        float horizonY = dh * 0.556f;  // 400/720 ≈ 0.556
         // Horizontal lines
         for (int i = 0; i < 12; i++) {
             float y = horizonY + i * 35;
-            if (y > 720) break;
-            float alpha = PApplet.map(y, horizonY, 720, 30, 80);
+            if (y > dh) break;
+            float alpha = PApplet.map(y, horizonY, dh, 30, 80);
             g.stroke(40, 60, 100, (int)alpha);
-            g.line(0, y, 1280, y);
+            g.line(0, y, dw, y);
         }
         // Vertical perspective lines
-        float cx = 640;
+        float cx = dw * 0.5f;
         for (int i = -8; i <= 8; i++) {
             float x2 = cx + i * 120;
             g.stroke(40, 60, 100, 25);
-            g.line(cx, horizonY - 100, x2, 720);
+            g.line(cx, horizonY - 100, x2, dh);
         }
 
         // Subtle vignette (darken edges)
@@ -113,10 +123,10 @@ static final class TdMenuBg {
             int a = (int)(40 * (1 - t));
             g.fill(0, 0, 0, a);
             float margin = t * 200;
-            g.rect(0, 0, 1280, margin);
-            g.rect(0, 720 - margin, 1280, margin);
-            g.rect(0, 0, margin, 720);
-            g.rect(1280 - margin, 0, margin, 720);
+            g.rect(0, 0, dw, margin);
+            g.rect(0, dh - margin, dw, margin);
+            g.rect(0, 0, margin, dh);
+            g.rect(dw - margin, 0, margin, dh);
         }
     }
 }

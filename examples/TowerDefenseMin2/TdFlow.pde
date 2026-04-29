@@ -123,6 +123,7 @@ static final class TdFlow {
         win.setBounds(340, 300, 600, 360);
         win.setTitle(TdAssets.i18n("menu.title"));
         win.setMovable(false);
+        win.setResizable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -135,8 +136,8 @@ static final class TdFlow {
         int labelW = 80;
         int labelH = 20;
         int margin = 12;
-        int windowW = app.width;
-        int windowH = app.height;
+        int windowW = app.engine.getDisplayManager().getDesignWidth();
+        int windowH = app.engine.getDisplayManager().getDesignHeight();
         versionPanel.setBounds(windowW - labelW - margin, windowH - labelH - margin, labelW, labelH);
         versionPanel.fadeIn(0.6f);
         Label lblVersion = new Label("lbl_version");
@@ -175,7 +176,7 @@ static final class TdFlow {
         btnSettings.setLabel(TdAssets.i18n("menu.settings"));
         btnSettings.setBounds(180, 140, 240, 52);
         btnSettings.setAlpha(0);
-        btnSettings.setAction(() -> TdFlow.showSettings(app));
+        btnSettings.setAction(() -> TdFlow.showSettings(app, true));
         panel.add(btnSettings);
 
         Button btnQuit = new Button("btn_quit");
@@ -216,6 +217,7 @@ static final class TdFlow {
         Window win = new Window("level_win");
         win.setBounds(winX, winY, winW, winH);
         win.hideTitleBar();
+        win.setResizable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -264,7 +266,7 @@ static final class TdFlow {
         win.add(btnBack);
     }
 
-    static void showSettings(TowerDefenseMin2 app) {
+    static void showSettings(TowerDefenseMin2 app, boolean animated) {
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
@@ -274,6 +276,7 @@ static final class TdFlow {
         win.setBounds(340, 160, 600, 480);
         win.setTitle(TdAssets.i18n("settings.title"));
         win.setMovable(false);
+        win.setResizable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -294,7 +297,7 @@ static final class TdFlow {
         Label lblMaster = new Label("lbl_master");
         lblMaster.setText(TdAssets.i18n("settings.masterVolume"));
         lblMaster.setBounds(20, y, lblW, rowH);
-        lblMaster.appear(rowDelay);
+        if (animated) lblMaster.appear(rowDelay);
         panel.add(lblMaster);
 
         Slider sldMaster = new Slider("sld_master");
@@ -304,7 +307,7 @@ static final class TdFlow {
             TdAssets.setMasterVolume(sldMaster.getValue());
             TdSaveData.setMasterVolume(sldMaster.getValue());
         });
-        sldMaster.appear(rowDelay + 0.03f);
+        if (animated) sldMaster.appear(rowDelay + 0.03f);
         panel.add(sldMaster);
         y += rowH + 12;
         rowDelay += rowDelayStep;
@@ -313,7 +316,7 @@ static final class TdFlow {
         Label lblBgm = new Label("lbl_bgm");
         lblBgm.setText(TdAssets.i18n("settings.bgmVolume"));
         lblBgm.setBounds(20, y, lblW, rowH);
-        lblBgm.appear(rowDelay);
+        if (animated) lblBgm.appear(rowDelay);
         panel.add(lblBgm);
 
         Slider sldBgm = new Slider("sld_bgm");
@@ -325,7 +328,7 @@ static final class TdFlow {
             TdAssets.setBgmVolume(sldBgm.getValue());
             TdSaveData.setBgmVolume(sldBgm.getValue());
         });
-        sldBgm.appear(rowDelay + 0.03f);
+        if (animated) sldBgm.appear(rowDelay + 0.03f);
         panel.add(sldBgm);
         y += rowH + 12;
         rowDelay += rowDelayStep;
@@ -334,7 +337,7 @@ static final class TdFlow {
         Label lblSfx = new Label("lbl_sfx");
         lblSfx.setText(TdAssets.i18n("settings.sfxVolume"));
         lblSfx.setBounds(20, y, lblW, rowH);
-        lblSfx.appear(rowDelay);
+        if (animated) lblSfx.appear(rowDelay);
         panel.add(lblSfx);
 
         Slider sldSfx = new Slider("sld_sfx");
@@ -346,8 +349,31 @@ static final class TdFlow {
             TdAssets.setSfxVolume(sldSfx.getValue());
             TdSaveData.setSfxVolume(sldSfx.getValue());
         });
-        sldSfx.appear(rowDelay + 0.03f);
+        if (animated) sldSfx.appear(rowDelay + 0.03f);
         panel.add(sldSfx);
+        y += rowH + 20;
+        rowDelay += rowDelayStep;
+
+        // Fullscreen toggle
+        Label lblFullscreen = new Label("lbl_fullscreen");
+        lblFullscreen.setText(TdAssets.i18n("settings.fullscreen"));
+        lblFullscreen.setBounds(20, y, lblW, rowH);
+        if (animated) lblFullscreen.appear(rowDelay);
+        panel.add(lblFullscreen);
+
+        Button btnFullscreenToggle = new Button("btn_fullscreen_toggle");
+        btnFullscreenToggle.setLabel(TdSaveData.isFullscreen() ? "ON" : "OFF");
+        btnFullscreenToggle.setBounds(ctrlX, y, 80, rowH);
+        if (animated) btnFullscreenToggle.appear(rowDelay + 0.03f);
+        panel.add(btnFullscreenToggle);
+
+        Label lblFullscreenHint = new Label("lbl_fullscreen_hint");
+        lblFullscreenHint.setText("全屏选项修改后需要重启应用！");
+        lblFullscreenHint.setBounds(ctrlX + 90, y, 300, rowH);
+        lblFullscreenHint.setTextColor(0xFFFF5555);
+        lblFullscreenHint.setVisible(TdSaveData.isFullscreen() != TdSaveData.startupFullscreen);
+        if (animated) lblFullscreenHint.appear(rowDelay + 0.03f);
+        panel.add(lblFullscreenHint);
         y += rowH + 20;
         rowDelay += rowDelayStep;
 
@@ -355,29 +381,120 @@ static final class TdFlow {
         Label lblRes = new Label("lbl_res");
         lblRes.setText(TdAssets.i18n("settings.resolution"));
         lblRes.setBounds(20, y, lblW, rowH);
-        lblRes.appear(rowDelay);
+        if (animated) lblRes.appear(rowDelay);
         panel.add(lblRes);
 
-        int[][] resOptions = { {1280, 720}, {1600, 900}, {1920, 1080} };
-        int bx = ctrlX;
-        for (int[] res : resOptions) {
-            final int rw = res[0];
-            final int rh = res[1];
-            Button btnRes = new Button("btn_res_" + rw);
-            btnRes.setLabel(rw + "x" + rh);
-            btnRes.setBounds(bx, y, 80, rowH);
-            btnRes.setAction(() -> {
-                app.surface.setSize(rw, rh);
-                app.engine.getDisplayManager().onWindowResize(rw, rh);
-                app.worldWindow.setBounds(0, TdConfig.TOP_HUD, rw - TdConfig.RIGHT_W, rh - TdConfig.TOP_HUD);
-                app.worldViewport.setBounds(1, 1, app.worldWindow.getWidth() - 2, app.worldWindow.getHeight() - 2);
-                app.camera.setViewportSize(app.worldWindow.getWidth() - 2, app.worldWindow.getHeight() - 2);
-                app.camera.setViewportOffset(app.worldWindow.getAbsoluteX() + 1, app.worldWindow.getAbsoluteY() + 1);
-            });
-            btnRes.appear(rowDelay + 0.03f + (bx - ctrlX) / 90f * 0.03f);
-            panel.add(btnRes);
-            bx += 90;
+        // Resolution dropdown (3A-game style combo box)
+        int[] screenSize = shenyf.p5engine.core.WindowManager.getScreenSize();
+        int screenW = screenSize[0];
+        int screenH = screenSize[1];
+        final java.util.List allRes = shenyf.p5engine.core.WindowManager.listAvailableResolutions();
+        // Filter out resolutions larger than the physical screen (windowed mode limitation)
+        final java.util.ArrayList filteredRes = new java.util.ArrayList();
+        for (int i = 0; i < allRes.size(); i++) {
+            shenyf.p5engine.rendering.ResolutionInfo info =
+                (shenyf.p5engine.rendering.ResolutionInfo) allRes.get(i);
+            if (info.width <= screenW && info.height <= screenH) {
+                filteredRes.add(info);
+            }
         }
+        final java.util.List resList = filteredRes;
+
+        Dropdown ddRes = new Dropdown("dd_res");
+        ddRes.setBounds(ctrlX, y, 220, rowH);
+        for (int i = 0; i < resList.size(); i++) {
+            shenyf.p5engine.rendering.ResolutionInfo info =
+                (shenyf.p5engine.rendering.ResolutionInfo) resList.get(i);
+            ddRes.addItem(info.getLabel());
+        }
+        // Select current resolution
+        int currentIdx = -1;
+        for (int i = 0; i < resList.size(); i++) {
+            shenyf.p5engine.rendering.ResolutionInfo info =
+                (shenyf.p5engine.rendering.ResolutionInfo) resList.get(i);
+            if (info.width == app.width && info.height == app.height) {
+                currentIdx = i;
+                break;
+            }
+        }
+        ddRes.setSelectedIndex(currentIdx);
+        ddRes.setEnabled(!TdSaveData.isFullscreen());
+        ddRes.setOnSelect(() -> {
+            int idx = ddRes.getSelectedIndex();
+            if (idx < 0 || idx >= resList.size()) return;
+            shenyf.p5engine.rendering.ResolutionInfo info =
+                (shenyf.p5engine.rendering.ResolutionInfo) resList.get(idx);
+            int targetW = info.width;
+            int targetH = info.height;
+            // Clamp to screen size just in case
+            targetW = Math.min(targetW, screenW);
+            targetH = Math.min(targetH, screenH);
+            // Always persist to p5engine.ini so it takes effect on next launch
+            String p5ini = app.sketchPath("p5engine.ini");
+            shenyf.p5engine.config.SketchConfig p5cfg =
+                new shenyf.p5engine.config.SketchConfig(p5ini);
+            p5cfg.setWindowSize(targetW, targetH);
+            // Sync to engine's sketchConfig so destroy() doesn't overwrite it
+            if (app.engine != null) {
+                app.engine.getSketchConfig().setWindowSize(targetW, targetH);
+            }
+            // Only apply immediately if currently in windowed mode
+            if (app.engine.getWindowManager() != null && !app.engine.getWindowManager().isFullscreen()) {
+                app.engine.getWindowManager().setWindowSize(targetW, targetH);
+                app.engine.recenterWindow(targetW, targetH);
+                // Delay re-applying mouse confinement so NEWT has time to process setSize
+                java.util.Timer t = new java.util.Timer();
+                t.schedule(new java.util.TimerTask() {
+                    public void run() {
+                        t.cancel();
+                        app.engine.refreshMouseConfinement();
+                    }
+                }, 150);
+                app.engine.getDisplayManager().onWindowResize(targetW, targetH);
+                if (app.camera != null) {
+                    app.camera.setViewportSize(targetW, targetH);
+                    app.camera.setViewportOffset(0, 0);
+                }
+            }
+        });
+        if (animated) ddRes.appear(rowDelay + 0.03f);
+        panel.add(ddRes);
+
+        // Link fullscreen button action to resolution dropdown state
+        btnFullscreenToggle.setAction(() -> {
+            boolean next = !TdSaveData.isFullscreen();
+            TdSaveData.setFullscreen(next);
+            btnFullscreenToggle.setLabel(next ? "ON" : "OFF");
+            ddRes.setEnabled(!next);
+            lblFullscreenHint.setVisible(next != TdSaveData.startupFullscreen);
+            if (next) {
+                // Fullscreen: select screen resolution
+                for (int i = 0; i < resList.size(); i++) {
+                    shenyf.p5engine.rendering.ResolutionInfo info =
+                        (shenyf.p5engine.rendering.ResolutionInfo) resList.get(i);
+                    if (info.width == screenW && info.height == screenH) {
+                        ddRes.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            } else {
+                // Windowed: restore saved window resolution from p5engine.ini
+                String p5ini = app.sketchPath("p5engine.ini");
+                shenyf.p5engine.config.SketchConfig p5cfgFile = new shenyf.p5engine.config.SketchConfig(p5ini);
+                String savedW = p5cfgFile.get("window_size", "width");
+                String savedH = p5cfgFile.get("window_size", "height");
+                int targetW = savedW != null ? Integer.parseInt(savedW) : 1280;
+                int targetH = savedH != null ? Integer.parseInt(savedH) : 720;
+                for (int i = 0; i < resList.size(); i++) {
+                    shenyf.p5engine.rendering.ResolutionInfo info =
+                        (shenyf.p5engine.rendering.ResolutionInfo) resList.get(i);
+                    if (info.width == targetW && info.height == targetH) {
+                        ddRes.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+        });
         y += rowH + 20;
         rowDelay += rowDelayStep;
 
@@ -385,7 +502,7 @@ static final class TdFlow {
         Label lblLang = new Label("lbl_lang");
         lblLang.setText(TdAssets.i18n("settings.language"));
         lblLang.setBounds(20, y, lblW, rowH);
-        lblLang.appear(rowDelay);
+        if (animated) lblLang.appear(rowDelay);
         panel.add(lblLang);
 
         Button btnZh = new Button("btn_zh");
@@ -394,9 +511,9 @@ static final class TdFlow {
         btnZh.setAction(() -> {
             app.engine.getI18n().setLocale("zh");
             TdSaveData.setLanguage("zh");
-            TdFlow.showSettings(app);
+            TdFlow.showSettings(app, false);
         });
-        btnZh.appear(rowDelay + 0.03f);
+        if (animated) btnZh.appear(rowDelay + 0.03f);
         panel.add(btnZh);
 
         Button btnEn = new Button("btn_en");
@@ -405,9 +522,9 @@ static final class TdFlow {
         btnEn.setAction(() -> {
             app.engine.getI18n().setLocale("en");
             TdSaveData.setLanguage("en");
-            TdFlow.showSettings(app);
+            TdFlow.showSettings(app, false);
         });
-        btnEn.appear(rowDelay + 0.06f);
+        if (animated) btnEn.appear(rowDelay + 0.06f);
         panel.add(btnEn);
         y += rowH + 20;
         rowDelay += rowDelayStep;
@@ -416,17 +533,18 @@ static final class TdFlow {
         Label lblZoom = new Label("lbl_zoom");
         lblZoom.setText(TdAssets.i18n("settings.zoomAtMouse"));
         lblZoom.setBounds(20, y, lblW, rowH);
-        lblZoom.appear(rowDelay);
+        if (animated) lblZoom.appear(rowDelay);
         panel.add(lblZoom);
 
         Button btnZoomToggle = new Button("btn_zoom_toggle");
         btnZoomToggle.setLabel(TdSaveData.isZoomAtMouse() ? "ON" : "OFF");
         btnZoomToggle.setBounds(ctrlX, y, 80, rowH);
         btnZoomToggle.setAction(() -> {
-            TdSaveData.setZoomAtMouse(!TdSaveData.isZoomAtMouse());
-            TdFlow.showSettings(app);
+            boolean next = !TdSaveData.isZoomAtMouse();
+            TdSaveData.setZoomAtMouse(next);
+            btnZoomToggle.setLabel(next ? "ON" : "OFF");
         });
-        btnZoomToggle.appear(rowDelay + 0.03f);
+        if (animated) btnZoomToggle.appear(rowDelay + 0.03f);
         panel.add(btnZoomToggle);
         y += rowH + 30;
         rowDelay += rowDelayStep;
@@ -462,6 +580,7 @@ static final class TdFlow {
         win.setBounds(390, 260, 500, 240);
         win.setTitle(TdAssets.i18n("game.win"));
         win.setMovable(false);
+        win.setResizable(false);
         win.setZOrder(20);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -532,6 +651,7 @@ static final class TdFlow {
         win.setBounds(440, 260, 400, 240);
         win.setTitle(TdAssets.i18n("game.pause"));
         win.setMovable(false);
+        win.setResizable(false);
         win.setZOrder(51);
         win.setPaintBackground(false);
         win.fadeIn(0f);
@@ -597,6 +717,7 @@ static final class TdFlow {
         win.setBounds(390, 260, 500, 240);
         win.setTitle(TdAssets.i18n("game.lose"));
         win.setMovable(false);
+        win.setResizable(false);
         win.setZOrder(20);
         win.setPaintBackground(false);
         win.fadeIn(0f);

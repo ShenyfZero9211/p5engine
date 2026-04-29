@@ -45,30 +45,52 @@ static class Tower {
     }
 
     Enemy findTarget() {
-        Enemy best = null;
-        float bestRemaining = Float.MAX_VALUE;
+        // Phase 1: per-route best threat in range
+        java.util.HashMap<String, Enemy> routeBest = new java.util.HashMap<>();
         Vector2 towerPos = new Vector2(worldX, worldY);
         for (Enemy e : TdGameWorld.enemies) {
             if (e.hp <= 0) continue;
             float d = e.pos.distance(towerPos);
-            if (d <= def.range) {
-                float rem = remainingDist(e);
-                if (rem < bestRemaining) {
-                    bestRemaining = rem;
-                    best = e;
-                }
+            if (d > def.range) continue;
+            float score = getThreatScore(e);
+            String routeId = (e.activeRoute != null) ? e.activeRoute.id : "";
+            Enemy current = routeBest.get(routeId);
+            if (current == null || score < getThreatScore(current)) {
+                routeBest.put(routeId, e);
+            }
+        }
+        // Phase 2: pick globally most dangerous among route representatives
+        Enemy best = null;
+        float bestScore = Float.MAX_VALUE;
+        for (Enemy e : routeBest.values()) {
+            float score = getThreatScore(e);
+            if (score < bestScore) {
+                bestScore = score;
+                best = e;
             }
         }
         return best;
     }
 
-    static float remainingDist(Enemy e) {
-        if (e.activeRoute == null) return Float.MAX_VALUE;
+    /**
+     * Threat score: lower = more dangerous.
+     * State-tier priority ensures FLEE always outranks MOVE_TO_BASE,
+     * regardless of raw remaining distance.
+     */
+    static float getThreatScore(Enemy e) {
+        if (e.activeRoute == null || e.hp <= 0) return Float.MAX_VALUE;
         PathRoute r = e.activeRoute;
-        if (r.type == RouteType.INBOUND) {
-            return r.baseDistance - e.routeProgress;
-        } else {
-            return r.path.getTotalLength() - e.routeProgress;
+        switch (e.state) {
+            case STEAL:
+                return 0;
+            case FLEE:
+                // Tier 1000: any FLEE is more dangerous than any MOVE_TO_BASE
+                return 1000f + (r.path.getTotalLength() - e.routeProgress);
+            case MOVE_TO_BASE:
+                // Tier 10000: lowest priority
+                return 10000f + (r.baseDistance - e.routeProgress);
+            default:
+                return Float.MAX_VALUE;
         }
     }
 

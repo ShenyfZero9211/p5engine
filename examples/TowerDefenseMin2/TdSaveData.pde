@@ -5,6 +5,7 @@
 static final class TdSaveData {
 
     static shenyf.p5engine.config.SketchConfig cfg;
+    static boolean startupFullscreen;
 
     static void load(PApplet app) {
         String path = app.sketchPath("TowerDefenseMin2.ini");
@@ -14,6 +15,7 @@ static final class TdSaveData {
             try { f.createNewFile(); } catch (Exception e) {}
         }
         cfg = new shenyf.p5engine.config.SketchConfig(path);
+        startupFullscreen = isFullscreen();
 
         if (firstRun) {
             // Initialize all defaults on first launch
@@ -27,6 +29,7 @@ static final class TdSaveData {
             cfg.set("audio", "sfxVolume", "1.0");
             cfg.set("ui", "language", "zh");
             cfg.set("camera", "zoomAtMouse", false);
+            cfg.set("display", "fullscreen", false);
             cfg.save();
         }
     }
@@ -68,6 +71,9 @@ static final class TdSaveData {
     static void setBgmVolume(float v)    { cfg.set("audio", "bgmVolume", String.valueOf(v)); }
     static void setSfxVolume(float v)    { cfg.set("audio", "sfxVolume", String.valueOf(v)); }
     static void setLanguage(String v)    { cfg.set("ui", "language", v); }
+
+    static boolean isFullscreen() { return cfg.getBoolean("display", "fullscreen", false); }
+    static void setFullscreen(boolean v) { cfg.set("display", "fullscreen", v); }
 
     static void saveSettings() {
         if (cfg != null) cfg.save();

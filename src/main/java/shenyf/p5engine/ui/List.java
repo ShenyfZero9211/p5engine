@@ -55,7 +55,7 @@ public class List extends UIComponent {
 
     @Override
     public void update(PApplet applet, float dt) {
-        hover = isEnabled() && isVisible() && containsPoint(applet.mouseX, applet.mouseY);
+        hover = isEnabled() && isVisible() && containsPoint(UIManager.getDesignMouseX(), UIManager.getDesignMouseY());
     }
 
     @Override

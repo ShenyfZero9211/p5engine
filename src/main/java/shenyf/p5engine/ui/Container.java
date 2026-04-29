@@ -168,7 +168,7 @@ public class Container extends UIComponent {
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
-        for (UIComponent c : children) {
+        for (UIComponent c : new ArrayList<>(children)) {
             if (c.isVisible()) {
                 c.update(applet, dt);
             }

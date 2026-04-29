@@ -6,6 +6,7 @@ public class Label extends UIComponent {
 
     private String text = "";
     private int textAlign = PApplet.LEFT;
+    private int textColor = -1;
     private String i18nKey;
     private Object[] i18nArgs;
     private Runnable localeListener;
@@ -62,6 +63,14 @@ public class Label extends UIComponent {
         this.textAlign = textAlign;
     }
 
+    public void setTextColor(int color) {
+        this.textColor = color;
+    }
+
+    public int getTextColor() {
+        return textColor;
+    }
+
     @Override
     public void measure(PApplet applet) {
         applet.pushStyle();
@@ -74,7 +83,31 @@ public class Label extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
-        theme.setCurrentAlpha(getEffectiveAlpha());
-        theme.drawLabel(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);
+        if (textColor != -1) {
+            float alpha = getEffectiveAlpha();
+            int c = textColor;
+            if (alpha < 1f) {
+                int origA = (c >>> 24) & 0xFF;
+                int newA = Math.round(origA * alpha);
+                c = (newA << 24) | (c & 0x00FFFFFF);
+            }
+            applet.fill(c);
+            applet.noStroke();
+            applet.textSize(Math.min(14, getHeight() * 0.5f));
+            float tx;
+            if (textAlign == PApplet.CENTER) {
+                tx = getAbsoluteX() + getWidth() * 0.5f;
+            } else if (textAlign == PApplet.RIGHT) {
+                tx = getAbsoluteX() + getWidth() - 4;
+            } else {
+                tx = getAbsoluteX() + 4;
+            }
+            applet.textAlign(textAlign, PApplet.BASELINE);
+            float ty = getAbsoluteY() + getHeight() * 0.5f + (applet.textAscent() - applet.textDescent()) * 0.5f;
+            applet.text(text != null ? text : "", tx, ty);
+        } else {
+            theme.setCurrentAlpha(getEffectiveAlpha());
+            theme.drawLabel(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);
+        }
     }
 }

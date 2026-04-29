@@ -9,6 +9,8 @@ static class TowerButton extends Button {
     TowerType towerType;
     String initial;
     String hotkey;
+    float flashTimer = 0;
+    static final float FLASH_DURATION = 0.6f;
 
     TowerButton(String id, TowerType type, String initial, String hotkey) {
         super(id);
@@ -16,6 +18,10 @@ static class TowerButton extends Button {
         this.initial = initial;
         this.hotkey = hotkey;
         setSize(TdConfig.RIGHT_W - 16, 56);
+    }
+
+    void flash() {
+        flashTimer = FLASH_DURATION;
     }
 
     @Override
@@ -113,15 +119,29 @@ static class TowerButton extends Button {
             applet.text("$" + def.cost, iconX + iconSize + 10, getAbsoluteY() + getHeight() * 0.7f);
         }
 
+        // Affordability overlay: dim when money is insufficient
+        boolean canAfford = (def != null && TdGameWorld.money >= def.cost);
+        if (!canAfford) {
+            float dimAlpha = 100;
+            if (flashTimer > 0) {
+                float t = flashTimer / FLASH_DURATION;
+                float pulse = (PApplet.sin(flashTimer * 20) + 1) * 0.5f;
+                dimAlpha = 80 + pulse * 120 * t;
+            }
+            applet.noStroke();
+            applet.fill(40, 42, 50, dimAlpha);
+            applet.rect(getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+        }
+
         applet.popMatrix();
     }
 
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
-        TowerDef def = TdAssets.loadTowerDef(towerType);
-        if (def != null) {
-            setEnabled(TdGameWorld.money >= def.cost);
+        if (flashTimer > 0) {
+            flashTimer -= dt;
+            if (flashTimer < 0) flashTimer = 0;
         }
     }
 
@@ -410,6 +430,18 @@ static class TdBuildPanel extends Panel {
         rebuildButtons();
     }
 
+    void flashButton(TowerType type) {
+        for (UIComponent c : getChildren()) {
+            if (c instanceof TowerButton) {
+                TowerButton b = (TowerButton) c;
+                if (b.towerType == type) {
+                    b.flash();
+                    return;
+                }
+            }
+        }
+    }
+
     void rebuildButtons() {
         removeAllChildren();
 
@@ -427,13 +459,18 @@ static class TdBuildPanel extends Panel {
 
             final TdBuildMode mode = TowerType.toBuildMode(tt);
             String[] hotkeys = { "Q", "W", "E", "R" };
-            TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i], hotkeys[i]);
+            final TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i], hotkeys[i]);
             btn.setPosition(8, by);
             btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
             btn.setAction(() -> {
                 TowerDefenseMin2 app = TowerDefenseMin2.inst;
-                app.closeSellMenu();
-                app.buildMode = mode;
+                TdAppUtils.closeSellMenu(app);
+                TowerDef def = TdAssets.loadTowerDef(tt);
+                if (def != null && TdGameWorld.money >= def.cost) {
+                    app.buildMode = mode;
+                } else {
+                    btn.flash();
+                }
             });
             add(btn);
             by += 56 + 8;
@@ -445,7 +482,7 @@ static class TdBuildPanel extends Panel {
         btnCancel.setBounds(8, by, TdConfig.RIGHT_W - 16, 32);
         btnCancel.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
-            app.closeSellMenu();
+            TdAppUtils.closeSellMenu(app);
             app.buildMode = TdBuildMode.NONE;
         });
         add(btnCancel);

@@ -16,6 +16,7 @@ public class SketchConfig {
     public static final String SECTION_P5ENGINE = "p5engine";
     public static final String SECTION_WINDOW = "window";
     public static final String SECTION_WINDOW_SIZE = "window_size";
+    public static final String SECTION_WINDOW_POSITION = "window_position";
     public static final String SECTION_CACHE = "cache";
     public static final String SECTION_SCRIPT = "script";
 
@@ -26,6 +27,8 @@ public class SketchConfig {
     public static final String KEY_SINGLE_INSTANCE = "single_instance";
     public static final String KEY_WIDTH = "width";
     public static final String KEY_HEIGHT = "height";
+    public static final String KEY_POS_X = "x";
+    public static final String KEY_POS_Y = "y";
     public static final String KEY_TITLE = "title";
     public static final String KEY_MEMORY_MB = "memory_mb";
     public static final String KEY_CACHE_ENABLED = "enabled";
@@ -185,6 +188,20 @@ public class SketchConfig {
     public void setWindowSize(int width, int height) {
         set(SECTION_WINDOW_SIZE, KEY_WIDTH, width);
         set(SECTION_WINDOW_SIZE, KEY_HEIGHT, height);
+        save();
+    }
+
+    public int getWindowX() {
+        return getInt(SECTION_WINDOW_POSITION, KEY_POS_X, -1);
+    }
+
+    public int getWindowY() {
+        return getInt(SECTION_WINDOW_POSITION, KEY_POS_Y, -1);
+    }
+
+    public void setWindowPosition(int x, int y) {
+        set(SECTION_WINDOW_POSITION, KEY_POS_X, x);
+        set(SECTION_WINDOW_POSITION, KEY_POS_Y, y);
         save();
     }
 

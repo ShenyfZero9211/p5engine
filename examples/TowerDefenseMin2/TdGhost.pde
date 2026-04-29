@@ -26,7 +26,7 @@ static final class TdGhost {
             return;
         }
         // Don't show ghost tower preview when mouse is over HUD, but keep ghostGo active for restriction overlay
-        if (app.isMouseOverHud()) {
+        if (TdAppUtils.isMouseOverHud(app)) {
             isValid = false;
             ensureGameObject(app);
             return;

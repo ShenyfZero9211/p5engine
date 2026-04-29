@@ -108,6 +108,46 @@ public abstract class WorldViewport extends Panel {
     }
 
     /**
+     * Render this viewport directly to the screen at the given pixel coordinates,
+     * bypassing any UI-level scaling transforms.
+     *
+     * <p>Use this for layered rendering where the world layer draws at 1:1 screen
+     * pixels and the UI layer draws separately with FIT scaling.</p>
+     *
+     * @param applet   the PApplet to draw into
+     * @param screenX  screen X coordinate (actual pixels)
+     * @param screenY  screen Y coordinate (actual pixels)
+     * @param screenW  width in actual screen pixels
+     * @param screenH  height in actual screen pixels
+     */
+    public void renderDirect(PApplet applet, float screenX, float screenY, float screenW, float screenH) {
+        if (scene == null || !scene.isRunning()) {
+            return;
+        }
+
+        int w = Math.max(1, (int) screenW);
+        int h = Math.max(1, (int) screenH);
+
+        Camera2D cam = (camera != null) ? camera : scene.getCamera();
+        Logger.debug("WorldViewport", String.format("renderDirect id=%s screen=%.0fx%.0f@(%.0f,%.0f) buffer=%dx%d",
+            getId(), screenW, screenH, screenX, screenY, w, h));
+
+        ensureBuffer(applet, w, h);
+
+        buffer.beginDraw();
+        buffer.background(bgColor);
+        renderContent(buffer, w, h, cam, scene);
+        buffer.endDraw();
+
+        applet.pushStyle();
+        try {
+            applet.image(buffer, screenX, screenY);
+        } finally {
+            applet.popStyle();
+        }
+    }
+
+    /**
      * Subclasses implement this to draw into the provided buffer.
      * The buffer has already been cleared to {@link #bgColor}.
      *
@@ -119,7 +159,11 @@ public abstract class WorldViewport extends Panel {
      */
     protected abstract void renderContent(PGraphics buffer, int w, int h, Camera2D camera, Scene scene);
 
+    private static final int MAX_BUFFER_DIM = 4096;
+
     private void ensureBuffer(PApplet applet, int w, int h) {
+        w = Math.min(Math.max(1, w), MAX_BUFFER_DIM);
+        h = Math.min(Math.max(1, h), MAX_BUFFER_DIM);
         if (buffer == null || buffer.width != w || buffer.height != h) {
             buffer = applet.createGraphics(w, h, PApplet.P2D);
         }
