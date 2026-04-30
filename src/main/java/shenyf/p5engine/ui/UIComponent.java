@@ -18,6 +18,21 @@ public abstract class UIComponent {
     private Object layoutConstraint;
     private boolean layoutDirty = true;
 
+    // Anchor constraints for adaptive layout (bitmask)
+    public static final int ANCHOR_TOP = 1;
+    public static final int ANCHOR_BOTTOM = 2;
+    public static final int ANCHOR_LEFT = 4;
+    public static final int ANCHOR_RIGHT = 8;
+    public static final int ANCHOR_HCENTER = 16;
+    public static final int ANCHOR_VCENTER = 32;
+    private int anchor = 0;
+
+    // Original design-space bounds for anchor calculations (set once on first setBounds)
+    private float anchorBaseX = Float.NaN;
+    private float anchorBaseY = Float.NaN;
+    private float anchorBaseW = Float.NaN;
+    private float anchorBaseH = Float.NaN;
+
     // Fade-in animation state
     private boolean fadeInPending = false;
     private float fadeInDelay = 0f;
@@ -83,8 +98,29 @@ public abstract class UIComponent {
     }
 
     public void setBounds(float x, float y, float w, float h) {
+        if (Float.isNaN(anchorBaseX)) anchorBaseX = x;
+        if (Float.isNaN(anchorBaseY)) anchorBaseY = y;
+        if (Float.isNaN(anchorBaseW)) anchorBaseW = w;
+        if (Float.isNaN(anchorBaseH)) anchorBaseH = h;
         setPosition(x, y);
         setSize(w, h);
+    }
+
+    public float getAnchorBaseX() { return Float.isNaN(anchorBaseX) ? x : anchorBaseX; }
+    public float getAnchorBaseY() { return Float.isNaN(anchorBaseY) ? y : anchorBaseY; }
+    public float getAnchorBaseWidth() { return Float.isNaN(anchorBaseW) ? width : anchorBaseW; }
+    public float getAnchorBaseHeight() { return Float.isNaN(anchorBaseH) ? height : anchorBaseH; }
+
+    public void setAnchor(int anchor) {
+        this.anchor = anchor;
+    }
+
+    public int getAnchor() {
+        return anchor;
+    }
+
+    public boolean hasAnchor(int flag) {
+        return (anchor & flag) != 0;
     }
 
     public boolean isVisible() {

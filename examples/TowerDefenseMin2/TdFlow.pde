@@ -120,7 +120,8 @@ static final class TdFlow {
         tm.setUseUnscaledTime(true);
 
         Window win = new Window("menu_win");
-        win.setBounds(340, 300, 600, 360);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 600, 360);
         win.setTitle(TdAssets.i18n("menu.title"));
         win.setMovable(false);
         win.setResizable(false);
@@ -136,9 +137,10 @@ static final class TdFlow {
         int labelW = 80;
         int labelH = 20;
         int margin = 12;
-        int windowW = app.engine.getDisplayManager().getDesignWidth();
-        int windowH = app.engine.getDisplayManager().getDesignHeight();
-        versionPanel.setBounds(windowW - labelW - margin, windowH - labelH - margin, labelW, labelH);
+        DisplayManager dm = app.engine.getDisplayManager();
+        float fullH = dm.getActualHeight() / dm.getUniformScale();
+        versionPanel.setAnchor(UIComponent.ANCHOR_RIGHT);
+        versionPanel.setBounds(0, fullH - labelH - margin, labelW, labelH);
         versionPanel.fadeIn(0.6f);
         Label lblVersion = new Label("lbl_version");
         lblVersion.setText(app.GAME_VERSION);
@@ -167,34 +169,34 @@ static final class TdFlow {
         // Buttons start below their final position (keep existing staggered animation)
         Button btnStart = new Button("btn_start");
         btnStart.setLabel(TdAssets.i18n("menu.start"));
-        btnStart.setBounds(180, 70, 240, 52);
+        btnStart.setBounds(180, 180, 240, 52);
         btnStart.setAlpha(0);
         btnStart.setAction(() -> TdFlow.showLevelSelect(app));
         panel.add(btnStart);
 
         Button btnSettings = new Button("btn_settings");
         btnSettings.setLabel(TdAssets.i18n("menu.settings"));
-        btnSettings.setBounds(180, 140, 240, 52);
+        btnSettings.setBounds(180, 250, 240, 52);
         btnSettings.setAlpha(0);
         btnSettings.setAction(() -> TdFlow.showSettings(app, true));
         panel.add(btnSettings);
 
         Button btnQuit = new Button("btn_quit");
         btnQuit.setLabel(TdAssets.i18n("menu.quit"));
-        btnQuit.setBounds(180, 210, 240, 52);
+        btnQuit.setBounds(180, 320, 240, 52);
         btnQuit.setAlpha(0);
         btnQuit.setAction(() -> app.exit());
         panel.add(btnQuit);
 
         // Staggered slide-up + fade-in (start after title begins moving)
         float btnDelay = 0.3f;
-        tm.toY(btnStart, 40, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+        tm.toY(btnStart, 150, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
         tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
 
-        tm.toY(btnSettings, 110, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+        tm.toY(btnSettings, 220, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
         tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
 
-        tm.toY(btnQuit, 180, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
+        tm.toY(btnQuit, 290, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
         tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
 
         // println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
@@ -204,18 +206,16 @@ static final class TdFlow {
     }
 
     static void showLevelSelect(TowerDefenseMin2 app) {
+        app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
         // Centered level select window, no title bar, no background
-        int winW = 640;
-        int winH = 400;
-        int winX = (1280 - winW) / 2;
-        int winY = (720 - winH) / 2;
         Window win = new Window("level_win");
-        win.setBounds(winX, winY, winW, winH);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 640, 400);
         win.hideTitleBar();
         win.setResizable(false);
         win.setZOrder(10);
@@ -233,11 +233,11 @@ static final class TdFlow {
         int gridW = cols * btnW + (cols - 1) * hgap;
         int gridH = rows * btnH + (rows - 1) * vgap;
         int panelH = 320;
-        int startX = (winW - gridW) / 2;
+        int startX = (640 - gridW) / 2;
         int startY = (panelH - gridH) / 2;
 
         Panel panel = new Panel("level_panel");
-        panel.setBounds(0, 0, winW, panelH);
+        panel.setBounds(0, 0, 640, panelH);
         panel.setPaintBackground(false);
         panel.fadeIn(0f);
         win.add(panel);
@@ -260,20 +260,22 @@ static final class TdFlow {
         // Back button centered below the level grid
         Button btnBack = new Button("btn_back");
         btnBack.setLabel(TdAssets.i18n("menu.back"));
-        btnBack.setBounds((winW - 200) / 2, 340, 200, 44);
+        btnBack.setBounds((640 - 200) / 2, 340, 200, 44);
         btnBack.setAction(() -> TdFlow.buildMainMenu(app));
         btnBack.appear(0.05f * (count + 1), 16f, 0.4f);
         win.add(btnBack);
     }
 
     static void showSettings(TowerDefenseMin2 app, boolean animated) {
+        app.state = TdState.SETTINGS;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
         Window win = new Window("settings_win");
-        win.setBounds(340, 160, 600, 480);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 600, 480);
         win.setTitle(TdAssets.i18n("settings.title"));
         win.setMovable(false);
         win.setResizable(false);
@@ -451,10 +453,7 @@ static final class TdFlow {
                     }
                 }, 150);
                 app.engine.getDisplayManager().onWindowResize(targetW, targetH);
-                if (app.camera != null) {
-                    app.camera.setViewportSize(targetW, targetH);
-                    app.camera.setViewportOffset(0, 0);
-                }
+                // Camera viewport fixed to design game area; no need to resize
             }
         });
         if (animated) ddRes.appear(rowDelay + 0.03f);
@@ -577,7 +576,8 @@ static final class TdFlow {
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
         Window win = new Window("win_win");
-        win.setBounds(390, 260, 500, 240);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 500, 240);
         win.setTitle(TdAssets.i18n("game.win"));
         win.setMovable(false);
         win.setResizable(false);
@@ -641,21 +641,25 @@ static final class TdFlow {
                 super.paint(applet, theme);
             }
         };
-        overlay.setBounds(0, 0, 1280, 720);
+        DisplayManager dm = app.engine.getDisplayManager();
+        float w = dm.getActualWidth() / dm.getUniformScale();
+        float h = dm.getActualHeight() / dm.getUniformScale();
+        overlay.setBounds(0, 0, w, h);
         overlay.setPaintBackground(false);
         overlay.setZOrder(50);
         overlay.fadeIn(0f);
         root.add(overlay);
 
         Window win = new Window("pause_win");
-        win.setBounds(440, 260, 400, 240);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 400, 240);
         win.setTitle(TdAssets.i18n("game.pause"));
         win.setMovable(false);
         win.setResizable(false);
         win.setZOrder(51);
         win.setPaintBackground(false);
         win.fadeIn(0f);
-        overlay.add(win);
+        root.add(win);
 
         Panel panel = new Panel("pause_panel");
         panel.setBounds(0, 0, 400, 240);
@@ -697,11 +701,11 @@ static final class TdFlow {
 
     static void hidePauseMenu(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
-        // Find and remove the pause overlay (it contains the pause window)
+        // Remove both pause overlay and pause window
         for (UIComponent c : new java.util.ArrayList<>(root.getChildren())) {
-            if ("pause_overlay".equals(c.getId())) {
+            String id = c.getId();
+            if ("pause_overlay".equals(id) || "pause_win".equals(id)) {
                 root.remove(c);
-                break;
             }
         }
         app.state = TdState.PLAYING;
@@ -714,7 +718,8 @@ static final class TdFlow {
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
         Window win = new Window("lose_win");
-        win.setBounds(390, 260, 500, 240);
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 500, 240);
         win.setTitle(TdAssets.i18n("game.lose"));
         win.setMovable(false);
         win.setResizable(false);

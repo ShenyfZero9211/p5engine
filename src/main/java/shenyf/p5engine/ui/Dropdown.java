@@ -155,8 +155,15 @@ public class Dropdown extends UIComponent {
             }
             if (root != null) {
                 root.add(this);
-                // In root, absolute coords become relative coords
-                setPosition(absX, absY);
+                // In root, absolute coords become relative coords.
+                // However root itself may have a non-zero position (e.g. FIT
+                // scaling mode sets root.x = -offsetX/scale), so we must
+                // subtract root's absolute position to keep the same screen
+                // position after reparenting.
+                setPosition(
+                    absX - root.getAbsoluteX() - root.getContentOffsetX(),
+                    absY - root.getAbsoluteY() - root.getContentOffsetY()
+                );
                 setZOrder(999);
             }
             this.expanded = true;
@@ -263,7 +270,7 @@ public class Dropdown extends UIComponent {
         theme.drawButton(applet, x, y, w, h, label, hover, pressedVisual, !isEnabled());
 
         // Dropdown arrow on the right
-        drawArrow(applet, x + w - 14, y + h * 0.5f);
+        drawArrow(applet, x + w - 14, y + h * 0.5f, getEffectiveAlpha());
 
         if (expanded && !items.isEmpty()) {
             int visible = Math.min(items.size(), getVisibleRows());
@@ -272,9 +279,10 @@ public class Dropdown extends UIComponent {
         }
     }
 
-    private void drawArrow(PApplet g, float cx, float cy) {
+    private void drawArrow(PApplet g, float cx, float cy, float alpha) {
         g.noStroke();
-        g.fill(180);
+        int a = Math.round(255 * alpha);
+        g.fill(180, a);
         if (expanded) {
             g.triangle(cx - 4, cy + 2, cx + 4, cy + 2, cx, cy - 3);
         } else {
@@ -305,7 +313,8 @@ public class Dropdown extends UIComponent {
         if (hoverRow >= 0 && hoverRow != selectedIndex) {
             float ry = y + (hoverRow - firstVisibleIndex) * rowHeight;
             g.noStroke();
-            g.fill(255, 255, 255, 40);
+            int hoverA = Math.round(40 * getEffectiveAlpha());
+            g.fill(255, 255, 255, hoverA);
             g.rect(x + 1, ry, contentW - 2, rowHeight);
         }
 

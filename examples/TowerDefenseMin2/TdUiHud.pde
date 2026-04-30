@@ -166,6 +166,17 @@ static class TdMinimapComponent extends UIComponent {
     }
 
     @Override
+    public void update(PApplet applet, float dt) {
+        super.update(applet, dt);
+        // Position minimap at the bottom of the build panel with a margin
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        if (app.hudBuildPanel != null) {
+            float panelBottom = app.hudBuildPanel.getY() + app.hudBuildPanel.getHeight();
+            setPosition(app.hudBuildPanel.getX() + 8, panelBottom - MH - 8);
+        }
+    }
+
+    @Override
     public void paint(PApplet applet, Theme theme) {
         float mx = getAbsoluteX();
         float my = getAbsoluteY();
@@ -270,6 +281,13 @@ static class TdMinimapComponent extends UIComponent {
                 float rw = Math.max(1, cw * sx - 2);
                 float rh = Math.max(1, ch * sy - 2);
                 applet.rect(rx, ry, rw, rh);
+                if (app.frameCount % 60 == 0) {
+                    println("[MINIMAP] mx=" + mx + " my=" + my + " MW=" + MW + " MH=" + MH +
+                            " | cam pos=" + cx + "," + cy + " vp=" + cam.getViewportWidth() + "x" + cam.getViewportHeight() +
+                            " zoom=" + cam.getZoom() + " cw=" + cw + " ch=" + ch +
+                            " | rx=" + rx + " ry=" + ry + " rw=" + rw + " rh=" + rh +
+                            " | worldW=" + TdGameWorld.level.worldW + " worldH=" + TdGameWorld.level.worldH);
+                }
             }
         }
         applet.popStyle();
@@ -316,6 +334,7 @@ static class TdTopBar extends Panel {
         super(id);
         setPaintBackground(true);
         setBounds(0, 0, 1280, TdConfig.TOP_HUD);
+        setAnchor(ANCHOR_TOP | ANCHOR_LEFT | ANCHOR_RIGHT);
         setLayoutManager(null);
 
         lblStatus = new Label("lbl_status");
@@ -339,7 +358,7 @@ static class TdTopBar extends Panel {
         add(lblNextWave);
 
         btnRange = new Button("btn_range");
-        btnRange.setBounds(1280 - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 80, 28);
+        btnRange.setBounds(getWidth() - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 80, 28);
         btnRange.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             app.showTowerRanges = !app.showTowerRanges;
@@ -348,7 +367,7 @@ static class TdTopBar extends Panel {
 
         Button btnPause = new Button("btn_pause");
         btnPause.setLabel(TdAssets.i18n("game.pause"));
-        btnPause.setBounds(1280 - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
+        btnPause.setBounds(getWidth() - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnPause.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             if (app.state == TdState.PLAYING) {
@@ -361,7 +380,7 @@ static class TdTopBar extends Panel {
 
         Button btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.menu"));
-        btnMenu.setBounds(1280 - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
+        btnMenu.setBounds(getWidth() - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnMenu.setAction(() -> {
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             if (app.state == TdState.PLAYING) {
@@ -413,6 +432,17 @@ static class TdTopBar extends Panel {
         boolean active = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
         String rangeLabel = TdAssets.i18n(active ? "game.rangeOn" : "game.rangeOff");
         btnRange.setLabel("[T] " + rangeLabel);
+
+        // Re-position right-aligned buttons when width changes (anchor stretch)
+        float w = getWidth();
+        btnRange.setPosition(w - 72 - 12 - 72 - 8 - 80 - 8, btnRange.getY());
+        for (UIComponent c : getChildren()) {
+            if ("btn_pause".equals(c.getId())) {
+                c.setPosition(w - 72 - 12 - 72 - 8, c.getY());
+            } else if ("btn_menu".equals(c.getId())) {
+                c.setPosition(w - 72 - 12, c.getY());
+            }
+        }
     }
 }
 
@@ -426,6 +456,7 @@ static class TdBuildPanel extends Panel {
         super(id);
         setPaintBackground(true);
         setBounds(1280 - TdConfig.RIGHT_W, TdConfig.TOP_HUD, TdConfig.RIGHT_W, 720 - TdConfig.TOP_HUD);
+        setAnchor(ANCHOR_TOP | ANCHOR_RIGHT | ANCHOR_BOTTOM);
         setLayoutManager(null);
         rebuildButtons();
     }

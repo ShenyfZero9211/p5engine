@@ -127,10 +127,7 @@ final class TdAppSetup {
                             int w = TowerDefenseMin2.this.width;
                             int h = TowerDefenseMin2.this.height;
                             engine.getDisplayManager().onWindowResize(w, h);
-                            if (camera != null) {
-                                camera.setViewportSize(w, h);
-                                camera.setViewportOffset(0, 0);
-                            }
+                            // Camera viewport fixed to design game area; no need to resize on window change
                         }
                     }, 100);
                 }
@@ -145,6 +142,7 @@ final class TdAppSetup {
         camera = camGo.addComponent(Camera2D.class);
         camera.setWorldBounds(new Rect(0, 0, TowerDefenseMin2.WORLD_W, TowerDefenseMin2.WORLD_H));
         camera.jumpCenterTo(TowerDefenseMin2.WORLD_W * 0.5f, TowerDefenseMin2.WORLD_H * 0.5f);
+        // Camera viewport will be synced to actual render area in syncCameraToWindow()
         gameScene.setCamera(camera);
         gameScene.addGameObject(camGo);
     }
@@ -161,9 +159,7 @@ final class TdAppSetup {
         worldViewport.setScene(gameScene);
         worldViewport.setCamera(camera);
 
-        // Full-screen camera viewport for layered rendering (no black bars)
-        camera.setViewportSize(width, height);
-        camera.setViewportOffset(0, 0);
+        // Camera viewport already set in setupCamera() to design game area
     }
 
     void setupHud() {
@@ -183,9 +179,6 @@ final class TdAppSetup {
         TdMinimapComponent.MW = TdConfig.RIGHT_W - 16;
         TdMinimapComponent.MH = TdMinimapComponent.MW * 120f / 180f;
         hudMinimap.setSize(TdMinimapComponent.MW, TdMinimapComponent.MH);
-        int minimapX = designW - TdConfig.RIGHT_W + 8;
-        int minimapY = designH - (int)TdMinimapComponent.MH - 8;
-        hudMinimap.setPosition(minimapX, minimapY);
         hudMinimap.setZOrder(10);
         root.add(hudMinimap);
     }
@@ -211,13 +204,14 @@ static final class TdAppLoop {
         InputManager im = app.engine.getInput();
         TdAppInput.handleKeyboardInput(app, im);
 
+        TdAppUtils.syncCameraToWindow(app);
+
         switch (app.state) {
             case PLAYING:
                 TdGameWorld.update(dt);
                 if (app.sellMenuPanel == null) {
                     TdCamera.updateEdgeScroll(dtReal);
                 }
-                TdAppUtils.syncCameraToWindow(app);
                 break;
             case PAUSED:
                 // freeze game logic
@@ -235,19 +229,35 @@ static final class TdAppLoop {
             app.hoveredTower = null;
         }
 
-        // World layer: direct screen rendering (fills entire screen, no black bars)
+        // World layer: render only to the game area (excluding HUD panels)
         if (app.worldViewport != null && (app.state == TdState.PLAYING || app.state == TdState.PAUSED)) {
-            app.worldViewport.renderDirect(app, 0, 0, app.width, app.height);
+            float scale = dm.getUniformScale();
+            float gameX = 0;
+            float gameY = TdConfig.TOP_HUD * scale;
+            float gameW = dm.getActualWidth() - TdConfig.RIGHT_W * scale;
+            float gameH = dm.getActualHeight() - gameY;
+            app.worldViewport.renderDirect(app, gameX, gameY, gameW, gameH);
         }
 
-        // Lighting overlay (full screen, actual pixels)
+        // Lighting overlay: render to the same game area
         if ((app.state == TdState.PLAYING || app.state == TdState.PAUSED) && app.worldViewport != null) {
             app.lighting.update(dt);
-            app.lighting.render(app.g, app.camera, 0, 0, app.width, app.height);
+            float scale = dm.getUniformScale();
+            float gameX = 0;
+            float gameY = TdConfig.TOP_HUD * scale;
+            float gameW = dm.getActualWidth() - TdConfig.RIGHT_W * scale;
+            float gameH = dm.getActualHeight() - gameY;
+            app.lighting.render(app.g, app.camera, gameX, gameY, gameW, gameH);
         }
 
         if (app.state == TdState.PLAYING && app.buildMode != TdBuildMode.NONE) {
             TdGhost.update();
+        }
+
+        // Menu background covers entire actual window (before FIT scaling)
+        if (app.state == TdState.MENU || app.state == TdState.LEVEL_SELECT || app.state == TdState.SETTINGS) {
+            TdMenuBg.update(dtReal);
+            TdMenuBg.draw(app);
         }
 
         // === Layer 2: UI & Overlays (FIT scaled design coordinates) ===
@@ -255,24 +265,14 @@ static final class TdAppLoop {
         app.translate(dm.getOffsetX(), dm.getOffsetY());
         app.scale(dm.getUniformScale(), dm.getUniformScale());
 
-        // Menu background and title (rendered inside FIT matrix)
-        if (app.state == TdState.MENU) {
-            TdMenuBg.update(dtReal);
-            TdMenuBg.draw(app);
-        }
-
         app.sketchUi.updateFrame(dtReal);
         app.sketchUi.renderFrame();
 
-        // Re-draw menus on top of lighting (so they're not dimmed)
-        if (app.state == TdState.PAUSED) {
-            for (UIComponent c : app.ui.getRoot().getChildren()) {
-                if ("pause_overlay".equals(c.getId())) {
-                    c.paint(app, app.ui.getTheme());
-                    break;
-                }
-            }
+        // Sync DisplayManager if window was manually resized (windowResize callback is unreliable in P2D)
+        if (app.frameCount % 30 == 0 && (app.width != dm.getActualWidth() || app.height != dm.getActualHeight())) {
+            dm.onWindowResize(app.width, app.height);
         }
+
         if (app.sellMenuPanel != null) {
             app.sellMenuPanel.paint(app, app.ui.getTheme());
         }
@@ -428,11 +428,17 @@ static final class TdAppInput {
         Vector2 focus;
         DisplayManager dm = app.engine.getDisplayManager();
         if (TdSaveData.isZoomAtMouse()) {
-            focus = dm.actualToDesign(new Vector2((int)im.getMouseX(), (int)im.getMouseY()));
+            // Zoom at mouse cursor (screen coordinates)
+            focus = new Vector2(im.getMouseX(), im.getMouseY());
         } else {
-            // Zoom centered on screen (design coordinates)
-            float cx = dm.getDesignWidth() * 0.5f;
-            float cy = dm.getDesignHeight() * 0.5f;
+            // Zoom centered on world viewport (screen coordinates)
+            float scale = dm.getUniformScale();
+            float gameX = 0;
+            float gameY = TdConfig.TOP_HUD * scale;
+            float gameW = dm.getActualWidth() - TdConfig.RIGHT_W * scale;
+            float gameH = dm.getActualHeight() - gameY;
+            float cx = gameX + gameW * 0.5f;
+            float cy = gameY + gameH * 0.5f;
             focus = new Vector2(cx, cy);
         }
         app.camera.zoomAt(-wheel * 0.24f, focus);
@@ -450,7 +456,7 @@ static final class TdAppInput {
     }
 
     static void handleMouseClick(TowerDefenseMin2 app, InputManager im) {
-        Vector2 dm = TdAppUtils.getDesignMousePos(app, im);
+        Vector2 dm = TdAppUtils.getActualMousePos(app, im);
 
         // Place tower on world viewport click
         if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.LEFT) {
@@ -517,7 +523,7 @@ static final class TdAppUtils {
 
     static Tower getTowerAtMouse(TowerDefenseMin2 app, InputManager im) {
         if (app.camera == null) return null;
-        Vector2 dm = getDesignMousePos(app, im);
+        Vector2 dm = getActualMousePos(app, im);
         Vector2 world = app.camera.screenToWorld(dm);
         int gx = Math.round(world.x / TdConfig.GRID - 0.5f);
         int gy = Math.round(world.y / TdConfig.GRID - 0.5f);
@@ -563,8 +569,8 @@ static final class TdAppUtils {
         root.add(app.sellMenuPanel);
     }
 
-    static Vector2 getDesignMousePos(TowerDefenseMin2 app, InputManager im) {
-        return app.engine.getDisplayManager().actualToDesign(new Vector2((int)im.getMouseX(), (int)im.getMouseY()));
+    static Vector2 getActualMousePos(TowerDefenseMin2 app, InputManager im) {
+        return new Vector2((int)im.getMouseX(), (int)im.getMouseY());
     }
 
     static boolean isMouseOverHud(TowerDefenseMin2 app) {
@@ -578,16 +584,13 @@ static final class TdAppUtils {
 
     static void syncCameraToWindow(TowerDefenseMin2 app) {
         if (app.camera == null) return;
-        // Camera viewport matches full screen for layered rendering
-        float newW = app.width;
-        float newH = app.height;
-        float newX = 0;
-        float newY = 0;
-        if (newX != app.camera.getViewportOffsetX() || newY != app.camera.getViewportOffsetY()) {
-            app.camera.setViewportOffset(newX, newY);
-        }
-        if (newW != app.camera.getViewportWidth() || newH != app.camera.getViewportHeight()) {
-            app.camera.setViewportSize(newW, newH);
-        }
+        DisplayManager dm = app.engine.getDisplayManager();
+        float scale = dm.getUniformScale();
+        float gameX = 0;
+        float gameY = TdConfig.TOP_HUD * scale;
+        float gameW = dm.getActualWidth() - TdConfig.RIGHT_W * scale;
+        float gameH = dm.getActualHeight() - gameY;
+        app.camera.setViewportSize(gameW, gameH);
+        app.camera.setViewportOffset(gameX, gameY);
     }
 }

@@ -6,22 +6,20 @@ static final class TdCamera {
     static void updateEdgeScroll(float dt) {
         Camera2D cam = TowerDefenseMin2.inst.camera;
         if (cam == null) return;
-        Vector2 dm = TowerDefenseMin2.inst.engine.getDisplayManager().actualToDesign(
-            new Vector2(TowerDefenseMin2.inst.mouseX, TowerDefenseMin2.inst.mouseY));
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+
+        // Use actual window coordinates for consistent edge detection across all resolutions
+        float mx = app.mouseX;
+        float my = app.mouseY;
+        int w = app.width;
+        int h = app.height;
 
         float scrollSpeed = 400; // design pixels/sec
-        float margin = 24;
-        // Use full design window edges, not just the world viewport
-        float left   = 0;
-        float top    = 0;
-        float right  = TdConfig.DESIGN_W;
-        float bottom = TdConfig.DESIGN_H;
-
         float dx = 0, dy = 0;
-        if (TowerDefenseMin2.inst.keyScrollLeft || dm.x < left + margin)  dx = -scrollSpeed;
-        if (TowerDefenseMin2.inst.keyScrollRight || dm.x > right - margin) dx = scrollSpeed;
-        if (TowerDefenseMin2.inst.keyScrollUp || dm.y < top + margin)    dy = -scrollSpeed;
-        if (TowerDefenseMin2.inst.keyScrollDown || dm.y > bottom - margin) dy = scrollSpeed;
+        if (app.keyScrollLeft || mx <= 0)           dx = -scrollSpeed;
+        if (app.keyScrollRight || mx >= w - 1)      dx =  scrollSpeed;
+        if (app.keyScrollUp || my <= 0)             dy = -scrollSpeed;
+        if (app.keyScrollDown || my >= h - 1)       dy =  scrollSpeed;
 
         if (dx != 0 || dy != 0) {
             cam.getTransform().translate(dx * dt / cam.getZoom(), dy * dt / cam.getZoom());

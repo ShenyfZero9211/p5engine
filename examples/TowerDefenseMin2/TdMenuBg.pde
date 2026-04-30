@@ -17,17 +17,31 @@ static final class TdMenuBg {
     // Title animation state (0 = start, 1 = end)
     static float titleProgress = 0f;
 
+    // Track window size so stars regenerate on resize
+    static int lastStarW = -1;
+    static int lastStarH = -1;
+
     static void setFont(processing.core.PFont f) {
         font = f;
     }
 
     static void init() {
-        if (initialized) return;
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        int dw = app.engine.getDisplayManager().getDesignWidth();
-        int dh = app.engine.getDisplayManager().getDesignHeight();
+        int dw = app.width;
+        int dh = app.height;
+        if (initialized && dw == lastStarW && dh == lastStarH) return;
+
+        lastStarW = dw;
+        lastStarH = dh;
+        stars.clear();
+
+        // Scale star count by area so density stays consistent across resolutions
+        int baseArea = 1280 * 720;
+        int actualArea = dw * dh;
+        int count = Math.min(800, Math.max(STAR_COUNT, STAR_COUNT * actualArea / baseArea));
+
         java.util.Random rng = new java.util.Random(42);
-        for (int i = 0; i < STAR_COUNT; i++) {
+        for (int i = 0; i < count; i++) {
             stars.add(new Star(
                 rng.nextFloat() * dw,
                 rng.nextFloat() * dh,
@@ -80,8 +94,8 @@ static final class TdMenuBg {
     static void draw(PApplet g) {
         init();
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        int dw = app.engine.getDisplayManager().getDesignWidth();
-        int dh = app.engine.getDisplayManager().getDesignHeight();
+        int dw = app.width;
+        int dh = app.height;
 
         // Deep space background
         g.background(14, 18, 34);

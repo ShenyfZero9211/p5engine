@@ -34,9 +34,8 @@ static final class TdGhost {
         ensureGameObject(app);
         ghostGo.setActive(true);
 
-        // Coordinate chain: actual mouse → design coords → world coords → snap to grid
-        Vector2 dm = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
-        Vector2 world = app.camera.screenToWorld(dm);
+        // Coordinate chain: actual mouse → world coords → snap to grid
+        Vector2 world = app.camera.screenToWorld(new Vector2(app.mouseX, app.mouseY));
         gridX = Math.round(world.x / TdConfig.GRID - 0.5f);
         gridY = Math.round(world.y / TdConfig.GRID - 0.5f);
         worldX = (gridX + 0.5f) * TdConfig.GRID;

@@ -235,7 +235,12 @@ public final class UIManager {
 
     public void update(float dt) {
         if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
-            root.setBounds(0, 0, displayManager.getDesignWidth(), displayManager.getDesignHeight());
+            float scale = displayManager.getUniformScale();
+            float ox = displayManager.getOffsetX() / scale;
+            float oy = displayManager.getOffsetY() / scale;
+            float fullW = displayManager.getActualWidth() / scale;
+            float fullH = displayManager.getActualHeight() / scale;
+            root.setBounds(-ox, -oy, fullW, fullH);
             shenyf.p5engine.math.Vector2 design = displayManager.actualToDesign(
                 new shenyf.p5engine.math.Vector2(applet.mouseX, applet.mouseY));
             designMouseX = design.x;
@@ -246,6 +251,49 @@ public final class UIManager {
             designMouseX = applet.mouseX;
             designMouseY = applet.mouseY;
         }
+        // Apply anchor constraints for adaptive layout
+        if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
+            float ox = displayManager.getOffsetX() / displayManager.getUniformScale();
+            float oy = displayManager.getOffsetY() / displayManager.getUniformScale();
+            float fullW = displayManager.getActualWidth() / displayManager.getUniformScale();
+            float fullH = displayManager.getActualHeight() / displayManager.getUniformScale();
+            float designW = displayManager.getDesignWidth();
+            float designH = displayManager.getDesignHeight();
+            for (UIComponent c : root.getChildren()) {
+                int anchor = c.getAnchor();
+                if (anchor == 0) continue;
+                float cx = c.getAnchorBaseX();
+                float cy = c.getAnchorBaseY();
+                float cw = c.getAnchorBaseWidth();
+                float ch = c.getAnchorBaseHeight();
+                if (c.hasAnchor(UIComponent.ANCHOR_LEFT)) {
+                    cx = 0;
+                    if (c.hasAnchor(UIComponent.ANCHOR_RIGHT)) {
+                        cw = fullW;
+                    }
+                } else if (c.hasAnchor(UIComponent.ANCHOR_RIGHT)) {
+                    cx = fullW - cw;
+                } else if (c.hasAnchor(UIComponent.ANCHOR_HCENTER)) {
+                    cx = (fullW - cw) / 2;
+                }
+                if (c.hasAnchor(UIComponent.ANCHOR_TOP)) {
+                    // If component was originally placed below top edge (cy > 0), preserve offset
+                    // so it stays relative to the top edge after shifting to -oy
+                    cy = Math.max(0, cy);
+                    if (c.hasAnchor(UIComponent.ANCHOR_BOTTOM)) {
+                        // Stretch from adjusted top to bottom edge
+                        ch = fullH - cy;
+                    }
+                } else if (c.hasAnchor(UIComponent.ANCHOR_BOTTOM)) {
+                    // Stretch from current y to window bottom (account for offset)
+                    ch = fullH - cy;
+                } else if (c.hasAnchor(UIComponent.ANCHOR_VCENTER)) {
+                    cy = (fullH - ch) / 2;
+                }
+                c.setBounds(cx, cy, cw, ch);
+            }
+        }
+
         if (root.isLayoutDirty()) {
             root.measure(applet);
             root.layout(applet);

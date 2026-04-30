@@ -112,6 +112,7 @@ main-menu-animation_8e2c91f4.plan.md
 - **修改引擎源码后，必须将编译出的 `library\p5engine.jar` 复制到相关示例工程根目录的 `code\` 文件夹中**，否则示例程序运行时仍使用旧版本引擎。
 - 每次修改示例 PDE 后，必须用 Processing CLI (`processing.exe cli --sketch=... --build`) 验证编译通过。
 - **禁止将未编译验证的代码提交给用户。**
+- 遇到需要debug时，参考根目录下的`docs\Processing_CLI_Log_Capture_Guide.md`文档，里面有详细的用法说明
 
 ### 3.3 PDE 语法注意
 - Processing 的 PDE 预处理器不支持 Java 静态字段作为方法引用。

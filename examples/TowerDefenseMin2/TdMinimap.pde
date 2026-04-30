@@ -6,12 +6,14 @@ static final class TdMinimap {
 
     static float getX() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        if (app.hudMinimap != null) return app.hudMinimap.getAbsoluteX();
         Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(app.width, app.height));
         return d.x - TdConfig.RIGHT_W + 16;
     }
 
     static float getY() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        if (app.hudMinimap != null) return app.hudMinimap.getAbsoluteY();
         Vector2 d = app.engine.getDisplayManager().actualToDesign(new Vector2(app.width, app.height));
         return d.y - MH - 16;
     }

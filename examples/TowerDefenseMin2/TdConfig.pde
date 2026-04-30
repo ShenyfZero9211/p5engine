@@ -253,5 +253,5 @@ static final class LevelDef {
     boolean earnMoneyOnKill;   // default true
 }
 
-enum TdState { MENU, LEVEL_SELECT, PLAYING, PAUSED, WIN, LOSE }
+enum TdState { MENU, LEVEL_SELECT, SETTINGS, PLAYING, PAUSED, WIN, LOSE }
 enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW }

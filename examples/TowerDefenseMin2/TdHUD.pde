@@ -6,8 +6,11 @@ static final class TdHUD {
     static void drawTopBar() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         DisplayManager dm = app.engine.getDisplayManager();
-        float x = 0, y = 0;
-        float w = dm.getDesignWidth();
+        float ox = dm.getOffsetX() / dm.getUniformScale();
+        float oy = dm.getOffsetY() / dm.getUniformScale();
+        float x = -ox;
+        float y = -oy;
+        float w = dm.getActualWidth() / dm.getUniformScale();
         float h = TdConfig.TOP_HUD;
 
         app.pushStyle();
@@ -58,10 +61,12 @@ static final class TdHUD {
     static void drawBuildPanel() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         DisplayManager dm = app.engine.getDisplayManager();
-        float x = dm.getDesignWidth() - TdConfig.RIGHT_W;
-        float y = TdConfig.TOP_HUD;
+        float ox = dm.getOffsetX() / dm.getUniformScale();
+        float oy = dm.getOffsetY() / dm.getUniformScale();
+        float x = dm.getActualWidth() / dm.getUniformScale() - TdConfig.RIGHT_W;
+        float y = -oy + TdConfig.TOP_HUD;
         float w = TdConfig.RIGHT_W;
-        float h = dm.getDesignHeight() - y;
+        float h = dm.getActualHeight() / dm.getUniformScale() - TdConfig.TOP_HUD;
 
         app.pushStyle();
         app.noStroke();
@@ -149,10 +154,14 @@ static final class TdHUD {
     static void drawPauseOverlay() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         DisplayManager dm = app.engine.getDisplayManager();
+        float ox = dm.getOffsetX() / dm.getUniformScale();
+        float oy = dm.getOffsetY() / dm.getUniformScale();
+        float w = dm.getActualWidth() / dm.getUniformScale();
+        float h = dm.getActualHeight() / dm.getUniformScale();
         app.pushStyle();
         app.fill(0x66000000);
         app.noStroke();
-        app.rect(0, 0, dm.getDesignWidth(), dm.getDesignHeight());
+        app.rect(-ox, -oy, w, h);
         app.fill(TdTheme.TEXT);
         app.textAlign(PApplet.CENTER, PApplet.CENTER);
         app.textSize(32);
@@ -163,21 +172,25 @@ static final class TdHUD {
     static boolean isPauseButtonHit(float mx, float my) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         DisplayManager dm = app.engine.getDisplayManager();
-        float x = 0, y = 0;
-        float w = dm.getDesignWidth();
+        float ox = dm.getOffsetX() / dm.getUniformScale();
+        float oy = dm.getOffsetY() / dm.getUniformScale();
+        float x = -ox;
+        float w = dm.getActualWidth() / dm.getUniformScale();
         float h = TdConfig.TOP_HUD;
         float btnW = 72;
         float btnH = 28;
         float btnX = x + w - btnW - 12;
-        float btnY = y + (h - btnH) * 0.5f;
+        float btnY = -oy + (h - btnH) * 0.5f;
         return mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
     }
 
     static TdBuildMode getBuildModeAt(float mx, float my) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         DisplayManager dm = app.engine.getDisplayManager();
-        float x = dm.getDesignWidth() - TdConfig.RIGHT_W;
-        float y = TdConfig.TOP_HUD;
+        float ox = dm.getOffsetX() / dm.getUniformScale();
+        float oy = dm.getOffsetY() / dm.getUniformScale();
+        float x = dm.getActualWidth() / dm.getUniformScale() - TdConfig.RIGHT_W;
+        float y = -oy + TdConfig.TOP_HUD;
         float w = TdConfig.RIGHT_W;
         float btnH = 56;
         float gap = 8;
