@@ -53,6 +53,8 @@ public final class UIManager {
     private boolean attached;
     private UIComponent pressedTarget;
     private Window resizeWindow;
+    private Window mouseOverWindow;
+    private UIComponent mouseOverComponent;
     private DisplayManager displayManager;
 
     public UIManager(PApplet applet) {
@@ -330,6 +332,8 @@ public final class UIManager {
         }
 
         UIComponent hit = root.hitTest(mx, my);
+        mouseOverComponent = hit;
+        mouseOverWindow = findWindowInHierarchy(hit);
 
         if (act == MouseEvent.WHEEL) {
             float delta = e.getCount();
@@ -422,6 +426,50 @@ public final class UIManager {
             dispatchBubble(pressedTarget, UIEvent.mouse(UIEvent.Type.MOUSE_RELEASED, mx, my, e.getButton()), mx, my);
             pressedTarget = null;
         }
+    }
+
+    public boolean isMouseOverWindow() {
+        return mouseOverWindow != null;
+    }
+
+    public boolean isFocusInsideWindow() {
+        UIComponent f = focusManager.getFocused();
+        return f != null && findWindowInHierarchy(f) != null;
+    }
+
+    /**
+     * Returns true if the mouse is currently over a MenuPopup or an expanded Dropdown.
+     * Used by sketches to avoid processing world-editor interactions when a UI popup is active.
+     */
+    public boolean isMouseOverPopup() {
+        if (mouseOverComponent == null) return false;
+        UIComponent c = mouseOverComponent;
+        while (c != null) {
+            if (c instanceof MenuPopup) return true;
+            if (c instanceof Dropdown && ((Dropdown) c).isExpanded()) return true;
+            c = c.getParent();
+        }
+        return false;
+    }
+
+    /** Returns the deepest UI component currently under the mouse (updated during mouse events). */
+    public UIComponent getMouseOverComponent() {
+        return mouseOverComponent;
+    }
+
+    /**
+     * Closes any open MenuBar popups if the given coordinates are outside the popup and menu titles.
+     * Returns true if a popup was closed.
+     */
+    public boolean closeMenuPopupsIfOutside(float mx, float my) {
+        for (UIComponent c : root.getChildren()) {
+            if (c instanceof MenuBar) {
+                if (((MenuBar) c).closePopupsIfClickOutside(mx, my)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Walk up the hierarchy to find the nearest Window ancestor. */

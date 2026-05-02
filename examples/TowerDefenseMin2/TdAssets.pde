@@ -30,6 +30,7 @@ static final class TdAssets {
     static java.util.Map towerYamlRoot;
     static java.util.List levelYamlList;
     static java.util.Map enemyYamlRoot;
+    static java.util.Map gameSettingsYamlRoot;
 
     static void loadConfigs(PApplet app) {
         org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
@@ -38,13 +39,18 @@ static final class TdAssets {
         if (tis == null) throw new RuntimeException("Cannot load config/towers.yaml");
         towerYamlRoot = (java.util.Map) yaml.load(tis);
 
-        java.io.InputStream lis = app.createInput("config/levels.yaml");
-        if (lis == null) throw new RuntimeException("Cannot load config/levels.yaml");
+        java.io.InputStream lis = app.createInput("config/levels/levels.yaml");
+        if (lis == null) throw new RuntimeException("Cannot load config/levels/levels.yaml");
         levelYamlList = (java.util.List) yaml.load(lis);
 
         java.io.InputStream eis = app.createInput("config/enemies.yaml");
         if (eis == null) throw new RuntimeException("Cannot load config/enemies.yaml");
         enemyYamlRoot = (java.util.Map) yaml.load(eis);
+
+        java.io.InputStream gis = app.createInput("config/game_settings.yaml");
+        if (gis != null) {
+            gameSettingsYamlRoot = (java.util.Map) yaml.load(gis);
+        }
     }
 
     static TowerDef loadTowerDef(TowerType type) {
@@ -82,14 +88,54 @@ static final class TdAssets {
     }
 
     static LevelDef loadLevel(int levelId) {
+        // Verify level exists in index
+        boolean found = false;
         for (Object obj : levelYamlList) {
-            java.util.Map lvl = (java.util.Map) obj;
-            int id = ((Number) lvl.get("id")).intValue();
+            java.util.Map meta = (java.util.Map) obj;
+            int id = ((Number) meta.get("id")).intValue();
             if (id == levelId) {
-                return parseLevel(lvl);
+                found = true;
+                break;
             }
         }
-        return null;
+        if (!found) return null;
+
+        // Load detailed level data from individual file
+        org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
+        java.io.InputStream levelIs = P5Engine.getInstance().getApplet().createInput("config/levels/level_" + levelId + ".yaml");
+        if (levelIs == null) {
+            throw new RuntimeException("Cannot load config/levels/level_" + levelId + ".yaml");
+        }
+        java.util.Map lvl = (java.util.Map) yaml.load(levelIs);
+        return parseLevel(lvl);
+    }
+
+    static SpawnAttach[] loadAttaches(java.util.Map s) {
+        java.util.List attachList = (java.util.List) s.get("attach");
+        if (attachList == null || attachList.isEmpty()) return null;
+        SpawnAttach[] attaches = new SpawnAttach[attachList.size()];
+        for (int i = 0; i < attachList.size(); i++) {
+            java.util.Map a = (java.util.Map) attachList.get(i);
+            int count = a.containsKey("count") ? ((Number) a.get("count")).intValue() : 1;
+            float delay = a.containsKey("delay") ? ((Number) a.get("delay")).floatValue() : 0f;
+            attaches[i] = new SpawnAttach(
+                (String) a.get("type"),
+                count,
+                delay,
+                (String) a.get("route"),
+                loadAttaches(a)
+            );
+        }
+        return attaches;
+    }
+
+    static float getBaseIncomeRate() {
+        if (gameSettingsYamlRoot == null) return 0.25f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 0.25f;
+        Object rate = gs.get("baseIncomeRate");
+        if (rate instanceof Number) return ((Number) rate).floatValue();
+        return 0.25f;
     }
 
     static int getLevelCount() {
@@ -103,6 +149,7 @@ static final class TdAssets {
         if (e == null) return null;
         String sfxDeath = (String) e.get("sfxDeath");
         if (sfxDeath == null) sfxDeath = TdSound.SFX_DEATH;
+        int killReward = e.containsKey("killReward") ? ((Number) e.get("killReward")).intValue() : 10;
         return new EnemyDef(
             typeKey,
             (String) e.get("nameKey"),
@@ -110,6 +157,7 @@ static final class TdAssets {
             ((Number) e.get("hpMultiplier")).floatValue(),
             ((Number) e.get("orbCapacity")).intValue(),
             ((Number) e.get("radius")).floatValue(),
+            killReward,
             sfxDeath
         );
     }
@@ -213,7 +261,8 @@ static final class TdAssets {
                         (String) s.get("type"),
                         ((Number) s.get("count")).intValue(),
                         ((Number) s.get("interval")).floatValue(),
-                        (String) s.get("route")
+                        (String) s.get("route"),
+                        loadAttaches(s)
                     );
                 }
                 ld.waves[i] = new WaveDef(delay, spawns);

@@ -1,0 +1,51 @@
+id: 1
+nameKey: level.new.name
+subtitleKey: level.new.subtitle
+levelType: DEFEND_BASE
+initialMoney: 300
+baseOrbs: 5
+enemyHpBase: 100
+worldWidth: 1600
+worldHeight: 1200
+basePos: { x: 800, y: 680 }
+exitPos: { x: 1160, y: 360 }
+spawnPos: { x: 400, y: 400 }
+paths:
+  - id: path_2
+    type: INBOUND
+    points:
+      - { x: 400, y: 400 }
+      - { x: 520, y: 640 }
+      - { x: 800, y: 680 }
+  - id: path_2
+    type: OUTBOUND
+    points:
+      - { x: 800, y: 680 }
+      - { x: 1160, y: 520 }
+      - { x: 1160, y: 360 }
+earnMoneyOnKill: true
+waves:
+  - delay: 2.0
+    spawns:
+      - type: level1
+        count: 5
+        interval: 1.0
+      - type: level1
+        count: 5
+        interval: 1.0
+  - delay: 2.0
+    spawns:
+      - type: level1
+        count: 5
+        interval: 1.0
+      - type: level3
+        count: 5
+        interval: 1.0
+  - delay: 2.0
+    spawns:
+      - type: level2
+        count: 5
+        interval: 1.0
+      - type: level1
+        count: 5
+        interval: 1.0

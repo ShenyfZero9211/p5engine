@@ -12,8 +12,13 @@ static class Orb {
 
     void update(float dt) {
         if (route == null || route.path == null) return;
-        pathDistance -= RETURN_SPEED * dt;
-        if (pathDistance < 0) pathDistance = 0;
+        if (pathDistance < route.baseDistance) {
+            pathDistance += RETURN_SPEED * dt;
+            if (pathDistance > route.baseDistance) pathDistance = route.baseDistance;
+        } else if (pathDistance > route.baseDistance) {
+            pathDistance -= RETURN_SPEED * dt;
+            if (pathDistance < route.baseDistance) pathDistance = route.baseDistance;
+        }
         pos = route.path.sample(pathDistance);
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
@@ -21,7 +26,7 @@ static class Orb {
     }
 
     boolean reachedBase() {
-        return pathDistance <= route.baseDistance;
+        return Math.abs(pathDistance - route.baseDistance) < 0.5f;
     }
 
     Enemy findNearbyEnemy() {

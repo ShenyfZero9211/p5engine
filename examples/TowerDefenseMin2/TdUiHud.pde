@@ -168,6 +168,11 @@ static class TdMinimapComponent extends UIComponent {
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
+        // Adjust minimap height to match world aspect ratio
+        if (TdGameWorld.level != null && TdGameWorld.level.worldW > 0) {
+            MH = MW * TdGameWorld.level.worldH / TdGameWorld.level.worldW;
+        }
+        setSize(MW, MH);
         // Position minimap at the bottom of the build panel with a margin
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         if (app.hudBuildPanel != null) {
@@ -191,21 +196,26 @@ static class TdMinimapComponent extends UIComponent {
         applet.rect(mx + 0.5f, my + 0.5f, MW - 1, MH - 1);
 
         if (TdGameWorld.level != null) {
-            float sx = MW / TdGameWorld.level.worldW;
-            float sy = MH / TdGameWorld.level.worldH;
+            float worldW = TdGameWorld.level.worldW;
+            float worldH = TdGameWorld.level.worldH;
+            float scale = Math.min(MW / worldW, MH / worldH);
+            float drawW = worldW * scale;
+            float drawH = worldH * scale;
+            float ox = mx + (MW - drawW) * 0.5f;
+            float oy = my + (MH - drawH) * 0.5f;
 
             // Base
             applet.fill(0xFF4A9EFF);
-            applet.ellipse(mx + TdGameWorld.level.basePos.x * sx, my + TdGameWorld.level.basePos.y * sy, 6, 6);
+            applet.ellipse(ox + TdGameWorld.level.basePos.x * scale, oy + TdGameWorld.level.basePos.y * scale, 6, 6);
             // Spawns
             applet.fill(0xFFFF8C42);
             if (TdGameWorld.level.spawnPos != null) {
-                applet.ellipse(mx + TdGameWorld.level.spawnPos.x * sx, my + TdGameWorld.level.spawnPos.y * sy, 5, 5);
+                applet.ellipse(ox + TdGameWorld.level.spawnPos.x * scale, oy + TdGameWorld.level.spawnPos.y * scale, 5, 5);
             }
             // Exits
             applet.fill(0xFFFF4444);
             if (TdGameWorld.level.exitPos != null) {
-                applet.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+                applet.ellipse(ox + TdGameWorld.level.exitPos.x * scale, oy + TdGameWorld.level.exitPos.y * scale, 6, 6);
             }
             // Multi-path spawns and exits
             if (TdGameWorld.level.paths != null) {
@@ -217,14 +227,14 @@ static class TdMinimapComponent extends UIComponent {
                     boolean spawnDistinct = (TdGameWorld.level.spawnPos == null) || start.distance(TdGameWorld.level.spawnPos) > 10f;
                     if (spawnDistinct) {
                         applet.fill(0xFFFF8C42);
-                        applet.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+                        applet.ellipse(ox + start.x * scale, oy + start.y * scale, 5, 5);
                     }
                     // Exit
                     boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
                     boolean isGlobalExit = (TdGameWorld.level.exitPos != null) && end.distance(TdGameWorld.level.exitPos) <= 10f;
                     if (!isBase && !isGlobalExit) {
                         applet.fill(0xFFFF4444);
-                        applet.ellipse(mx + end.x * sx, my + end.y * sy, 6, 6);
+                        applet.ellipse(ox + end.x * scale, oy + end.y * scale, 6, 6);
                     }
                 }
             }
@@ -236,34 +246,34 @@ static class TdMinimapComponent extends UIComponent {
                     if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
                     Vector2[] pts = pr.path.points;
                     for (int i = 1; i < pts.length; i++) {
-                        applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
-                                    mx + pts[i].x * sx, my + pts[i].y * sy);
+                        applet.line(ox + pts[i-1].x * scale, oy + pts[i-1].y * scale,
+                                    ox + pts[i].x * scale, oy + pts[i].y * scale);
                     }
                 }
             } else if (TdGameWorld.level.pathPoints != null) {
                 Vector2[] pts = TdGameWorld.level.pathPoints;
                 for (int i = 1; i < pts.length; i++) {
-                    applet.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
-                                mx + pts[i].x * sx, my + pts[i].y * sy);
+                    applet.line(ox + pts[i-1].x * scale, oy + pts[i-1].y * scale,
+                                ox + pts[i].x * scale, oy + pts[i].y * scale);
                 }
             }
             // Towers
             applet.noStroke();
             applet.fill(0xFF66FF66);
             for (Tower t : TdGameWorld.towers) {
-                applet.rect(mx + t.worldX * sx - 1.5f, my + t.worldY * sy - 1.5f, 3, 3);
+                applet.rect(ox + t.worldX * scale - 1.5f, oy + t.worldY * scale - 1.5f, 3, 3);
             }
             // Orbs
             applet.noStroke();
             applet.fill(0xFFFFD700);
             for (Orb o : TdGameWorld.orbs) {
-                applet.ellipse(mx + o.pos.x * sx, my + o.pos.y * sy, 3, 3);
+                applet.ellipse(ox + o.pos.x * scale, oy + o.pos.y * scale, 3, 3);
             }
             // Enemies
             applet.noStroke();
             applet.fill(0xFFFF4444);
             for (Enemy e : TdGameWorld.enemies) {
-                applet.ellipse(mx + e.pos.x * sx, my + e.pos.y * sy, 5, 5);
+                applet.ellipse(ox + e.pos.x * scale, oy + e.pos.y * scale, 5, 5);
             }
             // Camera rect
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
@@ -276,10 +286,10 @@ static class TdMinimapComponent extends UIComponent {
                 applet.noFill();
                 applet.stroke(0xFFFF8C42);
                 applet.strokeWeight(1);
-                float rx = mx + (cx - cw * 0.5f) * sx + 1;
-                float ry = my + (cy - ch * 0.5f) * sy + 1;
-                float rw = Math.max(1, cw * sx - 2);
-                float rh = Math.max(1, ch * sy - 2);
+                float rx = ox + (cx - cw * 0.5f) * scale + 1;
+                float ry = oy + (cy - ch * 0.5f) * scale + 1;
+                float rw = Math.max(1, cw * scale - 2);
+                float rh = Math.max(1, ch * scale - 2);
                 applet.rect(rx, ry, rw, rh);
                 if (app.frameCount % 60 == 0) {
                     println("[MINIMAP] mx=" + mx + " my=" + my + " MW=" + MW + " MH=" + MH +
@@ -315,8 +325,15 @@ static class TdMinimapComponent extends UIComponent {
         if (app.camera == null) return;
         float mx = getAbsoluteX();
         float my = getAbsoluteY();
-        float wx = (absMouseX - mx) / MW * TdGameWorld.level.worldW;
-        float wy = (absMouseY - my) / MH * TdGameWorld.level.worldH;
+        float worldW = TdGameWorld.level.worldW;
+        float worldH = TdGameWorld.level.worldH;
+        float scale = Math.min(MW / worldW, MH / worldH);
+        float drawW = worldW * scale;
+        float drawH = worldH * scale;
+        float ox = mx + (MW - drawW) * 0.5f;
+        float oy = my + (MH - drawH) * 0.5f;
+        float wx = (absMouseX - ox) / scale;
+        float wy = (absMouseY - oy) / scale;
         app.camera.jumpCenterTo(wx, wy);
     }
 }

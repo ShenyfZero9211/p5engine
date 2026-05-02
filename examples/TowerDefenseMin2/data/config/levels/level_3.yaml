@@ -1,0 +1,72 @@
+id: 3
+nameKey: level.3.name
+subtitleKey: level.3.subtitle
+levelType: DEFEND_BASE
+initialMoney: 150
+baseOrbs: 5
+enemyHpBase: 100
+allowedTowers: [MG, MISSILE]  # optional, default all
+# earnMoneyOnKill: true         # optional, default true
+worldWidth: 1600
+worldHeight: 1200
+basePos: { x: 400, y: 600 }
+exitPos: { x: 1200, y: 600 }
+spawnPos: { x: 100, y: 100 }
+pathPoints:
+  - { x: 100, y: 100 }
+  - { x: 400, y: 100 }
+  - { x: 400, y: 600 }
+  - { x: 800, y: 600 }
+  - { x: 800, y: 200 }
+  - { x: 1200, y: 200 }
+  - { x: 1200, y: 600 }
+waves:
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 20
+        interval: 1.4
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 10
+        interval: 1.3
+      - type: level1
+        count: 10
+        interval: 1.2
+      - type: level2
+        count: 10
+        interval: 1.5
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 16
+        interval: 1.3
+      - type: level2
+        count: 12
+        interval: 1.3
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 20
+        interval: 1.1
+      - type: level2
+        count: 15
+        interval: 1.2
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 30
+        interval: 1.0
+      - type: level2
+        count: 25
+        interval: 1.2
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 30
+        interval: 0.9
+      - type: level2
+        count: 30
+        interval: 0.9
+

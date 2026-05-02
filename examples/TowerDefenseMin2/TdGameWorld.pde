@@ -18,6 +18,8 @@ static final class TdGameWorld {
     static int waveSpawnIndex;        // current spawn group within wave
     static int waveSpawnCount;        // how many spawned in current group
     static java.util.Random pathRng = new java.util.Random();
+    static ArrayList<PendingAttach> pendingAttaches = new ArrayList<>();
+    static float baseIncomeAccumulator = 0;
 
     static void startLevel(TowerDefenseMin2 app, int levelId) {
         // Clean up old entities
@@ -40,6 +42,7 @@ static final class TdGameWorld {
         orbs.clear();
         effects.clear();
         pendingLaserHits.clear();
+        pendingAttaches.clear();
         TowerDefenseMin2.inst.lighting.clear();
 
         level = TdAssets.loadLevel(levelId);
@@ -50,6 +53,7 @@ static final class TdGameWorld {
             orbits = 0;
         }
         escapedEnemies = 0;
+        baseIncomeAccumulator = 0;
         levelStartTotalTime = app.engine.getGameTime().getTotalTime();
         currentWave = 0;
         waveSpawnIndex = 0;
@@ -82,6 +86,16 @@ static final class TdGameWorld {
         if (level == null) return;
         int totalWaves = (level.waves != null) ? level.waves.length : 0;
 
+        // Base income (DEFEND_BASE mode only)
+        if (level.levelType == LevelType.DEFEND_BASE) {
+            baseIncomeAccumulator += TdAssets.getBaseIncomeRate() * dt;
+            if (baseIncomeAccumulator >= 1f) {
+                int add = (int) baseIncomeAccumulator;
+                money += add;
+                baseIncomeAccumulator -= add;
+            }
+        }
+
         // Wave management
         if (!waveInProgress && currentWave < totalWaves) {
             waveTimer -= dt;
@@ -101,12 +115,12 @@ static final class TdGameWorld {
                 WaveSpawn spawn = wave.spawns[waveSpawnIndex];
                 spawnTimer -= dt;
                 if (spawnTimer <= 0) {
-                    spawnEnemy(spawn.enemyType, spawn.route);
+                    spawnEnemy(spawn.enemyType, spawn.route, spawn.attaches);
                     waveSpawnCount++;
                     if (waveSpawnCount >= spawn.count) {
                         waveSpawnIndex++;
                         waveSpawnCount = 0;
-                        spawnTimer = 0;
+                        spawnTimer = spawn.interval;
                     } else {
                         spawnTimer = spawn.interval;
                     }
@@ -115,6 +129,18 @@ static final class TdGameWorld {
                 waveInProgress = false;
                 waveTimer = (currentWave < totalWaves)
                     ? level.waves[currentWave].delay : 9999f;
+            }
+        }
+
+        // Process pending attach spawns
+        for (int i = pendingAttaches.size() - 1; i >= 0; i--) {
+            PendingAttach pa = pendingAttaches.get(i);
+            pa.timer -= dt;
+            if (pa.timer <= 0) {
+                for (int j = 0; j < pa.count; j++) {
+                    spawnEnemy(pa.enemyType, pa.route, pa.childAttaches);
+                }
+                pendingAttaches.remove(i);
             }
         }
 
@@ -131,6 +157,7 @@ static final class TdGameWorld {
             Enemy captor = o.findNearbyEnemy();
             if (captor != null) {
                 captor.orbsCarried++;
+                captor.onOrbCaptured();
                 if (o.gameObject != null) o.gameObject.markForDestroy();
                 orbs.remove(i);
             }
@@ -156,8 +183,9 @@ static final class TdGameWorld {
                 for (int j = 0; j < e.orbsCarried; j++) {
                     releaseOrb(e.routeProgress, e.activeRoute);
                 }
-                if (!e.hasStolen && level != null && level.earnMoneyOnKill) {
-                    money += TdConfig.KILL_REWARD_BASE;
+                if (level != null && level.earnMoneyOnKill) {
+                    int reward = (e.enemyDef != null) ? e.enemyDef.killReward : 10;
+                    money += reward;
                 }
                 TdSaveData.incEnemiesKilled();
                 // Death animation effect
@@ -235,10 +263,14 @@ static final class TdGameWorld {
     }
 
     static void spawnEnemy(String enemyTypeKey) {
-        spawnEnemy(enemyTypeKey, null);
+        spawnEnemy(enemyTypeKey, null, null);
     }
 
     static void spawnEnemy(String enemyTypeKey, String routeId) {
+        spawnEnemy(enemyTypeKey, routeId, null);
+    }
+
+    static void spawnEnemy(String enemyTypeKey, String routeId, SpawnAttach[] attaches) {
         EnemyDef def = TdAssets.loadEnemyDef(enemyTypeKey);
         if (def == null) return;
 
@@ -274,6 +306,13 @@ static final class TdGameWorld {
         enemies.add(e);
         effects.add(new EnemySpawnEffect(e.pos.x, e.pos.y, e.radius, e.orbsCarried > 0));
         TdLightingSystem.addSpawnFlash(e.pos.x, e.pos.y);
+
+        // Queue up attach spawns
+        if (attaches != null) {
+            for (SpawnAttach a : attaches) {
+                pendingAttaches.add(new PendingAttach(a.delay, a.enemyType, a.count, a.route, a.attaches));
+            }
+        }
     }
 
     static PathRoute pickSpawnRoute(String routeId) {
@@ -443,6 +482,25 @@ static final class TdGameWorld {
                 return;
             }
         }
+    }
+}
+
+/**
+ * Delayed attach spawn triggered when a parent enemy is spawned.
+ */
+static class PendingAttach {
+    float timer;
+    final String enemyType;
+    final int count;
+    final String route;
+    final SpawnAttach[] childAttaches;
+
+    PendingAttach(float delay, String enemyType, int count, String route, SpawnAttach[] childAttaches) {
+        this.timer = delay;
+        this.enemyType = enemyType;
+        this.count = count;
+        this.route = route;
+        this.childAttaches = childAttaches;
     }
 }
 

@@ -31,6 +31,7 @@ static class Enemy {
 
     EnemyState state = EnemyState.MOVE_TO_BASE;
     boolean hasStolen = false;
+    boolean backtracking = false;   // true when retreating along inbound route
 
     // Status effects (hit marks, debuffs) rendered alongside the enemy
     ArrayList<EnemyStatusEffect> statusEffects = new ArrayList<>();
@@ -69,14 +70,21 @@ static class Enemy {
                 routeProgress += speed * slowFactor * dt;
                 if (routeProgress >= activeRoute.baseDistance) {
                     routeProgress = activeRoute.baseDistance;
-                    state = EnemyState.STEAL;
+                    if (orbsCarried > 0) {
+                        // Already carrying orb(s) captured along the way; skip steal and retreat
+                        state = EnemyState.FLEE;
+                        pickOutboundRoute();
+                    } else {
+                        state = EnemyState.STEAL;
+                    }
                 }
                 break;
             case STEAL:
                 hasStolen = true;
-                // Steal up to orbCapacity or remaining orbs
-                int stealCount = Math.min(enemyDef.orbCapacity, TdGameWorld.orbits);
-                orbsCarried = stealCount;
+                // Steal up to remaining capacity or remaining orbs
+                int remainingCapacity = enemyDef.orbCapacity - orbsCarried;
+                int stealCount = Math.min(remainingCapacity, TdGameWorld.orbits);
+                orbsCarried += stealCount;
                 TdGameWorld.orbits -= stealCount;
                 TdSaveData.incOrbsLost(stealCount);
                 // Switch to a random outbound route
@@ -84,20 +92,25 @@ static class Enemy {
                 state = EnemyState.FLEE;
                 break;
             case FLEE:
-                routeProgress += speed * slowFactor * dt;
-                if (routeProgress >= activeRoute.path.getTotalLength()) {
-                    reachedEnd = true;
+                if (backtracking) {
+                    routeProgress -= speed * slowFactor * dt;
+                    if (routeProgress <= 0) {
+                        routeProgress = 0;
+                        reachedEnd = true;
+                    }
+                } else {
+                    routeProgress += speed * slowFactor * dt;
+                    if (routeProgress >= activeRoute.path.getTotalLength()) {
+                        reachedEnd = true;
+                    }
                 }
                 break;
             case DEAD:
                 return;
         }
 
-        if (routeProgress >= activeRoute.path.getTotalLength()) {
-            pos = activeRoute.path.sample(activeRoute.path.getTotalLength());
-        } else {
-            pos = activeRoute.path.sample(routeProgress);
-        }
+        float clampedProgress = PApplet.constrain(routeProgress, 0, activeRoute.path.getTotalLength());
+        pos = activeRoute.path.sample(clampedProgress);
         if (gameObject != null) {
             gameObject.getTransform().setPosition(pos.x, pos.y);
         }
@@ -124,23 +137,58 @@ static class Enemy {
         if (TdGameWorld.level == null || TdGameWorld.level.paths == null) return;
         java.util.ArrayList<PathRoute> candidates = new java.util.ArrayList<>();
         for (PathRoute pr : TdGameWorld.level.paths) {
-            if (pr.type == RouteType.OUTBOUND) candidates.add(pr);
+            if (pr.type == RouteType.OUTBOUND && pr.path.getTotalLength() >= 1f) {
+                candidates.add(pr);
+            }
         }
-        if (candidates.isEmpty()) {
-            // Fallback: keep using current route if no outbound defined
+        if (!candidates.isEmpty()) {
+            outboundRoute = candidates.get(TdGameWorld.pathRng.nextInt(candidates.size()));
+            activeRoute = outboundRoute;
+            routeProgress = 0;
+            backtracking = false;
+            currentSegment = 0;
+            triggerSmoothTurn();
             return;
         }
-        outboundRoute = candidates.get(TdGameWorld.pathRng.nextInt(candidates.size()));
-        activeRoute = outboundRoute;
-        routeProgress = 0;
-        currentSegment = 0;
-        triggerSmoothTurn();   // immediately face the new outbound direction
+        // Fallback: backtrack along inbound route (spawn and exit are the same location)
+        if (inboundRoute != null && inboundRoute.path.getTotalLength() >= 1f) {
+            activeRoute = inboundRoute;
+            routeProgress = inboundRoute.baseDistance;
+            backtracking = true;
+            currentSegment = inboundRoute.path.getSegmentIndex(routeProgress);
+            triggerSmoothTurn();
+        }
+    }
+
+    void onOrbCaptured() {
+        if (state != EnemyState.MOVE_TO_BASE) return;
+        hasStolen = true;
+        boolean hasOutbound = false;
+        if (TdGameWorld.level != null && TdGameWorld.level.paths != null) {
+            for (PathRoute pr : TdGameWorld.level.paths) {
+                if (pr.type == RouteType.OUTBOUND && pr.path.getTotalLength() >= 1f) {
+                    hasOutbound = true;
+                    break;
+                }
+            }
+        }
+        if (!hasOutbound) {
+            // No outbound route: backtrack immediately from current position
+            state = EnemyState.FLEE;
+            backtracking = true;
+            currentSegment = activeRoute.path.getSegmentIndex(routeProgress);
+            triggerSmoothTurn();
+        }
+        // If has outbound: continue to base, will be handled in MOVE_TO_BASE
     }
 
     void triggerSmoothTurn() {
         if (gameObject == null) return;
         Vector2 dir = activeRoute.path.direction(routeProgress);
         if (dir == null) return;
+        if (backtracking) {
+            dir = dir.copy().mult(-1);
+        }
         float targetAngle = PApplet.atan2(dir.y, dir.x);
         float currentAngle = gameObject.getTransform().getRotation();
         // Normalize angle difference to [-PI, PI]

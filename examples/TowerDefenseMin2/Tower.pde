@@ -80,18 +80,32 @@ static class Tower {
     static float getThreatScore(Enemy e) {
         if (e.activeRoute == null || e.hp <= 0) return Float.MAX_VALUE;
         PathRoute r = e.activeRoute;
+        float score;
         switch (e.state) {
             case STEAL:
-                return 0;
+                score = 0;
+                break;
             case FLEE:
                 // Tier 1000: any FLEE is more dangerous than any MOVE_TO_BASE
-                return 1000f + (r.path.getTotalLength() - e.routeProgress);
+                if (e.backtracking) {
+                    // Backtrack: closer to exit as routeProgress -> 0
+                    score = 1000f + e.routeProgress;
+                } else {
+                    score = 1000f + (r.path.getTotalLength() - e.routeProgress);
+                }
+                break;
             case MOVE_TO_BASE:
                 // Tier 10000: lowest priority
-                return 10000f + (r.baseDistance - e.routeProgress);
+                score = 10000f + (r.baseDistance - e.routeProgress);
+                break;
             default:
                 return Float.MAX_VALUE;
         }
+        // Carrying orbs makes enemy more dangerous across all states
+        if (e.orbsCarried > 0) {
+            score -= e.orbsCarried * 100f;
+        }
+        return score;
     }
 
     void fireAt(Enemy target) {
@@ -150,7 +164,9 @@ static class Tower {
             Vector2 edir = target.activeRoute.path.direction(target.routeProgress);
             if (edir != null) {
                 ve.set(edir.x, edir.y);
-                ve.mult(target.speed * target.slowFactor);
+                float speed = target.speed * target.slowFactor;
+                if (target.backtracking) speed *= -1;
+                ve.mult(speed);
             }
         }
 

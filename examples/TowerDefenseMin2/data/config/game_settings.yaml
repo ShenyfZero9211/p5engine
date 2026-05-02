@@ -1,0 +1,5 @@
+# 游戏全局经济设置
+gameSettings:
+  # DEFEND_BASE 模式下基地每秒自动产钱
+  # SURVIVAL 模式下此值无效
+  baseIncomeRate: 0.25

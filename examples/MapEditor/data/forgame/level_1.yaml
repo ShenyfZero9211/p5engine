@@ -1,0 +1,25 @@
+id: 1
+nameKey: level.1.name
+subtitleKey: level.1.subtitle
+levelType: DEFEND_BASE
+initialMoney: 300
+baseOrbs: 5
+enemyHpBase: 100
+worldWidth: 1000
+worldHeight: 600
+basePos: { x: 480, y: 320 }
+exitPos: { x: 880, y: 520 }
+spawnPos: { x: 120, y: 120 }
+pathPoints:
+  - { x: 120, y: 120 }
+  - { x: 480, y: 120 }
+  - { x: 480, y: 320 }
+  - { x: 480, y: 520 }
+  - { x: 880, y: 520 }
+earnMoneyOnKill: true
+waves:
+  - delay: 2.0
+    spawns:
+      - type: level1
+        count: 15
+        interval: 2.5

@@ -2,7 +2,7 @@
  * Minimap widget — encapsulates bounds, drawing, and click-to-jump logic.
  */
 static final class TdMinimap {
-    static final float MW = 180, MH = 120;
+    static float MW = 180, MH = 120;
 
     static float getX() {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
@@ -32,8 +32,15 @@ static final class TdMinimap {
         Vector2 dm = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
         float mx = getX();
         float my = getY();
-        float wx = (dm.x - mx) / MW * TdGameWorld.level.worldW;
-        float wy = (dm.y - my) / MH * TdGameWorld.level.worldH;
+        float worldW = TdGameWorld.level.worldW;
+        float worldH = TdGameWorld.level.worldH;
+        float scale = Math.min(MW / worldW, MH / worldH);
+        float drawW = worldW * scale;
+        float drawH = worldH * scale;
+        float ox = mx + (MW - drawW) * 0.5f;
+        float oy = my + (MH - drawH) * 0.5f;
+        float wx = (dm.x - ox) / scale;
+        float wy = (dm.y - oy) / scale;
         app.camera.jumpCenterTo(wx, wy);
     }
 
@@ -52,25 +59,21 @@ static final class TdMinimap {
         app.rect(mx + 0.5f, my + 0.5f, MW - 1, MH - 1);
 
         if (TdGameWorld.level != null) {
-            float sx = MW / TdGameWorld.level.worldW;
-            float sy = MH / TdGameWorld.level.worldH;
-            println("[MINIMAP] spawnPos=" + TdGameWorld.level.spawnPos + " exitPos=" + TdGameWorld.level.exitPos + " basePos=" + TdGameWorld.level.basePos);
-            println("[MINIMAP] paths=" + (TdGameWorld.level.paths != null ? TdGameWorld.level.paths.length : "null"));
-            if (TdGameWorld.level.paths != null) {
-                for (int i = 0; i < TdGameWorld.level.paths.length; i++) {
-                    PathRoute pr = TdGameWorld.level.paths[i];
-                    if (pr.path != null && pr.path.points != null) {
-                        println("[MINIMAP] path[" + i + "] start=" + pr.path.points[0] + " end=" + pr.path.points[pr.path.points.length-1]);
-                    }
-                }
-            }
+            float worldW = TdGameWorld.level.worldW;
+            float worldH = TdGameWorld.level.worldH;
+            float scale = Math.min(MW / worldW, MH / worldH);
+            float drawW = worldW * scale;
+            float drawH = worldH * scale;
+            float ox = mx + (MW - drawW) * 0.5f;
+            float oy = my + (MH - drawH) * 0.5f;
+
             // Base
             app.fill(0xFF4A9EFF);
-            app.ellipse(mx + TdGameWorld.level.basePos.x * sx, my + TdGameWorld.level.basePos.y * sy, 6, 6);
+            app.ellipse(ox + TdGameWorld.level.basePos.x * scale, oy + TdGameWorld.level.basePos.y * scale, 6, 6);
             // Spawns (global + per-path)
             app.fill(0xFFFF8C42);
             if (TdGameWorld.level.spawnPos != null) {
-                app.ellipse(mx + TdGameWorld.level.spawnPos.x * sx, my + TdGameWorld.level.spawnPos.y * sy, 6, 6);
+                app.ellipse(ox + TdGameWorld.level.spawnPos.x * scale, oy + TdGameWorld.level.spawnPos.y * scale, 6, 6);
             }
             if (TdGameWorld.level.paths != null) {
                 for (PathRoute pr : TdGameWorld.level.paths) {
@@ -78,19 +81,19 @@ static final class TdMinimap {
                     Vector2 start = pr.path.points[0];
                     boolean distinct = (TdGameWorld.level.spawnPos == null) || start.distance(TdGameWorld.level.spawnPos) > 10f;
                     if (distinct) {
-                        app.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+                        app.ellipse(ox + start.x * scale, oy + start.y * scale, 5, 5);
                     }
                 }
             } else if (TdGameWorld.level.pathPoints != null && TdGameWorld.level.pathPoints.length > 0) {
                 // legacy single-path: first point as spawn
                 Vector2 start = TdGameWorld.level.pathPoints[0];
-                app.ellipse(mx + start.x * sx, my + start.y * sy, 5, 5);
+                app.ellipse(ox + start.x * scale, oy + start.y * scale, 5, 5);
             }
 
             // Exits (global + per-path endpoints)
             app.fill(0xFFFF4444);
             if (TdGameWorld.level.exitPos != null) {
-                app.ellipse(mx + TdGameWorld.level.exitPos.x * sx, my + TdGameWorld.level.exitPos.y * sy, 6, 6);
+                app.ellipse(ox + TdGameWorld.level.exitPos.x * scale, oy + TdGameWorld.level.exitPos.y * scale, 6, 6);
             }
             if (TdGameWorld.level.paths != null) {
                 for (PathRoute pr : TdGameWorld.level.paths) {
@@ -99,7 +102,7 @@ static final class TdMinimap {
                     boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
                     boolean isGlobalExit = (TdGameWorld.level.exitPos != null) && end.distance(TdGameWorld.level.exitPos) <= 10f;
                     if (!isBase && !isGlobalExit) {
-                        app.ellipse(mx + end.x * sx, my + end.y * sy, 5, 5);
+                        app.ellipse(ox + end.x * scale, oy + end.y * scale, 5, 5);
                     }
                 }
             } else if (TdGameWorld.level.pathPoints != null && TdGameWorld.level.pathPoints.length > 1) {
@@ -107,7 +110,7 @@ static final class TdMinimap {
                 Vector2 end = TdGameWorld.level.pathPoints[TdGameWorld.level.pathPoints.length - 1];
                 boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
                 if (!isBase) {
-                    app.ellipse(mx + end.x * sx, my + end.y * sy, 5, 5);
+                    app.ellipse(ox + end.x * scale, oy + end.y * scale, 5, 5);
                 }
             }
             // Path
@@ -115,27 +118,27 @@ static final class TdMinimap {
             app.strokeWeight(1);
             Vector2[] pts = TdGameWorld.level.pathPoints;
             for (int i = 1; i < pts.length; i++) {
-                app.line(mx + pts[i-1].x * sx, my + pts[i-1].y * sy,
-                         mx + pts[i].x * sx, my + pts[i].y * sy);
+                app.line(ox + pts[i-1].x * scale, oy + pts[i-1].y * scale,
+                         ox + pts[i].x * scale, oy + pts[i].y * scale);
             }
             // Towers (fixed screen-pixel size so they remain visible)
             app.noStroke();
             app.fill(0xFF66FF66);
             for (Tower t : TdGameWorld.towers) {
-              app.rect(mx + t.worldX * sx - 4, my + t.worldY * sy - 4, 6, 6);
+              app.rect(ox + t.worldX * scale - 4, oy + t.worldY * scale - 4, 6, 6);
             }
             // Orbs
             app.noStroke();
             app.fill(0xFFFFD700);
             for (Orb o : TdGameWorld.orbs) {
-              app.ellipse(mx + o.pos.x * sx, my + o.pos.y * sy, 4, 4);
+              app.ellipse(ox + o.pos.x * scale, oy + o.pos.y * scale, 4, 4);
             }
 
             // Enemies
             app.noStroke();
             app.fill(0xFFFF4444);
             for (Enemy e : TdGameWorld.enemies) {
-              app.ellipse(mx + e.pos.x * sx, my + e.pos.y * sy, 5, 5);
+              app.ellipse(ox + e.pos.x * scale, oy + e.pos.y * scale, 5, 5);
             }
 
             // Camera rect
@@ -147,7 +150,7 @@ static final class TdMinimap {
             app.noFill();
             app.stroke(0xFFFF8C42);
             app.strokeWeight(1);
-            app.rect(mx + (cx - cw * 0.5f) * sx, my + (cy - ch * 0.5f) * sy, cw * sx, ch * sy);
+            app.rect(ox + (cx - cw * 0.5f) * scale, oy + (cy - ch * 0.5f) * scale, cw * scale, ch * scale);
         }
 
         app.popStyle();

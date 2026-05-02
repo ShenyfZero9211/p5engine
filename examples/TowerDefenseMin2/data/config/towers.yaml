@@ -3,13 +3,13 @@ towers:
     nameKey: tower.mg.name
     descKey: tower.mg.desc
     cost: 80
-    range: 160
+    range: 125
     firePeriod: 0.15
-    damage: 12
+    damage: 5
     aoeRadius: 0
     laserBonus: 0
     slowFactor: 0
-    buildTime: 0.8
+    buildTime: 2.0
     iconColor: [74, 158, 255]
     sfx:
       fire: sounds/synthetic-spike.wav
@@ -19,14 +19,14 @@ towers:
   missile:
     nameKey: tower.missile.name
     descKey: tower.missile.desc
-    cost: 150
+    cost: 200
     range: 250
     firePeriod: 1.5
-    damage: 40
+    damage: 20
     aoeRadius: 80
     laserBonus: 0
     slowFactor: 0
-    buildTime: 1.0
+    buildTime: 3.5
     iconColor: [255, 100, 60]
     sfx:
       fire: sounds/synthetic-bass.wav
@@ -43,7 +43,7 @@ towers:
     aoeRadius: 0
     laserBonus: 3.0
     slowFactor: 0
-    buildTime: 1.2
+    buildTime: 2.7
     iconColor: [200, 120, 220]
     laserDelay: 0.2
     sfx:
@@ -62,7 +62,7 @@ towers:
     laserBonus: 0
     slowFactor: 0.5
     slowDuration: 2.0
-    buildTime: 0.6
+    buildTime: 4.0
     iconColor: [60, 220, 120]
     sfx:
       fire: sounds/ambient-swoosh.wav

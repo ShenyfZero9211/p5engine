@@ -46,7 +46,7 @@ static final class TdConfig {
     static final int INITIAL_MONEY = 420;
     static final int MAX_LEVELS = 7;
     static final float ENEMY_RADIUS = 14;
-    static final int KILL_REWARD_BASE = 15;
+    // killReward moved to enemies.yaml (EnemyDef.killReward)
 }
 
 /**
@@ -139,17 +139,38 @@ static final class EnemyDef {
     final float hpMultiplier;
     final int orbCapacity;
     final float radius;
+    final int killReward;
     final String sfxDeath;
 
     EnemyDef(String key, String nameKey, float speedMultiplier, float hpMultiplier,
-             int orbCapacity, float radius, String sfxDeath) {
+             int orbCapacity, float radius, int killReward, String sfxDeath) {
         this.key = key;
         this.nameKey = nameKey;
         this.speedMultiplier = speedMultiplier;
         this.hpMultiplier = hpMultiplier;
         this.orbCapacity = orbCapacity;
         this.radius = radius;
+        this.killReward = killReward;
         this.sfxDeath = sfxDeath;
+    }
+}
+
+/**
+ * Nested attach config: triggered when a parent unit is spawned.
+ */
+static final class SpawnAttach {
+    final String enemyType;
+    final int count;
+    final float delay;
+    final String route;
+    final SpawnAttach[] attaches;  // nested attaches
+
+    SpawnAttach(String enemyType, int count, float delay, String route, SpawnAttach[] attaches) {
+        this.enemyType = enemyType;
+        this.count = count;
+        this.delay = delay;
+        this.route = route;
+        this.attaches = attaches;
     }
 }
 
@@ -161,12 +182,14 @@ static final class WaveSpawn {
     final int count;
     final float interval;
     final String route;      // optional path route id
+    final SpawnAttach[] attaches;
 
-    WaveSpawn(String enemyType, int count, float interval, String route) {
+    WaveSpawn(String enemyType, int count, float interval, String route, SpawnAttach[] attaches) {
         this.enemyType = enemyType;
         this.count = count;
         this.interval = interval;
         this.route = route;
+        this.attaches = attaches;
     }
 }
 

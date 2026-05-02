@@ -1,0 +1,10 @@
+id: 1
+nameKey: level.new.name
+subtitleKey: level.new.subtitle
+levelType: DEFEND_BASE
+initialMoney: 300
+baseOrbs: 5
+enemyHpBase: 100
+worldWidth: 1600
+worldHeight: 1200
+earnMoneyOnKill: true

@@ -1,0 +1,22 @@
+id: 11
+nameKey: level.new.name
+subtitleKey: level.new.subtitle
+levelType: DEFEND_BASE
+initialMoney: 300
+baseOrbs: 5
+enemyHpBase: 100
+worldWidth: 800
+worldHeight: 800
+basePos: { x: 120, y: 560 }
+exitPos: { x: 720, y: 400 }
+spawnPos: { x: 720, y: 400 }
+pathPoints:
+  - { x: 720, y: 400 }
+  - { x: 720, y: 760 }
+  - { x: 600, y: 760 }
+  - { x: 600, y: 480 }
+  - { x: 480, y: 480 }
+  - { x: 480, y: 760 }
+  - { x: 280, y: 560 }
+  - { x: 120, y: 560 }
+earnMoneyOnKill: true
