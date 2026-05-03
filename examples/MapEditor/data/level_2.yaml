@@ -2,29 +2,23 @@ id: 2
 nameKey: level.2.name
 subtitleKey: level.2.subtitle
 levelType: DEFEND_BASE
-initialMoney: 135
+initialMoney: 125
 baseOrbs: 5
 enemyHpBase: 100
-worldWidth: 800
-worldHeight: 500
 allowedTowers: [MG]
-#allowedTowers: [MISSILE, LASER, SLOW]
-allowedUpgrades: [MG]   # 只有机枪塔可升级，导弹塔可建造但不可升级
-
-basePos: { x: 360, y: 80 }
-exitPos: { x: 720, y: 80 }
-spawnPos: { x: 80, y: 400 }
+worldWidth: 1200
+worldHeight: 1200
+basePos: { x: 600, y: 440 }
+exitPos: { x: 1120, y: 320 }
+spawnPos: { x: 80, y: 880 }
 pathPoints:
-  - { x: 80, y: 400 }
-  - { x: 80, y: 80 }
-  - { x: 200, y: 80 }
-  - { x: 200, y: 400 }
-  - { x: 360, y: 400 }
-  - { x: 360, y: 80 }
-  - { x: 560, y: 80 }
-  - { x: 560, y: 400 }
-  - { x: 720, y: 400 }
-  - { x: 720, y: 80 }
+  - { x: 80, y: 880 }
+  - { x: 280, y: 880 }
+  - { x: 280, y: 440 }
+  - { x: 600, y: 440 }
+  - { x: 600, y: 720 }
+  - { x: 1120, y: 720 }
+  - { x: 1120, y: 320 }
 earnMoneyOnKill: true
 waves:
   - delay: 16.0

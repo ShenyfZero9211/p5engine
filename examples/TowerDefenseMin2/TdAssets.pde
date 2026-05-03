@@ -65,12 +65,15 @@ static final class TdAssets {
                                       | ((Number)c.get(2)).intValue();
 
         java.util.Map sfx = (java.util.Map) t.get("sfx");
+        java.util.Map u = (java.util.Map) t.get("upgrade");
+        java.util.Map u2 = (java.util.Map) t.get("upgrade2");
+        int baseCost = ((Number) t.get("cost")).intValue();
 
         return new TowerDef(
             type,
             (String) t.get("nameKey"),
             (String) t.get("descKey"),
-            ((Number) t.get("cost")).intValue(),
+            baseCost,
             ((Number) t.get("range")).floatValue(),
             ((Number) t.get("firePeriod")).floatValue(),
             ((Number) t.get("damage")).floatValue(),
@@ -83,7 +86,23 @@ static final class TdAssets {
             iconColor,
             sfx != null ? (String) sfx.get("fire") : null,
             sfx != null ? (String) sfx.get("place") : null,
-            sfx != null ? (String) sfx.get("complete") : null
+            sfx != null ? (String) sfx.get("complete") : null,
+            u != null && u.containsKey("cost") ? ((Number) u.get("cost")).intValue() : baseCost / 2,
+            u != null && u.containsKey("buildTime") ? ((Number) u.get("buildTime")).floatValue() : ((Number) t.get("buildTime")).floatValue(),
+            u != null && u.containsKey("damageMult") ? ((Number) u.get("damageMult")).floatValue() : 1f,
+            u != null && u.containsKey("rangeMult") ? ((Number) u.get("rangeMult")).floatValue() : 1f,
+            u != null && u.containsKey("speedMult") ? ((Number) u.get("speedMult")).floatValue() : 1f,
+            u != null && u.containsKey("slowMult") ? ((Number) u.get("slowMult")).floatValue() : 1f,
+            u != null && u.containsKey("poisonMult") ? ((Number) u.get("poisonMult")).floatValue() : 1f,
+            u != null && u.containsKey("aoeMult") ? ((Number) u.get("aoeMult")).floatValue() : 1f,
+            u != null && u.containsKey("bulletSizeMult") ? ((Number) u.get("bulletSizeMult")).floatValue() : 1f,
+            t.containsKey("poisonDamage") ? ((Number) t.get("poisonDamage")).floatValue() : 0f,
+            t.containsKey("poisonDuration") ? ((Number) t.get("poisonDuration")).floatValue() : 0f,
+            t.containsKey("poisonFanAngle") ? ((Number) t.get("poisonFanAngle")).floatValue() : 90f,
+            t.containsKey("commandBonus") ? ((Number) t.get("commandBonus")).floatValue() : 1f,
+            u != null && u.containsKey("commandMult") ? ((Number) u.get("commandMult")).floatValue() : 1f,
+            u2 != null && u2.containsKey("cost") ? ((Number) u2.get("cost")).intValue() : baseCost,
+            u2 != null && u2.containsKey("buildTime") ? ((Number) u2.get("buildTime")).floatValue() : ((Number) t.get("buildTime")).floatValue()
         );
     }
 
@@ -136,6 +155,24 @@ static final class TdAssets {
         Object rate = gs.get("baseIncomeRate");
         if (rate instanceof Number) return ((Number) rate).floatValue();
         return 0.25f;
+    }
+
+    static int getCommandKillBonusMin() {
+        if (gameSettingsYamlRoot == null) return 1;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1;
+        Object v = gs.get("commandKillBonusMin");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 1;
+    }
+
+    static int getCommandKillBonusMax() {
+        if (gameSettingsYamlRoot == null) return 3;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 3;
+        Object v = gs.get("commandKillBonusMax");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 3;
     }
 
     static int getLevelCount() {
@@ -283,12 +320,34 @@ static final class TdAssets {
             }
         }
 
+        // Allowed upgrades (optional, default all)
+        java.util.List upgradeList = (java.util.List) lvl.get("allowedUpgrades");
+        if (upgradeList != null) {
+            ld.allowedUpgrades = new TowerType[upgradeList.size()];
+            for (int i = 0; i < upgradeList.size(); i++) {
+                String tt = (String) upgradeList.get(i);
+                try {
+                    ld.allowedUpgrades[i] = TowerType.valueOf(tt.toUpperCase());
+                } catch (Exception ex) {
+                    ld.allowedUpgrades[i] = null;
+                }
+            }
+        }
+
         // Earn money on kill (optional, default true)
         Object earnObj = lvl.get("earnMoneyOnKill");
         if (earnObj != null) {
             ld.earnMoneyOnKill = Boolean.parseBoolean(earnObj.toString());
         } else {
             ld.earnMoneyOnKill = true;
+        }
+
+        // Dev mode (optional, default false)
+        Object devObj = lvl.get("devMode");
+        if (devObj != null) {
+            ld.devMode = Boolean.parseBoolean(devObj.toString());
+        } else {
+            ld.devMode = false;
         }
 
         return ld;

@@ -56,7 +56,9 @@ enum TowerType {
     MG,       // Machine Gun — fast, low dmg, single target
     MISSILE,  // Missile — slow, high dmg, AOE
     LASER,    // Laser — continuous beam, armor piercing
-    SLOW;     // Slow — no dmg, slows enemies in range
+    SLOW,     // Slow — no dmg, slows enemies in range
+    POISON,   // Poison —扇形毒雾, DoT
+    COMMAND;  // Command — 被动光环: 击杀奖金 + 攻击力加成
 
     static TowerType fromBuildMode(TdBuildMode mode) {
         switch (mode) {
@@ -64,6 +66,8 @@ enum TowerType {
             case MISSILE: return MISSILE;
             case LASER: return LASER;
             case SLOW: return SLOW;
+            case POISON: return POISON;
+            case COMMAND: return COMMAND;
             default: return null;
         }
     }
@@ -74,6 +78,8 @@ enum TowerType {
             case MISSILE: return TdBuildMode.MISSILE;
             case LASER: return TdBuildMode.LASER;
             case SLOW: return TdBuildMode.SLOW;
+            case POISON: return TdBuildMode.POISON;
+            case COMMAND: return TdBuildMode.COMMAND;
             default: return TdBuildMode.NONE;
         }
     }
@@ -227,11 +233,33 @@ static final class TowerDef {
     final String sfxFire;
     final String sfxPlace;
     final String sfxComplete;
+    final int upgradeCost;
+    final float upgradeBuildTime;
+    final float upgradeDamageMult;
+    final float upgradeRangeMult;
+    final float upgradeSpeedMult;
+    final float upgradeSlowMult;
+    final float upgradePoisonMult;
+    final float upgradeAoeMult;
+    final float upgradeBulletSizeMult;
+    final float poisonDamage;
+    final float poisonDuration;
+    final float poisonFanAngle;
+    final float commandBonus;
+    final float upgradeCommandMult;
+    final int upgrade2Cost;
+    final float upgrade2BuildTime;
 
     TowerDef(TowerType type, String nameKey, String descKey, int cost, float range,
              float firePeriod, float damage, float aoeRadius, float laserBonus,
              float slowFactor, float slowDuration, float laserDelay, float buildTime, int iconColor,
-             String sfxFire, String sfxPlace, String sfxComplete) {
+             String sfxFire, String sfxPlace, String sfxComplete,
+             int upgradeCost, float upgradeBuildTime,
+             float upgradeDamageMult, float upgradeRangeMult, float upgradeSpeedMult,
+             float upgradeSlowMult, float upgradePoisonMult, float upgradeAoeMult, float upgradeBulletSizeMult,
+             float poisonDamage, float poisonDuration, float poisonFanAngle,
+             float commandBonus, float upgradeCommandMult,
+             int upgrade2Cost, float upgrade2BuildTime) {
         this.type = type;
         this.nameKey = nameKey;
         this.descKey = descKey;
@@ -249,6 +277,22 @@ static final class TowerDef {
         this.sfxFire = sfxFire;
         this.sfxPlace = sfxPlace;
         this.sfxComplete = sfxComplete;
+        this.upgradeCost = upgradeCost;
+        this.upgradeBuildTime = upgradeBuildTime;
+        this.upgradeDamageMult = upgradeDamageMult;
+        this.upgradeRangeMult = upgradeRangeMult;
+        this.upgradeSpeedMult = upgradeSpeedMult;
+        this.upgradeSlowMult = upgradeSlowMult;
+        this.upgradePoisonMult = upgradePoisonMult;
+        this.upgradeAoeMult = upgradeAoeMult;
+        this.upgradeBulletSizeMult = upgradeBulletSizeMult;
+        this.poisonDamage = poisonDamage;
+        this.poisonDuration = poisonDuration;
+        this.poisonFanAngle = poisonFanAngle;
+        this.commandBonus = commandBonus;
+        this.upgradeCommandMult = upgradeCommandMult;
+        this.upgrade2Cost = upgrade2Cost;
+        this.upgrade2BuildTime = upgrade2BuildTime;
     }
 }
 
@@ -273,8 +317,10 @@ static final class LevelDef {
     int worldH;
     WaveDef[] waves;
     TowerType[] allowedTowers; // null = all towers allowed
+    TowerType[] allowedUpgrades; // null = all towers upgradable
     boolean earnMoneyOnKill;   // default true
+    boolean devMode;           // default false
 }
 
 enum TdState { MENU, LEVEL_SELECT, SETTINGS, PLAYING, PAUSED, WIN, LOSE }
-enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW }
+enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW, POISON, COMMAND }

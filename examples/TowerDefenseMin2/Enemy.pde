@@ -115,11 +115,24 @@ static class Enemy {
             gameObject.getTransform().setPosition(pos.x, pos.y);
         }
 
-        // Update status effects
+        // Update status effects and apply poison DoT (tick every 0.5s)
+        float poisonDamageTotal = 0f;
         for (int i = statusEffects.size() - 1; i >= 0; i--) {
-            if (!statusEffects.get(i).update(dt)) {
+            EnemyStatusEffect se = statusEffects.get(i);
+            if (se instanceof PoisonStatusEffect) {
+                PoisonStatusEffect pse = (PoisonStatusEffect) se;
+                if (pse.tickTimer <= 0) {
+                    poisonDamageTotal += pse.dps * 0.5f;
+                    pse.tickTimer += 0.5f;
+                }
+            }
+            if (!se.update(dt)) {
                 statusEffects.remove(i);
             }
+        }
+        if (poisonDamageTotal > 0) {
+            hp -= poisonDamageTotal;
+            if (hitFlashTimer <= 0) hitFlashTimer = 0.05f;
         }
 
         // Hit flash timer
@@ -204,5 +217,26 @@ static class Enemy {
             .onComplete(() -> isTurning = false)
             .start();
         isTurning = true;
+    }
+
+    static final int MAX_POISON_STACKS = 2;
+
+    void addPoisonStack(float dps, float duration) {
+        ArrayList<PoisonStatusEffect> poisons = new ArrayList<>();
+        for (EnemyStatusEffect se : statusEffects) {
+            if (se instanceof PoisonStatusEffect) poisons.add((PoisonStatusEffect) se);
+        }
+        if (poisons.size() < MAX_POISON_STACKS) {
+            statusEffects.add(new PoisonStatusEffect(dps, duration, poisons.size()));
+        } else {
+            // Replace the one with shortest remaining time to maximize total DoT
+            PoisonStatusEffect shortest = poisons.get(0);
+            for (int i = 1; i < poisons.size(); i++) {
+                if (poisons.get(i).timer < shortest.timer) shortest = poisons.get(i);
+            }
+            int idx = shortest.stackIndex;
+            statusEffects.remove(shortest);
+            statusEffects.add(new PoisonStatusEffect(dps, duration, idx));
+        }
     }
 }

@@ -1,6 +1,11 @@
 /**
  * 2D Lighting System for TowerDefenseMin2.
  * Mask-based lighting: dark ambient + additive light sources, multiplied onto the world viewport.
+ *
+ * Optimized with static/dynamic buffer separation:
+ * - staticBuffer: cached persistent lights (tower ambient + base), rebuilt only when
+ *   static light set changes, camera moves, or zoom changes.
+ * - dynBuffer: per-frame composite of staticBuffer + dynamic lights (flashes, bullet glows).
  */
 
 static class TdLight {
@@ -40,11 +45,18 @@ static class TdLight {
 }
 
 static class TdLightingSystem {
-    PGraphics buffer;
+    PGraphics staticBuffer;   // cached persistent lights
+    PGraphics dynBuffer;      // per-frame: static + dynamic composite
     PApplet appRef;
     ArrayList<TdLight> lights = new ArrayList<>();
     int ambientColor = 0xFFFFFFFF; // white — no dimming for now; change to darker for night levels later
     static final int GRADIENT_STEPS = 20;
+
+    // Cache invalidation state
+    boolean staticBufferDirty = true;
+    float lastZoom = -1f;
+    float lastCamX = Float.MAX_VALUE;
+    float lastCamY = Float.MAX_VALUE;
 
     TdLightingSystem(PApplet app) {
         this.appRef = app;
@@ -52,13 +64,14 @@ static class TdLightingSystem {
 
     void init(PApplet app, int w, int h) {
         this.appRef = app;
-        if (buffer == null || buffer.width != w || buffer.height != h) {
-            buffer = app.createGraphics(w, h, PApplet.P2D);
-        }
+        ensureBuffers(w, h);
     }
 
     void addLight(TdLight light) {
         lights.add(light);
+        if (light.duration <= 0) {
+            staticBufferDirty = true;
+        }
     }
 
     void update(float dt) {
@@ -76,16 +89,38 @@ static class TdLightingSystem {
 
         int iw = Math.max(1, (int) vpW);
         int ih = Math.max(1, (int) vpH);
-        if (buffer == null || buffer.width != iw || buffer.height != ih) {
-            buffer = appRef.createGraphics(iw, ih, PApplet.P2D);
+        ensureBuffers(iw, ih);
+
+        // Detect camera movement / zoom change
+        Vector2 camPos = camera.getTransform().getPosition();
+        float camX = camPos.x;
+        float camY = camPos.y;
+        float camZoom = camera.getZoom();
+        if (Math.abs(camX - lastCamX) > 0.5f || Math.abs(camY - lastCamY) > 0.5f
+            || Math.abs(camZoom - lastZoom) > 0.001f) {
+            staticBufferDirty = true;
+            lastCamX = camX;
+            lastCamY = camY;
+            lastZoom = camZoom;
         }
 
-        buffer.beginDraw();
-        buffer.background(0); // black — only light sources go here
-        buffer.blendMode(PApplet.ADD);
-        buffer.noStroke();
+        // Rebuild static buffer if needed
+        if (staticBufferDirty) {
+            rebuildStaticBuffer(camera, vpX, vpY, vpW, vpH);
+        }
+
+        // Draw dynamic buffer: copy static + overlay dynamic lights
+        dynBuffer.beginDraw();
+        dynBuffer.background(0);
+        if (staticBuffer != null) {
+            dynBuffer.image(staticBuffer, 0, 0);
+        }
+        dynBuffer.blendMode(PApplet.ADD);
+        dynBuffer.noStroke();
 
         for (TdLight light : lights) {
+            if (light.duration <= 0) continue; // already in staticBuffer
+            if (light.dead) continue;
             Vector2 screenPos = camera.worldToScreen(light.worldPos);
             float sx = screenPos.x - vpX;
             float sy = screenPos.y - vpY;
@@ -94,21 +129,21 @@ static class TdLightingSystem {
             // Cull if completely outside viewport
             if (sx + r < 0 || sx - r > vpW || sy + r < 0 || sy - r > vpH) continue;
 
-            drawRadialGradient(buffer, sx, sy, r, light.lightColor, light.getEffectiveIntensity());
+            drawRadialGradient(dynBuffer, sx, sy, r, light.lightColor, light.getEffectiveIntensity());
         }
 
-        // Laser beam capsule glows
+        // Laser beam capsule glows (always dynamic)
         for (Effect e : TdGameWorld.effects) {
             if (e instanceof LaserBeamEffect) {
                 LaserBeamEffect lb = (LaserBeamEffect) e;
                 Vector2 s1 = camera.worldToScreen(lb.from);
                 Vector2 s2 = camera.worldToScreen(lb.dest);
                 float lifeRatio = lb.life / lb.maxLife;
-                drawLaserGlow(buffer, s1.x - vpX, s1.y - vpY, s2.x - vpX, s2.y - vpY, 0xFFC878DC, 1.0f, lifeRatio);
+                drawLaserGlow(dynBuffer, s1.x - vpX, s1.y - vpY, s2.x - vpX, s2.y - vpY, 0xFFC878DC, 1.0f, lifeRatio);
             }
         }
 
-        buffer.endDraw();
+        dynBuffer.endDraw();
 
         target.pushStyle();
         // Step 1: ambient dimming (MULTIPLY)
@@ -118,9 +153,34 @@ static class TdLightingSystem {
         target.rect(vpX, vpY, vpW, vpH);
         // Step 2: light source flares (SCREEN — softer than ADD, less overexposure)
         target.blendMode(PApplet.SCREEN);
-        target.image(buffer, vpX, vpY);
+        target.image(dynBuffer, vpX, vpY);
         target.blendMode(PApplet.BLEND);
         target.popStyle();
+    }
+
+    void rebuildStaticBuffer(Camera2D camera, float vpX, float vpY, float vpW, float vpH) {
+        if (staticBuffer == null) return;
+        staticBuffer.beginDraw();
+        staticBuffer.background(0);
+        staticBuffer.blendMode(PApplet.ADD);
+        staticBuffer.noStroke();
+
+        for (TdLight light : lights) {
+            if (light.duration > 0) continue; // only persistent lights
+            if (light.dead) continue;
+            Vector2 screenPos = camera.worldToScreen(light.worldPos);
+            float sx = screenPos.x - vpX;
+            float sy = screenPos.y - vpY;
+            float r = light.radius * camera.getZoom();
+
+            // Cull if completely outside viewport
+            if (sx + r < 0 || sx - r > vpW || sy + r < 0 || sy - r > vpH) continue;
+
+            drawRadialGradient(staticBuffer, sx, sy, r, light.lightColor, light.getEffectiveIntensity());
+        }
+
+        staticBuffer.endDraw();
+        staticBufferDirty = false;
     }
 
     void drawRadialGradient(PGraphics pg, float cx, float cy, float radius, int lightColor, float intensity) {
@@ -134,7 +194,8 @@ static class TdLightingSystem {
             int a = (int) (255 * (1 - t) * intensity);
             if (a <= 0) continue;
             pg.fill(r, g, b, a);
-            pg.ellipse(cx, cy, cr * 2, cr * 2);
+            int segs = (cr < 5) ? 8 : ((cr < 15) ? 12 : 16);
+            drawPolyCircle(pg, cx, cy, cr, segs);
         }
     }
 
@@ -173,6 +234,15 @@ static class TdLightingSystem {
 
     void clear() {
         lights.clear();
+        staticBufferDirty = true;
+    }
+
+    void ensureBuffers(int w, int h) {
+        if (dynBuffer == null || dynBuffer.width != w || dynBuffer.height != h) {
+            dynBuffer = appRef.createGraphics(w, h, PApplet.P2D);
+            staticBuffer = appRef.createGraphics(w, h, PApplet.P2D);
+            staticBufferDirty = true;
+        }
     }
 
     // ── Convenience factory methods ──
@@ -195,6 +265,7 @@ static class TdLightingSystem {
         if (tower.ambientLight != null) {
             tower.ambientLight.dead = true;
             tower.ambientLight = null;
+            TowerDefenseMin2.inst.lighting.staticBufferDirty = true;
         }
     }
 
@@ -248,6 +319,9 @@ static class TdLightingSystem {
                 break;
             case SLOW:
                 addFlash(tower.worldX, tower.worldY, baseSize * 2.0f, tower.def.iconColor, 0.1f, 0.30f);
+                break;
+            case COMMAND:
+                addFlash(tower.worldX, tower.worldY, baseSize * 1.5f, tower.def.iconColor, 0.1f, 0.25f);
                 break;
         }
     }

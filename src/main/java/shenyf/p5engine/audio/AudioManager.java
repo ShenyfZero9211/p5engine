@@ -171,12 +171,12 @@ public class AudioManager {
 
     /** Play a one-shot sound effect from data/ folder. */
     public void playOneShot(String path, String groupName) {
-        Logger.info("Audio", "playOneShot: " + path + " group=" + groupName);
+        // Logger.info("Audio", "playOneShot: " + path + " group=" + groupName);
         TinySfxClip clip = loadSound(path);
         if (clip != null) {
             AudioGroup g = getGroup(groupName);
             clip.setGroupVolume(g != null ? g.getVolume() : 1.0f);
-            Logger.info("Audio", "playOneShot playing: " + path);
+            // Logger.info("Audio", "playOneShot playing: " + path);
             clip.play();
         } else {
             Logger.warn("Audio", "playOneShot failed to load: " + path);

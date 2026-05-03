@@ -1,0 +1,125 @@
+id: 5
+nameKey: level.4.name
+subtitleKey: level.4.subtitle
+levelType: DEFEND_BASE
+initialMoney: 600
+baseOrbs: 5
+enemyHpBase: 100
+worldWidth: 800
+worldHeight: 800
+#allowedTowers: [MG, MISSILE, LASER]
+basePos: { x: 120, y: 560 }
+exitPos: { x: 720, y: 400 }
+spawnPos: { x: 720, y: 400 }
+pathPoints:
+  - { x: 720, y: 400 }
+  - { x: 720, y: 760 }
+  - { x: 600, y: 760 }
+  - { x: 600, y: 480 }
+  - { x: 480, y: 480 }
+  - { x: 480, y: 760 }
+  - { x: 280, y: 560 }
+  - { x: 120, y: 560 }
+earnMoneyOnKill: true
+
+waves:
+# wave 1
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 20
+        interval: 1.0
+      - type: level1
+        count: 15
+        interval: 0.9
+# wave 2
+
+  - delay: 16.0
+    spawns:
+      - type: level1
+        count: 10
+        interval: 0.8
+      - type: level2
+        count: 10
+        interval: 1.0
+# wave 3
+
+  - delay: 16.0
+    spawns:
+      - type: level2
+        count: 10
+        interval: 1.3
+        attach:
+          - type: level1
+            delay: 0.4
+# wave 4
+
+  - delay: 16.0
+    spawns:
+      - type: level2
+        count: 10
+        interval: 1.1
+        attach:
+          - type: level1
+            delay: 0.3
+
+      - type: level1
+        count: 10
+        interval: 0.6
+        
+      - type: level2
+        count: 8
+        interval: 1.0
+        attach:
+          - type: level1
+            delay: 0.2
+            
+# wave 5
+
+  - delay: 16.0
+    spawns:
+      - type: level2
+        count: 10
+        interval: 1.0
+        attach:
+          - type: level1
+            delay: 0.2
+
+      - type: level1
+        count: 10
+        interval: 0.55
+        
+      - type: level2
+        count: 15
+        interval: 0.9
+        attach:
+          - type: level1
+            delay: 0.2
+            attach:
+              - type: level1
+                delay: 0.6
+
+# wave 6
+
+  - delay: 16.0
+    spawns:
+      - type: level2
+        count: 24
+        interval: 1.0
+        attach:
+          - type: level1
+            delay: 0.1
+        
+      - type: level2
+        count: 15
+        interval: 0.9
+        attach:
+          - type: level1
+            delay: 0.2
+            
+      - type: level2
+        count: 20
+        interval: 0.80
+        attach:
+          - type: level1
+            delay: 0.35

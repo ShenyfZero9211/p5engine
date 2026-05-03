@@ -88,6 +88,11 @@ static class TowerButton extends Button {
                     applet.fill(0xFFFFFFFF, 120);
                     applet.ellipse(icx, icy, isize * 0.35f, isize * 0.35f);
                     break;
+                case POISON:
+                    drawTowerIconPentagon(applet, icx, icy, ihalf * 0.98f);
+                    applet.fill(0xFFFFFFFF, 120);
+                    applet.ellipse(icx, icy, isize * 0.35f, isize * 0.35f);
+                    break;
             }
         } else {
             applet.fill(TdConfig.C_ACCENT);
@@ -149,6 +154,15 @@ static class TowerButton extends Button {
         g.beginShape();
         for (int i = 0; i < 6; i++) {
             float a = PApplet.TWO_PI / 6 * i - PApplet.PI / 2;
+            g.vertex(cx + PApplet.cos(a) * r, cy + PApplet.sin(a) * r);
+        }
+        g.endShape(PApplet.CLOSE);
+    }
+
+    private void drawTowerIconPentagon(PApplet g, float cx, float cy, float r) {
+        g.beginShape();
+        for (int i = 0; i < 5; i++) {
+            float a = PApplet.TWO_PI / 5 * i - PApplet.PI / 2;
             g.vertex(cx + PApplet.cos(a) * r, cy + PApplet.sin(a) * r);
         }
         g.endShape(PApplet.CLOSE);
@@ -291,13 +305,13 @@ static class TdMinimapComponent extends UIComponent {
                 float rw = Math.max(1, cw * scale - 2);
                 float rh = Math.max(1, ch * scale - 2);
                 applet.rect(rx, ry, rw, rh);
-                if (app.frameCount % 60 == 0) {
-                    println("[MINIMAP] mx=" + mx + " my=" + my + " MW=" + MW + " MH=" + MH +
-                            " | cam pos=" + cx + "," + cy + " vp=" + cam.getViewportWidth() + "x" + cam.getViewportHeight() +
-                            " zoom=" + cam.getZoom() + " cw=" + cw + " ch=" + ch +
-                            " | rx=" + rx + " ry=" + ry + " rw=" + rw + " rh=" + rh +
-                            " | worldW=" + TdGameWorld.level.worldW + " worldH=" + TdGameWorld.level.worldH);
-                }
+                // if (app.frameCount % 60 == 0) {
+                //     println("[MINIMAP] mx=" + mx + " my=" + my + " MW=" + MW + " MH=" + MH +
+                //             " | cam pos=" + cx + "," + cy + " vp=" + cam.getViewportWidth() + "x" + cam.getViewportHeight() +
+                //             " zoom=" + cam.getZoom() + " cw=" + cw + " ch=" + ch +
+                //             " | rx=" + rx + " ry=" + ry + " rw=" + rw + " rh=" + rh +
+                //             " | worldW=" + TdGameWorld.level.worldW + " worldH=" + TdGameWorld.level.worldH);
+                // }
             }
         }
         applet.popStyle();
@@ -414,13 +428,13 @@ static class TdTopBar extends Panel {
         super.update(applet, dt);
         String statusText;
         if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
-            statusText = "资金 $" + TdGameWorld.money
-                + "   逃脱 " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
-                + "   波次 " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
+            statusText = TdAssets.i18n("game.money") + " $" + TdGameWorld.money
+                + "   " + TdAssets.i18n("game.escaped") + " " + TdGameWorld.escapedEnemies + "/" + TdGameWorld.level.maxEscapeCount
+                + "   " + TdAssets.i18n("game.wave") + " " + TdGameWorld.currentWave + "/" + TdGameWorld.level.waves.length;
         } else {
-            statusText = "资金 $" + TdGameWorld.money
-                + "   基地能量球 " + TdGameWorld.orbits
-                + "   波次 " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
+            statusText = TdAssets.i18n("game.money") + " $" + TdGameWorld.money
+                + "   " + TdAssets.i18n("game.orbits") + " " + TdGameWorld.orbits
+                + "   " + TdAssets.i18n("game.wave") + " " + TdGameWorld.currentWave + "/" + (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0);
         }
         lblStatus.setText(statusText);
 
@@ -438,11 +452,11 @@ static class TdTopBar extends Panel {
         // Next wave countdown
         String nextWaveText;
         if (TdGameWorld.waveInProgress) {
-            nextWaveText = "来袭中";
+            nextWaveText = TdAssets.i18n("game.waveIncoming");
         } else if (TdGameWorld.currentWave >= (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0)) {
-            nextWaveText = "最后一波";
+            nextWaveText = TdAssets.i18n("game.waveFinal");
         } else {
-            nextWaveText = String.format("下一波 %.1fs", TdGameWorld.waveTimer);
+            nextWaveText = TdAssets.i18n("game.nextWaveIn", String.format("%.1f", TdGameWorld.waveTimer));
         }
         lblNextWave.setText(nextWaveText);
 
@@ -466,8 +480,8 @@ static class TdTopBar extends Panel {
 // ─── Build Panel ───
 
 static class TdBuildPanel extends Panel {
-    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW };
-    String[] allInitials = { "M", "W", "L", "S" };
+    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW, TowerType.POISON, TowerType.COMMAND };
+    String[] allInitials = { "M", "W", "L", "S", "P", "C" };
 
     TdBuildPanel(String id) {
         super(id);
@@ -506,7 +520,7 @@ static class TdBuildPanel extends Panel {
             if (!isAllowed) continue;
 
             final TdBuildMode mode = TowerType.toBuildMode(tt);
-            String[] hotkeys = { "Q", "W", "E", "R" };
+            String[] hotkeys = { "Q", "W", "E", "R", "T", "Y" };
             final TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i], hotkeys[i]);
             btn.setPosition(8, by);
             btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
@@ -514,7 +528,7 @@ static class TdBuildPanel extends Panel {
                 TowerDefenseMin2 app = TowerDefenseMin2.inst;
                 TdAppUtils.closeSellMenu(app);
                 TowerDef def = TdAssets.loadTowerDef(tt);
-                if (def != null && TdGameWorld.money >= def.cost) {
+                if (def != null && (app.devMode || TdGameWorld.money >= def.cost)) {
                     app.buildMode = mode;
                 } else {
                     btn.flash();
@@ -524,15 +538,6 @@ static class TdBuildPanel extends Panel {
             by += 56 + 8;
         }
 
-        by += 8;
-        Button btnCancel = new Button("btn_cancel");
-        btnCancel.setLabel(TdAssets.i18n("game.build.cancel"));
-        btnCancel.setBounds(8, by, TdConfig.RIGHT_W - 16, 32);
-        btnCancel.setAction(() -> {
-            TowerDefenseMin2 app = TowerDefenseMin2.inst;
-            TdAppUtils.closeSellMenu(app);
-            app.buildMode = TdBuildMode.NONE;
-        });
-        add(btnCancel);
+
     }
 }

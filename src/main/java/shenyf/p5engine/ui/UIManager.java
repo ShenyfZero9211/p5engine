@@ -235,6 +235,70 @@ public final class UIManager {
         return root;
     }
 
+    /**
+     * Converts physical screen pixel coordinates to UI root internal coordinates.
+     * The returned values can be passed directly to {@link UIComponent#setBounds}
+     * or {@link UIComponent#setPosition} to place components at the given screen position.
+     * When no DisplayManager is set or scale mode is NO_SCALE, returns the input unchanged.
+     */
+    public shenyf.p5engine.math.Vector2 screenToUi(float screenX, float screenY) {
+        if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
+            float scale = displayManager.getUniformScale();
+            float ox = displayManager.getOffsetX() / scale;
+            float oy = displayManager.getOffsetY() / scale;
+            shenyf.p5engine.math.Vector2 design = displayManager.actualToDesign(
+                new shenyf.p5engine.math.Vector2(screenX, screenY));
+            return new shenyf.p5engine.math.Vector2(design.x + ox, design.y + oy);
+        }
+        return new shenyf.p5engine.math.Vector2(screenX, screenY);
+    }
+
+    /**
+     * Converts UI root internal coordinates to physical screen pixel coordinates.
+     * When no DisplayManager is set or scale mode is NO_SCALE, returns the input unchanged.
+     */
+    public shenyf.p5engine.math.Vector2 uiToScreen(float uiX, float uiY) {
+        if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
+            float scale = displayManager.getUniformScale();
+            float ox = displayManager.getOffsetX() / scale;
+            float oy = displayManager.getOffsetY() / scale;
+            return displayManager.designToActual(
+                new shenyf.p5engine.math.Vector2(uiX - ox, uiY - oy));
+        }
+        return new shenyf.p5engine.math.Vector2(uiX, uiY);
+    }
+
+    /** Returns the current UI root width in design-resolution units (covers the full physical window). */
+    public float getUiWidth() {
+        return root.getWidth();
+    }
+
+    /** Returns the current UI root height in design-resolution units (covers the full physical window). */
+    public float getUiHeight() {
+        return root.getHeight();
+    }
+
+    /** Returns the current UI root X offset in design-resolution units (negative when letterboxed). */
+    public float getUiOffsetX() {
+        return root.getX();
+    }
+
+    /** Returns the current UI root Y offset in design-resolution units (negative when letterboxed). */
+    public float getUiOffsetY() {
+        return root.getY();
+    }
+
+    /**
+     * Creates a panel placed at the given physical screen pixel coordinates,
+     * automatically converting to UI design coordinates with root offset compensation.
+     */
+    public Panel createPanelAtScreen(String id, float screenX, float screenY, float w, float h) {
+        shenyf.p5engine.math.Vector2 uiPos = screenToUi(screenX, screenY);
+        Panel p = panel(id);
+        p.setBounds(uiPos.x, uiPos.y, w, h);
+        return p;
+    }
+
     public void update(float dt) {
         if (displayManager != null && displayManager.getScaleMode() != ScaleMode.NO_SCALE) {
             float scale = displayManager.getUniformScale();
@@ -517,15 +581,15 @@ public final class UIManager {
                 return;
             }
             if (f != null) {
-                f.onEvent(UIEvent.key(UIEvent.Type.KEY_PRESSED, e.getKey(), kc), applet.mouseX, applet.mouseY);
+                f.onEvent(UIEvent.key(UIEvent.Type.KEY_PRESSED, e.getKey(), kc), designMouseX, designMouseY);
             }
         } else if (act == KeyEvent.TYPE) {
             if (f != null) {
-                f.onEvent(UIEvent.key(UIEvent.Type.KEY_TYPED, e.getKey(), e.getKeyCode()), applet.mouseX, applet.mouseY);
+                f.onEvent(UIEvent.key(UIEvent.Type.KEY_TYPED, e.getKey(), e.getKeyCode()), designMouseX, designMouseY);
             }
         } else if (act == KeyEvent.RELEASE) {
             if (f != null) {
-                f.onEvent(UIEvent.key(UIEvent.Type.KEY_RELEASED, e.getKey(), e.getKeyCode()), applet.mouseX, applet.mouseY);
+                f.onEvent(UIEvent.key(UIEvent.Type.KEY_RELEASED, e.getKey(), e.getKeyCode()), designMouseX, designMouseY);
             }
         }
     }

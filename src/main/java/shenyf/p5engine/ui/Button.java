@@ -90,13 +90,14 @@ public class Button extends UIComponent {
         if (!isEnabled()) return false;
         switch (event.getType()) {
             case MOUSE_PRESSED:
-                if (event.getMouseButton() == PApplet.LEFT && containsPoint(absMouseX, absMouseY)) {
+                if ((event.getMouseButton() == PApplet.LEFT || event.getMouseButton() == PApplet.RIGHT)
+                        && containsPoint(absMouseX, absMouseY)) {
                     pressedVisual = true;
                     return true;
                 }
                 return false;
             case MOUSE_RELEASED:
-                if (pressedVisual && event.getMouseButton() == PApplet.LEFT) {
+                if (pressedVisual && (event.getMouseButton() == PApplet.LEFT || event.getMouseButton() == PApplet.RIGHT)) {
                     pressedVisual = false;
                     if (containsPoint(absMouseX, absMouseY) && action != null) {
                         action.run();

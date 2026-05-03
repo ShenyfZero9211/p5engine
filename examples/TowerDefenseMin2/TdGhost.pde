@@ -78,6 +78,17 @@ static class GhostRenderer extends RendererComponent {
 
         if (!TdGhost.isValid) return;
 
+        // Command tower aura preview: pulsing golden grid highlight
+        if (TdGameWorld.isGridInCommandAura(TdGhost.gridX, TdGhost.gridY)) {
+            g.noStroke();
+            float gameT = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
+            float buffPulse = 0.5f + 0.5f * PApplet.sin(gameT * 2.5f);
+            int buffAlpha = (int)(30 + 60 * buffPulse);
+            g.fill(135, 206, 250, buffAlpha);
+            g.rect(TdGhost.gridX * TdConfig.GRID + 2, TdGhost.gridY * TdConfig.GRID + 2,
+                   TdConfig.GRID - 4, TdConfig.GRID - 4, 6);
+        }
+
         float x = getTransform().getPosition().x;
         float y = getTransform().getPosition().y;
 
@@ -91,6 +102,8 @@ static class GhostRenderer extends RendererComponent {
             case MISSILE: ghostColor = 0xFFFF643C; break;
             case LASER:   ghostColor = 0xFFC878DC; break;
             case SLOW:    ghostColor = 0xFF3CDC78; break;
+            case POISON:  ghostColor = 0xFF44CC44; break;
+            case COMMAND: ghostColor = 0xFFFFD700; break;
             default:      ghostColor = 0xFFFFFFFF;
         }
 
@@ -107,7 +120,7 @@ static class GhostRenderer extends RendererComponent {
             g.strokeWeight(1 / zoom);
             g.stroke(0x55FFFFFF);
             g.noFill();
-            g.ellipse(x, y, def.range * 2, def.range * 2);
+            drawPolyCircle(g, x, y, def.range, 32);
         }
     }
 }

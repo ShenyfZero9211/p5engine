@@ -11,6 +11,11 @@ towers:
     slowFactor: 0
     buildTime: 2.0
     iconColor: [74, 158, 255]
+    upgrade:
+      cost: 30              # 升级花费（金币），默认约为造价的一半
+      buildTime: 2.0        # 升级所需时间（秒）
+      damageMult: 1.3       # 升级后伤害倍率
+      bulletSizeMult: 1.3   # 升级后子弹/弹道渲染尺寸倍率
     sfx:
       fire: sounds/synthetic-spike.wav
       place: sounds/keytyping4.wav
@@ -28,6 +33,15 @@ towers:
     slowFactor: 0
     buildTime: 3.5
     iconColor: [255, 100, 60]
+    upgrade:
+      cost: 100             # 升级花费（金币）
+      buildTime: 3.5        # 升级所需时间（秒）
+      damageMult: 1.2       # 升级后伤害倍率
+      aoeMult: 1.2          # 升级后范围伤害半径倍率
+      bulletSizeMult: 1.3   # 升级后子弹/爆炸渲染尺寸倍率
+    upgrade2:
+      cost: 60
+      buildTime: 2.0
     sfx:
       fire: sounds/synthetic-bass.wav
       place: sounds/keytyping4.wav
@@ -37,7 +51,7 @@ towers:
     nameKey: tower.laser.name
     descKey: tower.laser.desc
     cost: 200
-    range: 280
+    range: 200
     firePeriod: 2.0
     damage: 140
     aoeRadius: 0
@@ -45,6 +59,13 @@ towers:
     slowFactor: 0
     buildTime: 2.7
     iconColor: [200, 120, 220]
+    upgrade:
+      cost: 80              # 升级花费（金币）
+      buildTime: 2.7        # 升级所需时间（秒）
+      speedMult: 0.6        # 升级后冷却时间倍率，越小攻速越快
+    upgrade2:
+      cost: 80
+      buildTime: 2.7
     laserDelay: 0.2
     sfx:
       fire: sounds/synthetic-rave.wav
@@ -55,8 +76,8 @@ towers:
     nameKey: tower.slow.name
     descKey: tower.slow.desc
     cost: 400
-    range: 160
-    firePeriod: 2.5
+    range: 150
+    firePeriod: 4.0
     damage: 0
     aoeRadius: 100
     laserBonus: 0
@@ -64,6 +85,68 @@ towers:
     slowDuration: 2.0
     buildTime: 4.0
     iconColor: [60, 220, 120]
+    upgrade:
+      cost: 160             # 升级花费（金币）
+      buildTime: 4.0        # 升级所需时间（秒）
+      rangeMult: 1.2        # 升级后射程/范围倍率
+      slowMult: 0.8         # 升级后减速系数倍率，越小减速越强
+    upgrade2:
+      cost: 160
+      buildTime: 4.0
+    sfx:
+      fire: sounds/ambient-swoosh.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/ambient-glass.wav
+
+  poison:
+    # 毒素塔 — 扇形毒雾喷射，持续伤害（DoT）
+    nameKey: tower.poison.name      # 显示名称的国际化键
+    descKey: tower.poison.desc      # 描述文本的国际化键
+    cost: 300                       # 建造花费（金币）
+    range: 100                      # 攻击射程（像素）
+    firePeriod: 2.25                 # 喷射冷却间隔（秒）
+    damage: 0                       # 即时伤害（毒塔为0，伤害来自DoT）
+    aoeRadius: 0                    # 爆炸/范围即时伤害半径（毒塔不使用）
+    laserBonus: 0                   # 激光额外伤害（毒塔不使用）
+    slowFactor: 0                   # 减速系数（毒塔不使用）
+    buildTime: 3.0                  # 建造所需时间（秒）
+    iconColor: [68, 204, 68]        # 图标/塔身颜色（RGB）
+    upgrade:
+      cost: 120                # 升级花费（金币）
+      buildTime: 3.0           # 升级所需时间（秒）
+      poisonMult: 1.3          # 升级后毒素伤害倍率
+    upgrade2:
+      cost: 120
+      buildTime: 3.0
+    poisonDamage: 5                 # 毒素每秒伤害（DPS）
+    poisonDuration: 4.0             # 毒素持续时间（秒），可叠加
+    poisonFanAngle: 90               # 扇形喷射角度（度），例如 90=直角，120=更宽，60=更窄
+    sfx:
+      fire: sounds/ambient-swoosh.wav   # 喷射音效
+      place: sounds/keytyping4.wav      # 放置音效
+      complete: sounds/ambient-glass.wav # 建造完成音效
+
+  command:
+    # 指挥塔 — 被动光环：击杀奖金 + 攻击力加成
+    nameKey: tower.command.name
+    descKey: tower.command.desc
+    cost: 400
+    range: 125
+    firePeriod: 6.0
+    damage: 0
+    aoeRadius: 0
+    laserBonus: 0
+    slowFactor: 0
+    buildTime: 4.0
+    iconColor: [255, 215, 0]
+    upgrade:
+      cost: 120
+      buildTime: 4.0
+      commandMult: 1.1
+    upgrade2:
+      cost: 120
+      buildTime: 4.0
+    commandBonus: 1
     sfx:
       fire: sounds/ambient-swoosh.wav
       place: sounds/keytyping4.wav

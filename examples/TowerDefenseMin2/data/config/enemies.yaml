@@ -19,11 +19,11 @@ enemies:
 
   level3:
     nameKey: enemy.level3.name
-    speedMultiplier: 2.0
-    hpMultiplier: 2.2
+    speedMultiplier: 1.6
+    hpMultiplier: 2.0
     orbCapacity: 1
     radius: 16
-    killReward: 10
+    killReward: 6
     sfxDeath: sounds/synthetic-spike.wav
 
   level4:
@@ -32,5 +32,5 @@ enemies:
     hpMultiplier: 25
     orbCapacity: 3
     radius: 20
-    killReward: 20
+    killReward: 10
     sfxDeath: sounds/percussive-gong.wav

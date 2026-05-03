@@ -28,12 +28,13 @@ static final String GAME_VERSION = "v0.0.6";
 TdState state = TdState.MENU;
 TdBuildMode buildMode = TdBuildMode.NONE;
 boolean showTowerRanges = false;
+boolean devMode = false;
 
 // ============================================
 //  输入状态
 // ============================================
 boolean keyScrollUp, keyScrollDown, keyScrollLeft, keyScrollRight;
-boolean wasKeyP, wasKeyT, wasKeyQ, wasKeyW, wasKeyE, wasKeyR, wasKeySpace;
+boolean wasKeyP, wasKeyF, wasKeyT, wasKeyQ, wasKeyW, wasKeyE, wasKeyR, wasKeySpace, wasKeyY, wasKeyCtrl;
 
 // ============================================
 //  HUD 组件

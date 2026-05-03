@@ -65,7 +65,10 @@ static class WinLoseTextAnimator {
         }
         g.noStroke();
         g.fill(0xFF000000, dimAlpha);
-        g.rect(0, 0, 1280, 720);
+        g.pushMatrix();
+        g.resetMatrix();
+        g.rect(0, 0, g.width, g.height);
+        g.popMatrix();
 
         // Text characters slide in from above
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
@@ -563,7 +566,16 @@ static final class TdFlow {
         TdSaveData.incGamesPlayed();
         app.state = TdState.PLAYING;
         app.ui.getRoot().removeAllChildren();
-        TdGameWorld.startLevel(app, levelId);
+        try {
+            boolean ok = TdGameWorld.startLevel(app, levelId);
+            if (!ok) {
+                buildMainMenu(app);
+                return;
+            }
+        } catch (Exception e) {
+            buildMainMenu(app);
+            return;
+        }
         app.setupWorldViewport();
         app.setupHud();
         TdSound.playBgmGame();
@@ -618,10 +630,17 @@ static final class TdFlow {
         app.state = TdState.WIN;
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
+        // Check if there is a next level; if not, skip win menu and go straight to main menu
+        int nextId = (TdGameWorld.level != null) ? TdGameWorld.level.id + 1 : 1;
+        boolean hasNextLevel = nextId <= TdAssets.getLevelCount();
         winLoseAnimator = new WinLoseTextAnimator(TdAssets.i18n("game.win"), () -> {
             Panel root = app.ui.getRoot();
             root.removeAllChildren();
-            buildWinMenu(app);
+            if (hasNextLevel) {
+                buildWinMenu(app);
+            } else {
+                buildMainMenu(app);
+            }
         });
     }
 

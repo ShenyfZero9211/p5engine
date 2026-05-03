@@ -2,11 +2,13 @@ id: 3
 nameKey: level.3.name
 subtitleKey: level.3.subtitle
 levelType: DEFEND_BASE
-initialMoney: 150
+initialMoney: 160
 baseOrbs: 5
 enemyHpBase: 100
 allowedTowers: [MG, MISSILE]  # optional, default all
 # earnMoneyOnKill: true         # optional, default true
+allowedUpgrades: [MG]   # 只有机枪塔可升级，导弹塔可建造但不可升级
+
 worldWidth: 1600
 worldHeight: 1200
 basePos: { x: 400, y: 600 }

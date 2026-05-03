@@ -106,6 +106,24 @@ public abstract class UIComponent {
         setSize(w, h);
     }
 
+    /**
+     * Sets this component's position in physical screen pixel coordinates.
+     * Automatically converts to UI design coordinates with root offset compensation.
+     */
+    public void setScreenPosition(UIManager ui, float screenX, float screenY) {
+        shenyf.p5engine.math.Vector2 uiPos = ui.screenToUi(screenX, screenY);
+        setPosition(uiPos.x, uiPos.y);
+    }
+
+    /**
+     * Sets this component's bounds in physical screen pixel coordinates.
+     * Automatically converts to UI design coordinates with root offset compensation.
+     */
+    public void setScreenBounds(UIManager ui, float screenX, float screenY, float w, float h) {
+        shenyf.p5engine.math.Vector2 uiPos = ui.screenToUi(screenX, screenY);
+        setBounds(uiPos.x, uiPos.y, w, h);
+    }
+
     public float getAnchorBaseX() { return Float.isNaN(anchorBaseX) ? x : anchorBaseX; }
     public float getAnchorBaseY() { return Float.isNaN(anchorBaseY) ? y : anchorBaseY; }
     public float getAnchorBaseWidth() { return Float.isNaN(anchorBaseW) ? width : anchorBaseW; }

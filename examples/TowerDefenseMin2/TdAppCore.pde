@@ -268,6 +268,15 @@ static final class TdAppLoop {
         app.sketchUi.updateFrame(dtReal);
         app.sketchUi.renderFrame();
 
+        // Dev mode title (drawn in physical screen coords, above UI)
+        if (app.devMode && (app.state == TdState.PLAYING || app.state == TdState.PAUSED)) {
+            ScreenOverlay.begin(app.g);
+            ScreenOverlay.anchoredLabel(app.g, "开发者模式 [D 切换]",
+                ScreenAnchor.TOP_CENTER, 4 + (int)(TdConfig.TOP_HUD * dm.getUniformScale()),
+                160, 26, 0x88FF4444, 0xFFFFFFFF, 14);
+            ScreenOverlay.end(app.g);
+        }
+
         // Sync DisplayManager if window was manually resized (windowResize callback is unreliable in P2D)
         if (app.frameCount % 30 == 0 && (app.width != dm.getActualWidth() || app.height != dm.getActualHeight())) {
             dm.onWindowResize(app.width, app.height);
@@ -319,11 +328,23 @@ static final class TdAppInput {
     static void keyPressed(TowerDefenseMin2 app) {
         if (app.key == PApplet.ESC) {
             app.key = 0; // Block Processing default quit behavior
-            if (app.state == TdState.PLAYING) {
+            if (app.sellMenuPanel != null) {
+                TdAppUtils.closeSellMenu(app);
+                if (app.state == TdState.PLAYING) {
+                    TdFlow.showPauseMenu(app);
+                }
+            } else if (app.state == TdState.PLAYING) {
                 TdFlow.showPauseMenu(app);
             } else if (app.state == TdState.PAUSED) {
                 TdFlow.hidePauseMenu(app);
             }
+            return;
+        }
+
+        // Dev mode toggle: press D while debug overlay is open
+        if (app.engine.getDebugOverlay().isEnabled()
+                && (app.key == 'd' || app.key == 'D')) {
+            app.devMode = !app.devMode;
             return;
         }
 
@@ -355,12 +376,12 @@ static final class TdAppInput {
         }
         app.wasKeyP = isP;
 
-        // Tower range toggle (T)
-        boolean isT = im.isKeyDown(java.awt.event.KeyEvent.VK_T);
-        if (isT && !app.wasKeyT) {
+        // Tower range toggle (F)
+        boolean isF = im.isKeyDown(java.awt.event.KeyEvent.VK_F);
+        if (isF && !app.wasKeyF) {
             app.showTowerRanges = !app.showTowerRanges;
         }
-        app.wasKeyT = isT;
+        app.wasKeyF = isF;
 
         // Space: jump camera to most dangerous enemy
         boolean isSpace = im.isKeyDown(java.awt.event.KeyEvent.VK_SPACE);
@@ -369,11 +390,26 @@ static final class TdAppInput {
         }
         app.wasKeySpace = isSpace;
 
-        // Build hotkeys (Q/W/E/R) — check money before entering build mode
+        // Dev mode: Ctrl + hover tower to instant upgrade
+        boolean isCtrl = im.isKeyDown(java.awt.event.KeyEvent.VK_CONTROL);
+        if (isCtrl && !app.wasKeyCtrl && app.devMode && app.state == TdState.PLAYING) {
+            Tower hover = TdAppUtils.getTowerAtMouse(app, im);
+            if (hover != null && hover.built && hover.upgradeLevel < 2 && !hover.isUpgrading) {
+                if (TdAppUtils.isUpgradeAllowed(hover)) {
+                    int cost = (hover.upgradeLevel == 0) ? hover.def.upgradeCost : hover.def.upgrade2Cost;
+                    TdGameWorld.money -= cost;
+                    hover.isUpgrading = true;
+                    hover.upgradeProgress = 0;
+                }
+            }
+        }
+        app.wasKeyCtrl = isCtrl;
+
+        // Build hotkeys (Q/W/E/R/T) — check money before entering build mode (skip in dev mode)
         boolean isQ = im.isKeyDown(java.awt.event.KeyEvent.VK_Q);
         if (isQ && !app.wasKeyQ && TdAppUtils.isTowerAllowed(app, TdBuildMode.MG)) {
             TowerDef defQ = TdAssets.loadTowerDef(TowerType.MG);
-            if (defQ != null && TdGameWorld.money >= defQ.cost) {
+            if (defQ != null && (app.devMode || TdGameWorld.money >= defQ.cost)) {
                 app.buildMode = TdBuildMode.MG;
             } else if (defQ != null) {
                 app.hudBuildPanel.flashButton(TowerType.MG);
@@ -384,7 +420,7 @@ static final class TdAppInput {
         boolean isW = im.isKeyDown(java.awt.event.KeyEvent.VK_W);
         if (isW && !app.wasKeyW && TdAppUtils.isTowerAllowed(app, TdBuildMode.MISSILE)) {
             TowerDef defW = TdAssets.loadTowerDef(TowerType.MISSILE);
-            if (defW != null && TdGameWorld.money >= defW.cost) {
+            if (defW != null && (app.devMode || TdGameWorld.money >= defW.cost)) {
                 app.buildMode = TdBuildMode.MISSILE;
             } else if (defW != null) {
                 app.hudBuildPanel.flashButton(TowerType.MISSILE);
@@ -395,7 +431,7 @@ static final class TdAppInput {
         boolean isE = im.isKeyDown(java.awt.event.KeyEvent.VK_E);
         if (isE && !app.wasKeyE && TdAppUtils.isTowerAllowed(app, TdBuildMode.LASER)) {
             TowerDef defE = TdAssets.loadTowerDef(TowerType.LASER);
-            if (defE != null && TdGameWorld.money >= defE.cost) {
+            if (defE != null && (app.devMode || TdGameWorld.money >= defE.cost)) {
                 app.buildMode = TdBuildMode.LASER;
             } else if (defE != null) {
                 app.hudBuildPanel.flashButton(TowerType.LASER);
@@ -406,13 +442,35 @@ static final class TdAppInput {
         boolean isR2 = im.isKeyDown(java.awt.event.KeyEvent.VK_R);
         if (isR2 && !app.wasKeyR && TdAppUtils.isTowerAllowed(app, TdBuildMode.SLOW)) {
             TowerDef defR = TdAssets.loadTowerDef(TowerType.SLOW);
-            if (defR != null && TdGameWorld.money >= defR.cost) {
+            if (defR != null && (app.devMode || TdGameWorld.money >= defR.cost)) {
                 app.buildMode = TdBuildMode.SLOW;
             } else if (defR != null) {
                 app.hudBuildPanel.flashButton(TowerType.SLOW);
             }
         }
         app.wasKeyR = isR2;
+
+        boolean isT = im.isKeyDown(java.awt.event.KeyEvent.VK_T);
+        if (isT && !app.wasKeyT && TdAppUtils.isTowerAllowed(app, TdBuildMode.POISON)) {
+            TowerDef defT = TdAssets.loadTowerDef(TowerType.POISON);
+            if (defT != null && (app.devMode || TdGameWorld.money >= defT.cost)) {
+                app.buildMode = TdBuildMode.POISON;
+            } else if (defT != null) {
+                app.hudBuildPanel.flashButton(TowerType.POISON);
+            }
+        }
+        app.wasKeyT = isT;
+
+        boolean isY = im.isKeyDown(java.awt.event.KeyEvent.VK_Y);
+        if (isY && !app.wasKeyY && TdAppUtils.isTowerAllowed(app, TdBuildMode.COMMAND)) {
+            TowerDef defY = TdAssets.loadTowerDef(TowerType.COMMAND);
+            if (defY != null && (app.devMode || TdGameWorld.money >= defY.cost)) {
+                app.buildMode = TdBuildMode.COMMAND;
+            } else if (defY != null) {
+                app.hudBuildPanel.flashButton(TowerType.COMMAND);
+            }
+        }
+        app.wasKeyY = isY;
     }
 
     static void handleMouseInput(TowerDefenseMin2 app, InputManager im) {
@@ -469,8 +527,15 @@ static final class TdAppInput {
             }
             if (app.buildMode != TdBuildMode.NONE && TdGhost.isValid && !TdAppUtils.isMouseOverHud(app)) {
                 TdGameWorld.tryPlaceTower(app.buildMode, TdGhost.gridX, TdGhost.gridY);
-                app.buildMode = TdBuildMode.NONE;
-                TdGhost.cleanup(app);
+                if (!app.devMode) {
+                    app.buildMode = TdBuildMode.NONE;
+                    TdGhost.cleanup(app);
+                }
+            } else if (app.buildMode == TdBuildMode.NONE && app.sellMenuPanel == null && !TdAppUtils.isMouseOverHud(app)) {
+                Tower clicked = TdAppUtils.getTowerAtMouse(app, im);
+                if (clicked != null && clicked.built) {
+                    TdAppUtils.showSellMenu(app, clicked);
+                }
             }
         }
 
@@ -481,7 +546,7 @@ static final class TdAppInput {
                 TdGhost.cleanup(app);
             } else if (!TdAppUtils.isMouseOverHud(app)) {
                 Tower clicked = TdAppUtils.getTowerAtMouse(app, im);
-                if (clicked != null) {
+                if (clicked != null && clicked.built) {
                     TdAppUtils.showSellMenu(app, clicked);
                 } else {
                     TdAppUtils.closeSellMenu(app);
@@ -521,6 +586,14 @@ static final class TdAppUtils {
         return false;
     }
 
+    static boolean isUpgradeAllowed(Tower tower) {
+        if (TdGameWorld.level == null || TdGameWorld.level.allowedUpgrades == null) return true;
+        for (TowerType a : TdGameWorld.level.allowedUpgrades) {
+            if (a == tower.def.type) return true;
+        }
+        return false;
+    }
+
     static Tower getTowerAtMouse(TowerDefenseMin2 app, InputManager im) {
         if (app.camera == null) return null;
         Vector2 dm = getActualMousePos(app, im);
@@ -545,15 +618,19 @@ static final class TdAppUtils {
         closeSellMenu(app);
         Panel root = app.ui.getRoot();
         app.sellMenuPanel = new Panel("sell_menu");
-        // Convert screen mouse to design coordinates for UI placement
-        Vector2 designMouse = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
-        app.sellMenuPanel.setBounds((int)designMouse.x, (int)designMouse.y, 100, 80);
+        // Use UiCoords to convert mouse position to UI-framework correct coordinates
+        Vector2 uiPos = UiCoords.fromMouse(app.engine.getDisplayManager(), app.mouseX, app.mouseY);
+        app.sellMenuPanel.setBounds((int)uiPos.x, (int)uiPos.y, 100, 120);
         app.sellMenuPanel.setZOrder(999);
         app.sellMenuPanel.setPaintBackground(true);
 
+        UpgradeButton btnUpgrade = new UpgradeButton("btn_upgrade", tower);
+        btnUpgrade.setBounds(4, 4, 92, 28);
+        app.sellMenuPanel.add(btnUpgrade);
+
         Button btnSell = new Button("btn_sell");
-        btnSell.setLabel("出售");
-        btnSell.setBounds(4, 4, 92, 32);
+        btnSell.setLabel(TdAssets.i18n("ui.sell"));
+        btnSell.setBounds(4, 36, 92, 28);
         btnSell.setAction(() -> {
             TdGameWorld.sellTower(tower.gridX, tower.gridY);
             closeSellMenu(app);
@@ -561,8 +638,8 @@ static final class TdAppUtils {
         app.sellMenuPanel.add(btnSell);
 
         Button btnCancel = new Button("btn_cancel_sell");
-        btnCancel.setLabel("取消");
-        btnCancel.setBounds(4, 42, 92, 32);
+        btnCancel.setLabel(TdAssets.i18n("ui.cancel"));
+        btnCancel.setBounds(4, 68, 92, 28);
         btnCancel.setAction(() -> closeSellMenu(app));
         app.sellMenuPanel.add(btnCancel);
 
@@ -571,6 +648,78 @@ static final class TdAppUtils {
 
     static Vector2 getActualMousePos(TowerDefenseMin2 app, InputManager im) {
         return new Vector2((int)im.getMouseX(), (int)im.getMouseY());
+    }
+
+    /**
+     * Upgrade button that dynamically enables/disables itself based on
+     * money, upgrade permission, and tower upgrade state.
+     * Only performs UI updates when its state actually changes.
+     */
+    static class UpgradeButton extends Button {
+        Tower tower;
+        int lastState = -1; // 0=maxLevel/upgrading, 1=notAllowed, 2=noMoney, 3=lv1Available, 4=lv2Available
+
+        UpgradeButton(String id, Tower tower) {
+            super(id);
+            this.tower = tower;
+        }
+
+        @Override
+        public void update(PApplet applet, float dt) {
+            super.update(applet, dt);
+            if (tower == null || tower.def == null) return;
+
+            int cost = (tower.upgradeLevel == 0) ? tower.def.upgradeCost : tower.def.upgrade2Cost;
+            int state;
+            if (tower.upgradeLevel >= 2 || tower.isUpgrading) state = 0;
+            else if (!TdAppUtils.isUpgradeAllowed(tower)) state = 1;
+            else if (TdGameWorld.money < cost) state = 2;
+            else if (tower.upgradeLevel == 0) state = 3;
+            else state = 4;
+
+            if (state == lastState) return; // no change, skip UI ops
+            lastState = state;
+
+            switch (state) {
+                case 0:
+                    setLabel(TdAssets.i18n("tower.upgraded"));
+                    setEnabled(false);
+                    setAction(null);
+                    break;
+                case 1:
+                    setLabel(TdAssets.i18n("tower.upgrade.disabled"));
+                    setEnabled(false);
+                    setAction(null);
+                    break;
+                case 2:
+                    setLabel(TdAssets.i18n("tower.upgrade") + " ($" + cost + ")");
+                    setEnabled(false);
+                    setAction(null);
+                    break;
+                case 3:
+                    setLabel(TdAssets.i18n("tower.upgrade") + " ($" + cost + ")");
+                    setEnabled(true);
+                    setAction(() -> {
+                        TdGameWorld.money -= cost;
+                        tower.isUpgrading = true;
+                        tower.upgradeProgress = 0;
+                        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+                        if (app != null) TdAppUtils.closeSellMenu(app);
+                    });
+                    break;
+                case 4:
+                    setLabel(TdAssets.i18n("tower.upgrade") + " II ($" + cost + ")");
+                    setEnabled(true);
+                    setAction(() -> {
+                        TdGameWorld.money -= cost;
+                        tower.isUpgrading = true;
+                        tower.upgradeProgress = 0;
+                        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+                        if (app != null) TdAppUtils.closeSellMenu(app);
+                    });
+                    break;
+            }
+        }
     }
 
     static boolean isMouseOverHud(TowerDefenseMin2 app) {

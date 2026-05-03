@@ -5,6 +5,29 @@ levelType: DEFEND_BASE
 initialMoney: 300
 baseOrbs: 5
 enemyHpBase: 100
-worldWidth: 1600
-worldHeight: 1200
+worldWidth: 900
+worldHeight: 500
+basePos: { x: 320, y: 80 }
+exitPos: { x: 760, y: 80 }
+spawnPos: { x: 80, y: 440 }
+pathPoints:
+  - { x: 80, y: 440 }
+  - { x: 80, y: 240 }
+  - { x: 200, y: 240 }
+  - { x: 200, y: 440 }
+  - { x: 320, y: 440 }
+  - { x: 320, y: 80 }
+  - { x: 520, y: 80 }
+  - { x: 520, y: 280 }
+  - { x: 760, y: 280 }
+  - { x: 760, y: 80 }
 earnMoneyOnKill: true
+waves:
+  - delay: 2.0
+    spawns:
+      - type: level1
+        count: 5
+        interval: 1.0
+      - type: level1
+        count: 5
+        interval: 1.0

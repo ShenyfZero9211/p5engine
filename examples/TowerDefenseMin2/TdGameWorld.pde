@@ -21,7 +21,7 @@ static final class TdGameWorld {
     static ArrayList<PendingAttach> pendingAttaches = new ArrayList<>();
     static float baseIncomeAccumulator = 0;
 
-    static void startLevel(TowerDefenseMin2 app, int levelId) {
+    static boolean startLevel(TowerDefenseMin2 app, int levelId) {
         // Clean up old entities
         for (Enemy e : enemies) {
             if (e.gameObject != null) e.gameObject.markForDestroy();
@@ -46,6 +46,11 @@ static final class TdGameWorld {
         TowerDefenseMin2.inst.lighting.clear();
 
         level = TdAssets.loadLevel(levelId);
+        if (level == null) {
+            app.state = TdState.MENU;
+            return false;
+        }
+        app.devMode = level.devMode;
         money = level.initialMoney;
         if (level.levelType == LevelType.DEFEND_BASE) {
             orbits = level.baseOrbs;
@@ -80,6 +85,7 @@ static final class TdGameWorld {
         app.bulletGoPool.preload(100);
 
         computeBlockedGrids();
+        return true;
     }
 
     static void update(float dt) {
@@ -185,11 +191,34 @@ static final class TdGameWorld {
                 }
                 if (level != null && level.earnMoneyOnKill) {
                     int reward = (e.enemyDef != null) ? e.enemyDef.killReward : 10;
+                    // Command tower kill bonus for tier-2+ enemies
+                    int tier = (e.enemyDef != null && e.enemyDef.key.length() > 0)
+                        ? e.enemyDef.key.charAt(e.enemyDef.key.length() - 1) - '0' : 1;
+                    if (tier >= 2) {
+                        for (Tower t : towers) {
+                            if (t.def.type == TowerType.COMMAND && t.built && !t.isSelling) {
+                                float d = e.pos.distance(new Vector2(t.worldX, t.worldY));
+                                if (d <= t.getEffectiveRange()) {
+                                    int bonusMin = TdAssets.getCommandKillBonusMin();
+                                    int bonusMax = TdAssets.getCommandKillBonusMax();
+                                    reward += bonusMin + pathRng.nextInt(bonusMax - bonusMin + 1);
+                                    break; // 不叠加
+                                }
+                            }
+                        }
+                    }
                     money += reward;
                 }
                 TdSaveData.incEnemiesKilled();
                 // Death animation effect
-                effects.add(new DeathEffect(e.pos.x, e.pos.y, e.radius, e.orbsCarried > 0));
+                float dir = 0;
+                if (e.gameObject != null) {
+                    dir = e.gameObject.getTransform().getRotation();
+                } else if (e.activeRoute != null && e.activeRoute.path != null) {
+                    Vector2 d = e.activeRoute.path.direction(e.routeProgress);
+                    if (d != null) dir = PApplet.atan2(d.y, d.x);
+                }
+                effects.add(new DeathEffect(e.pos.x, e.pos.y, e.radius, e.orbsCarried > 0, dir));
                 String deathSfx = (e.enemyDef != null && e.enemyDef.sfxDeath != null)
                     ? e.enemyDef.sfxDeath : TdSound.SFX_DEATH;
                 TdAssets.playSfx(deathSfx);
@@ -379,6 +408,23 @@ static final class TdGameWorld {
         }
     }
 
+    /**
+     * 检查目标格子是否处于任意升级指挥塔的增益范围内。
+     */
+    static boolean isGridInCommandAura(int gx, int gy) {
+        if (towers == null || towers.isEmpty()) return false;
+        float cx = (gx + 0.5f) * TdConfig.GRID;
+        float cy = (gy + 0.5f) * TdConfig.GRID;
+        Vector2 gridCenter = new Vector2(cx, cy);
+        for (Tower t : towers) {
+            if (t.def.type == TowerType.COMMAND && t.built && !t.isSelling) {
+                float d = gridCenter.distance(new Vector2(t.worldX, t.worldY));
+                if (d <= t.getEffectiveRange()) return true;
+            }
+        }
+        return false;
+    }
+
     static boolean canPlaceTower(int gx, int gy) {
         if (level == null) return false;
         float wx = (gx + 0.5f) * TdConfig.GRID;
@@ -451,13 +497,17 @@ static final class TdGameWorld {
     static boolean tryPlaceTower(TdBuildMode mode, int gx, int gy) {
         if (!canPlaceTower(gx, gy)) return false;
         TowerDef def = TdAssets.loadTowerDef(TowerType.fromBuildMode(mode));
-        if (def == null || money < def.cost) {
-            if (def != null && TowerDefenseMin2.inst != null && TowerDefenseMin2.inst.hudBuildPanel != null) {
-                TowerDefenseMin2.inst.hudBuildPanel.flashButton(TowerType.fromBuildMode(mode));
+        if (def == null) return false;
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        if (app != null && !app.devMode && money < def.cost) {
+            if (app.hudBuildPanel != null) {
+                app.hudBuildPanel.flashButton(TowerType.fromBuildMode(mode));
             }
             return false;
         }
-        money -= def.cost;
+        if (app == null || !app.devMode) {
+            money -= def.cost;
+        }
         Tower t = new Tower(def, gx, gy);
         TdSaveData.incTowersBuilt();
 
@@ -476,7 +526,10 @@ static final class TdGameWorld {
     static void sellTower(int gridX, int gridY) {
         for (Tower t : towers) {
             if (t.gridX == gridX && t.gridY == gridY && !t.isSelling) {
-                money += (int)(t.def.cost * 0.3f);
+                int totalCost = t.def.cost;
+                if (t.upgradeLevel >= 1) totalCost += t.def.upgradeCost;
+                if (t.upgradeLevel >= 2) totalCost += t.def.upgrade2Cost;
+                money += (int)(totalCost * 0.3f);
                 t.isSelling = true;
                 TdLightingSystem.removeTowerLight(t);
                 return;

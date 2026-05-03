@@ -3,3 +3,6 @@ gameSettings:
   # DEFEND_BASE 模式下基地每秒自动产钱
   # SURVIVAL 模式下此值无效
   baseIncomeRate: 0.25
+  # 指挥塔击杀 tier-2+ 敌人的额外奖金随机范围
+  commandKillBonusMin: 1
+  commandKillBonusMax: 3

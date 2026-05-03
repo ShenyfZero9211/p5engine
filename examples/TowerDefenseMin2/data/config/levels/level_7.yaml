@@ -1,0 +1,34 @@
+id: 7
+nameKey: level.4.name
+subtitleKey: level.4.subtitle
+levelType: DEFEND_BASE
+initialMoney: 600000
+baseOrbs: 50000
+enemyHpBase: 100
+worldWidth: 800
+worldHeight: 800
+#allowedTowers: [MG, MISSILE, LASER]
+basePos: { x: 120, y: 560 }
+exitPos: { x: 720, y: 400 }
+spawnPos: { x: 720, y: 400 }
+pathPoints:
+  - { x: 720, y: 400 }
+  - { x: 720, y: 760 }
+  - { x: 600, y: 760 }
+  - { x: 600, y: 480 }
+  - { x: 480, y: 480 }
+  - { x: 480, y: 760 }
+  - { x: 280, y: 560 }
+  - { x: 120, y: 560 }
+earnMoneyOnKill: true
+
+waves:
+# wave 1
+  - delay: 16.0
+    spawns:
+      - type: level4
+        count: 20000
+        interval: 1.0
+        attach:
+          - type: level3
+            delay: 0.4

@@ -14,8 +14,14 @@ static class Bullet {
     GameObject gameObject;
     float lastSmokeX, lastSmokeY;
     TowerType towerType;
+    float sizeMult;
+    boolean hasBurn = false;
 
     void reset(float x, float y, float vx, float vy, float dmg, float aoe, float laser, float slow, float slowDur) {
+        reset(x, y, vx, vy, dmg, aoe, laser, slow, slowDur, 1f);
+    }
+
+    void reset(float x, float y, float vx, float vy, float dmg, float aoe, float laser, float slow, float slowDur, float sizeMult) {
         pos.set(x, y);
         vel.set(vx, vy);
         damage = dmg;
@@ -27,6 +33,8 @@ static class Bullet {
         dead = false;
         lastSmokeX = x;
         lastSmokeY = y;
+        this.sizeMult = sizeMult;
+        hasBurn = false;
     }
 
     void update(float dt) {
@@ -86,10 +94,14 @@ static class Bullet {
                     }
                 }
             }
-            TdGameWorld.effects.add(new ExplosionEffect(pos.x, pos.y, aoeRadius));
+            TdGameWorld.effects.add(new ExplosionEffect(pos.x, pos.y, aoeRadius, sizeMult));
         }
         // Hit mark on primary target
         e.statusEffects.add(new MissileHitMark());
+        // Burn effect from level-2 missile tower
+        if (hasBurn) {
+            e.statusEffects.add(new BurnStatusEffect(5f, 3.0f));
+        }
     }
 
     void recycle() {

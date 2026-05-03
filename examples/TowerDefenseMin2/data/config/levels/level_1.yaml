@@ -7,6 +7,7 @@ baseOrbs: 5
 enemyHpBase: 100
 allowedTowers: [MG]
 #allowedTowers: [MISSILE, LASER, SLOW]
+allowedUpgrades: []   # 只有机枪塔可升级，导弹塔可建造但不可升级
 worldWidth: 1000
 worldHeight: 600
 basePos: { x: 880, y: 520 }
