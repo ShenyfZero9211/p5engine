@@ -121,7 +121,7 @@ static final class TdGameWorld {
                 WaveSpawn spawn = wave.spawns[waveSpawnIndex];
                 spawnTimer -= dt;
                 if (spawnTimer <= 0) {
-                    spawnEnemy(spawn.enemyType, spawn.route, spawn.attaches);
+                    spawnEnemy(spawn.enemyType, spawn.route, spawn.attaches, spawn.hpMulti);
                     waveSpawnCount++;
                     if (waveSpawnCount >= spawn.count) {
                         waveSpawnIndex++;
@@ -144,7 +144,7 @@ static final class TdGameWorld {
             pa.timer -= dt;
             if (pa.timer <= 0) {
                 for (int j = 0; j < pa.count; j++) {
-                    spawnEnemy(pa.enemyType, pa.route, pa.childAttaches);
+                    spawnEnemy(pa.enemyType, pa.route, pa.childAttaches, pa.hpMulti);
                 }
                 pendingAttaches.remove(i);
             }
@@ -292,14 +292,18 @@ static final class TdGameWorld {
     }
 
     static void spawnEnemy(String enemyTypeKey) {
-        spawnEnemy(enemyTypeKey, null, null);
+        spawnEnemy(enemyTypeKey, null, null, 1.0f);
     }
 
     static void spawnEnemy(String enemyTypeKey, String routeId) {
-        spawnEnemy(enemyTypeKey, routeId, null);
+        spawnEnemy(enemyTypeKey, routeId, null, 1.0f);
     }
 
     static void spawnEnemy(String enemyTypeKey, String routeId, SpawnAttach[] attaches) {
+        spawnEnemy(enemyTypeKey, routeId, attaches, 1.0f);
+    }
+
+    static void spawnEnemy(String enemyTypeKey, String routeId, SpawnAttach[] attaches, float hpMulti) {
         EnemyDef def = TdAssets.loadEnemyDef(enemyTypeKey);
         if (def == null) return;
 
@@ -312,7 +316,7 @@ static final class TdGameWorld {
         e.activeRoute = route;
         e.routeProgress = 0;
         e.pos = route.path.sample(0);
-        e.hp = level.enemyHpBase * def.hpMultiplier;
+        e.hp = level.enemyHpBase * def.hpMultiplier * hpMulti;
         e.maxHp = e.hp;
         e.speed = def.speedMultiplier * 60; // base speed 60
         e.radius = def.radius;
@@ -339,7 +343,7 @@ static final class TdGameWorld {
         // Queue up attach spawns
         if (attaches != null) {
             for (SpawnAttach a : attaches) {
-                pendingAttaches.add(new PendingAttach(a.delay, a.enemyType, a.count, a.route, a.attaches));
+                pendingAttaches.add(new PendingAttach(a.delay, a.enemyType, a.count, a.route, a.hpMulti, a.attaches));
             }
         }
     }
@@ -546,13 +550,15 @@ static class PendingAttach {
     final String enemyType;
     final int count;
     final String route;
+    final float hpMulti;
     final SpawnAttach[] childAttaches;
 
-    PendingAttach(float delay, String enemyType, int count, String route, SpawnAttach[] childAttaches) {
+    PendingAttach(float delay, String enemyType, int count, String route, float hpMulti, SpawnAttach[] childAttaches) {
         this.timer = delay;
         this.enemyType = enemyType;
         this.count = count;
         this.route = route;
+        this.hpMulti = hpMulti;
         this.childAttaches = childAttaches;
     }
 }

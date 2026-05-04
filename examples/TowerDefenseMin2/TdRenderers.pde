@@ -19,7 +19,7 @@ static class WorldBgRenderer extends RendererComponent {
             g.line(0, gy, lv.worldW, gy);
         }
 
-        // Path with glow — draw all routes (new multi-path format) or legacy pathPoints
+        // Path with glow 锟?draw all routes (new multi-path format) or legacy pathPoints
         float t = (TowerDefenseMin2.inst.engine.getGameTime().getTotalTime() % 2.0f) / 2.0f;
         Vector2[][] routesToDraw = null;
         if (lv.paths != null && lv.paths.length > 0) {
@@ -75,7 +75,7 @@ static class WorldBgRenderer extends RendererComponent {
             }
         }
 
-        // Base — pulsing blue core with rotating ring
+        // Base 锟?pulsing blue core with rotating ring
         float time = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
         float pulse = 1 + 0.15f * PApplet.sin(time * 3);
         g.noStroke();
@@ -97,7 +97,7 @@ static class WorldBgRenderer extends RendererComponent {
         g.arc(0, 0, 36, 36, 0, PApplet.PI * 1.3f);
         g.popMatrix();
 
-        // Exit — red X mark
+        // Exit 锟?red X mark
         g.noStroke();
         g.fill(0xFFFF4444, 80);
         drawPolyCircle(g, lv.exitPos.x, lv.exitPos.y, 14, 12);
@@ -107,7 +107,7 @@ static class WorldBgRenderer extends RendererComponent {
         g.line(lv.exitPos.x - ex, lv.exitPos.y - ex, lv.exitPos.x + ex, lv.exitPos.y + ex);
         g.line(lv.exitPos.x + ex, lv.exitPos.y - ex, lv.exitPos.x - ex, lv.exitPos.y + ex);
 
-        // Spawn — orange pulsing dot
+        // Spawn 锟?orange pulsing dot
         float sp = 1 + 0.2f * PApplet.sin(time * 4);
         g.noStroke();
         g.fill(0xFFFF8C42, 100);
@@ -171,7 +171,7 @@ static class EnemyRenderer extends RendererComponent {
         g.translate(x, y);
         g.rotate(dir);
 
-        // Glow — red by default, gold when carrying orbs
+        // Glow 锟?red by default, gold when carrying orbs
         g.noStroke();
         if (enemy.orbsCarried > 0) {
             g.fill(0xFFFFDD00, 80);
@@ -180,7 +180,7 @@ static class EnemyRenderer extends RendererComponent {
         }
         drawPolyCircle(g, 0, 0, r * 1.4f, 16);
 
-        // Body — red by default, gold only when carrying orbs
+        // Body 锟?red by default, gold only when carrying orbs
         int bodyColor = enemy.orbsCarried > 0 ? 0xFFFFDD00 : 0xFFFF6666;
         if (enemy.hitFlashTimer > 0) {
             float flashAlpha = enemy.hitFlashTimer / 0.15f;
@@ -241,7 +241,7 @@ static class EnemyRenderer extends RendererComponent {
             }
         }
 
-        // Orb capacity indicator — small dots behind body
+        // Orb capacity indicator 锟?small dots behind body
         if (enemy.enemyDef != null && enemy.enemyDef.orbCapacity > 1) {
             g.noStroke();
             float dotR = 2.5f;
@@ -284,13 +284,13 @@ static class EnemyHpBarRenderer extends RendererComponent {
             float barY = y - r - 12;
 
             g.fill(0xFF222222, 200);
-            g.rect(barX - 1, barY - 1, barW + 2, barH + 2, 2);
+            drawRoundRect(g, barX - 1, barY - 1, barW + 2, barH + 2, 2);
             g.fill(0xFF333333);
-            g.rect(barX, barY, barW, barH, 2);
+            drawRoundRect(g, barX, barY, barW, barH, 2);
             float hpPct = e.maxHp > 0 ? e.hp / e.maxHp : 0;
             int hpColor = hpPct > 0.5f ? 0xFF44FF66 : (hpPct > 0.25f ? 0xFFFFCC44 : 0xFFFF4444);
             g.fill(hpColor);
-            g.rect(barX, barY, barW * hpPct, barH, 2);
+            drawRoundRect(g, barX, barY, barW * hpPct, barH, 2);
         }
     }
 }
@@ -325,14 +325,14 @@ static class TowerRenderer extends RendererComponent {
             float prog = tower.buildProgress / tower.def.buildTime;
             g.noStroke();
             g.fill(0xFF444444, (int)(180 * fade));
-            g.rect(x - half, y - half, size, size, 4);
+            drawRoundRect(g, x - half, y - half, size, size, 4);
             g.fill(c, (int)(120 * fade));
-            g.rect(x - half, y - half, size * prog, size, 4);
+            drawRoundRect(g, x - half, y - half, size * prog, size, 4);
             // Static build border
             g.noFill();
             g.stroke(c, (int)(150 * fade));
             g.strokeWeight(2);
-            g.rect(x - half, y - half, size, size, 4);
+            drawRoundRect(g, x - half, y - half, size, size, 4);
             return;
         }
 
@@ -342,21 +342,21 @@ static class TowerRenderer extends RendererComponent {
             float prog = tower.upgradeProgress / targetTime;
             g.noStroke();
             g.fill(0xFF444444, (int)(180 * fade));
-            g.rect(x - half, y - half, size, size, 4);
+            drawRoundRect(g, x - half, y - half, size, size, 4);
             g.fill(0xFFC0C0C0, (int)(120 * fade));
-            g.rect(x - half, y - half, size * prog, size, 4);
+            drawRoundRect(g, x - half, y - half, size * prog, size, 4);
             // Static upgrade border
             g.noFill();
             g.stroke(0xFFC0C0C0, (int)(150 * fade));
             g.strokeWeight(2);
-            g.rect(x - half, y - half, size, size, 4);
+            drawRoundRect(g, x - half, y - half, size, size, 4);
             return;
         }
 
         // Tower shadow
         g.noStroke();
         g.fill(0xFF000000, (int)(60 * fade));
-        g.rect(x - half + 3, y - half + 3, size, size, 4);
+        drawRoundRect(g, x - half + 3, y - half + 3, size, size, 4);
 
         // Command tower: persistent buff aura (subtle pulsing glow)
         float cmdOffset = (tower.def.type == TowerType.COMMAND) ? half * 0.25f : 0f;
@@ -375,7 +375,7 @@ static class TowerRenderer extends RendererComponent {
             float buffPulse = 0.5f + 0.5f * PApplet.sin(gameT * 2.5f);
             int buffAlpha = (int)(45 * buffPulse);
             g.fill(135, 206, 250, buffAlpha);
-            g.rect(tower.gridX * TdConfig.GRID + 2, tower.gridY * TdConfig.GRID + 2,
+            drawRoundRect(g, tower.gridX * TdConfig.GRID + 2, tower.gridY * TdConfig.GRID + 2,
                    TdConfig.GRID - 4, TdConfig.GRID - 4, 6);
         }
 
@@ -384,9 +384,9 @@ static class TowerRenderer extends RendererComponent {
         g.fill(c, (int)(255 * fade));
         switch (tower.def.type) {
             case MG:
-                g.rect(x - half, y - half, size, size, 3);
+                drawRoundRect(g, x - half, y - half, size, size, 3);
                 g.fill(0xFFFFFFFF, (int)(120 * fade));
-                g.rect(x - half + 4, y - half + 4, size - 8, 4, 1);
+                drawRoundRect(g, x - half + 4, y - half + 4, size - 8, 4, 1);
                 break;
             case MISSILE:
                 drawPolyCircle(g, x, y, half, 24);
@@ -397,7 +397,7 @@ static class TowerRenderer extends RendererComponent {
                 g.pushMatrix();
                 g.translate(x, y);
                 g.rotate(PApplet.PI / 4);
-                g.rect(-half, -half, size, size, 3);
+                drawRoundRect(g, -half, -half, size, size, 3);
                 g.popMatrix();
                 g.fill(0xFFFFFFFF, (int)(120 * fade));
                 drawPolyCircle(g, x, y, half * 0.3f, 10);
@@ -439,7 +439,7 @@ static class TowerRenderer extends RendererComponent {
             g.strokeWeight(4f);
             switch (tower.def.type) {
                 case MG:
-                    g.rect(x - half - 1, y - half - 1, size + 2, size + 2, 3);
+                    drawRoundRect(g, x - half - 1, y - half - 1, size + 2, size + 2, 3);
                     break;
                 case MISSILE:
                     drawPolyCircle(g, x, y, half + 1.5f, 24);
@@ -448,7 +448,7 @@ static class TowerRenderer extends RendererComponent {
                     g.pushMatrix();
                     g.translate(x, y);
                     g.rotate(PApplet.PI / 4);
-                    g.rect(-half - 1.5f, -half - 1.5f, size + 3, size + 3, 3);
+                    drawRoundRect(g, -half - 1.5f, -half - 1.5f, size + 3, size + 3, 3);
                     g.popMatrix();
                     break;
                 case SLOW:
@@ -470,7 +470,7 @@ static class TowerRenderer extends RendererComponent {
                 g.strokeWeight(0.8f);
                 switch (tower.def.type) {
                     case MG:
-                        g.rect(x - half + 1, y - half + 1, size - 2, size - 2, 3);
+                        drawRoundRect(g, x - half + 1, y - half + 1, size - 2, size - 2, 3);
                         break;
                     case MISSILE:
                         drawPolyCircle(g, x, y, half - 1, 24);
@@ -479,7 +479,7 @@ static class TowerRenderer extends RendererComponent {
                         g.pushMatrix();
                         g.translate(x, y);
                         g.rotate(PApplet.PI / 4);
-                        g.rect(-half + 1, -half + 1, size - 2, size - 2, 3);
+                        drawRoundRect(g, -half + 1, -half + 1, size - 2, size - 2, 3);
                         g.popMatrix();
                         break;
                     case SLOW:
@@ -497,7 +497,7 @@ static class TowerRenderer extends RendererComponent {
                 g.strokeWeight(1.5f);
                 switch (tower.def.type) {
                     case MG:
-                        g.rect(x - half + 3, y - half + 3, size - 6, size - 6, 3);
+                        drawRoundRect(g, x - half + 3, y - half + 3, size - 6, size - 6, 3);
                         break;
                     case MISSILE:
                         drawPolyCircle(g, x, y, half - 3, 24);
@@ -506,7 +506,7 @@ static class TowerRenderer extends RendererComponent {
                         g.pushMatrix();
                         g.translate(x, y);
                         g.rotate(PApplet.PI / 4);
-                        g.rect(-half + 3, -half + 3, size - 6, size - 6, 3);
+                        drawRoundRect(g, -half + 3, -half + 3, size - 6, size - 6, 3);
                         g.popMatrix();
                         break;
                     case SLOW:
@@ -524,7 +524,7 @@ static class TowerRenderer extends RendererComponent {
                 g.strokeWeight(1.5f);
                 switch (tower.def.type) {
                     case MG:
-                        g.rect(x - half, y - half, size, size, 3);
+                        drawRoundRect(g, x - half, y - half, size, size, 3);
                         break;
                     case MISSILE:
                         drawPolyCircle(g, x, y, half, 24);
@@ -533,7 +533,7 @@ static class TowerRenderer extends RendererComponent {
                         g.pushMatrix();
                         g.translate(x, y);
                         g.rotate(PApplet.PI / 4);
-                        g.rect(-half, -half, size, size, 3);
+                        drawRoundRect(g, -half, -half, size, size, 3);
                         g.popMatrix();
                         break;
                     case SLOW:
@@ -556,7 +556,7 @@ static class TowerRenderer extends RendererComponent {
             g.strokeWeight(2);
             switch (tower.def.type) {
                 case MG:
-                    g.rect(x - half - 2, y - half - 2, size + 4, size + 4, 4);
+                    drawRoundRect(g, x - half - 2, y - half - 2, size + 4, size + 4, 4);
                     break;
                 case MISSILE:
                     drawPolyCircle(g, x, y, half + 3, 24);
@@ -565,7 +565,7 @@ static class TowerRenderer extends RendererComponent {
                     g.pushMatrix();
                     g.translate(x, y);
                     g.rotate(PApplet.PI / 4);
-                    g.rect(-half - 3, -half - 3, size + 6, size + 6, 4);
+                    drawRoundRect(g, -half - 3, -half - 3, size + 6, size + 6, 4);
                     g.popMatrix();
                     break;
                 case SLOW:
@@ -618,7 +618,7 @@ static class TowerRenderer extends RendererComponent {
         g.endShape(PApplet.CLOSE);
     }
 
-    // ─── Dashed border helpers (marching ants) ───
+    // 鈹€鈹€鈹€ Dashed border helpers (marching ants) 鈹€鈹€鈹€
 
     private void drawDashedLine(PGraphics g, float x1, float y1, float x2, float y2,
                                  float dashLen, float gapLen, float offset, int col, float fade) {
@@ -686,7 +686,7 @@ static class TowerRenderer extends RendererComponent {
 
     private void drawDashedRotatedRect(PGraphics g, float cx, float cy, float half, float size,
                                         float dashLen, float gapLen, float offset, int col, float fade) {
-        // Rotated 45° rect vertices (same as laser body)
+        // Rotated 45掳 rect vertices (same as laser body)
         float cos45 = PApplet.cos(PApplet.PI / 4);
         float sin45 = PApplet.sin(PApplet.PI / 4);
         float[][] v = new float[4][2];
@@ -775,7 +775,7 @@ static class BulletRenderer extends RendererComponent {
 
 /**
  * Renders all lightweight visual effects (tracers, explosions, lasers, slow waves).
- * Lives at renderLayer 95 — above bullets, below HP bars.
+ * Lives at renderLayer 95 锟?above bullets, below HP bars.
  */
 static class EffectRenderer extends RendererComponent {
     protected void renderShape(PGraphics g) {
@@ -783,4 +783,45 @@ static class EffectRenderer extends RendererComponent {
             e.render(g);
         }
     }
+}
+
+/** Lightweight round-rect drawn with beginShape (avoids P2D rect() radius overhead). */
+static void drawRoundRect(PGraphics g, float x, float y, float w, float h, float r) {
+    if (r <= 0.5f) {
+        g.rect(x, y, w, h);
+        return;
+    }
+    r = Math.min(r, Math.min(w * 0.5f, h * 0.5f));
+    int segs = Math.max(2, (int)(r * 0.6f));
+    g.beginShape();
+    // Top edge
+    g.vertex(x + r, y);
+    g.vertex(x + w - r, y);
+    // Top-right corner
+    for (int i = 1; i <= segs; i++) {
+        float a = PApplet.lerp(-PApplet.HALF_PI, 0, (float)i / segs);
+        g.vertex(x + w - r + PApplet.cos(a) * r, y + r + PApplet.sin(a) * r);
+    }
+    // Right edge
+    g.vertex(x + w, y + h - r);
+    // Bottom-right corner
+    for (int i = 1; i <= segs; i++) {
+        float a = PApplet.lerp(0, PApplet.HALF_PI, (float)i / segs);
+        g.vertex(x + w - r + PApplet.cos(a) * r, y + h - r + PApplet.sin(a) * r);
+    }
+    // Bottom edge
+    g.vertex(x + r, y + h);
+    // Bottom-left corner
+    for (int i = 1; i <= segs; i++) {
+        float a = PApplet.lerp(PApplet.HALF_PI, PApplet.PI, (float)i / segs);
+        g.vertex(x + r + PApplet.cos(a) * r, y + h - r + PApplet.sin(a) * r);
+    }
+    // Left edge
+    g.vertex(x, y + r);
+    // Top-left corner
+    for (int i = 1; i <= segs; i++) {
+        float a = PApplet.lerp(PApplet.PI, PApplet.PI + PApplet.HALF_PI, (float)i / segs);
+        g.vertex(x + r + PApplet.cos(a) * r, y + r + PApplet.sin(a) * r);
+    }
+    g.endShape(PApplet.CLOSE);
 }

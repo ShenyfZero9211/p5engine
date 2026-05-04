@@ -112,7 +112,7 @@ static class GhostRenderer extends RendererComponent {
         g.noFill();
         g.stroke(ghostColor);
         g.strokeWeight(2 / zoom);  // counter-scale stroke for consistent screen width
-        g.ellipse(x, y, size, size);
+        drawPolyCircle(g, x, y, size * 0.5f, 24);
 
         // Range indicator in world units (def.range is world distance)
         TowerDef def = TdAssets.loadTowerDef(TowerType.fromBuildMode(app.buildMode));

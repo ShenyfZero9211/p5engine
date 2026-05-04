@@ -68,6 +68,7 @@ waves:
       - type: level1
         count: 30
         interval: 0.9
+        hpMulti: 2.0        # 这批 level1 的 HP ×2
       - type: level2
         count: 30
         interval: 0.9

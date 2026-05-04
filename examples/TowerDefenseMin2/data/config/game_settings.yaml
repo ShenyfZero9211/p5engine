@@ -6,3 +6,5 @@ gameSettings:
   # 指挥塔击杀 tier-2+ 敌人的额外奖金随机范围
   commandKillBonusMin: 1
   commandKillBonusMax: 3
+  # 建塔按钮 Tooltip 悬停延迟（秒）
+  tooltipDelay: 0.8

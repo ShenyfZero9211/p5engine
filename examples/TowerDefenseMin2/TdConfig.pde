@@ -169,13 +169,15 @@ static final class SpawnAttach {
     final int count;
     final float delay;
     final String route;
+    final float hpMulti;
     final SpawnAttach[] attaches;  // nested attaches
 
-    SpawnAttach(String enemyType, int count, float delay, String route, SpawnAttach[] attaches) {
+    SpawnAttach(String enemyType, int count, float delay, String route, float hpMulti, SpawnAttach[] attaches) {
         this.enemyType = enemyType;
         this.count = count;
         this.delay = delay;
         this.route = route;
+        this.hpMulti = hpMulti;
         this.attaches = attaches;
     }
 }
@@ -188,13 +190,15 @@ static final class WaveSpawn {
     final int count;
     final float interval;
     final String route;      // optional path route id
+    final float hpMulti;
     final SpawnAttach[] attaches;
 
-    WaveSpawn(String enemyType, int count, float interval, String route, SpawnAttach[] attaches) {
+    WaveSpawn(String enemyType, int count, float interval, String route, float hpMulti, SpawnAttach[] attaches) {
         this.enemyType = enemyType;
         this.count = count;
         this.interval = interval;
         this.route = route;
+        this.hpMulti = hpMulti;
         this.attaches = attaches;
     }
 }

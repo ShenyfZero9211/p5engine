@@ -10,7 +10,14 @@ static class TowerButton extends Button {
     String initial;
     String hotkey;
     float flashTimer = 0;
+    float hoverTimer = 0;
     static final float FLASH_DURATION = 0.6f;
+
+    // Shared tooltip state across all tower buttons in the build panel
+    static float sharedTooltipTimer = 0;
+    static boolean anyTowerButtonHoveredThisFrame = false;
+    static float panelHoverWithoutButtonTimer = 0;
+    static final float PANEL_GAP_TIMEOUT = 2.0f;
 
     TowerButton(String id, TowerType type, String initial, String hotkey) {
         super(id);
@@ -22,6 +29,38 @@ static class TowerButton extends Button {
 
     void flash() {
         flashTimer = FLASH_DURATION;
+    }
+
+    /** Call once per frame after all TowerButtons have updated.
+     *  Resets shared timer if mouse left the build panel,
+     *  or if mouse stayed inside panel but not on any button for too long. */
+    static void postUpdateTooltipTimer(float dt) {
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        if (app.hudBuildPanel != null) {
+            float mx = UIManager.getDesignMouseX();
+            float my = UIManager.getDesignMouseY();
+            if (app.hudBuildPanel.containsPoint(mx, my)) {
+                if (anyTowerButtonHoveredThisFrame) {
+                    // Mouse is on a button — reset gap timer
+                    panelHoverWithoutButtonTimer = 0;
+                } else {
+                    // Mouse is inside panel but on gap / non-button area
+                    panelHoverWithoutButtonTimer += dt;
+                    if (panelHoverWithoutButtonTimer >= PANEL_GAP_TIMEOUT) {
+                        sharedTooltipTimer = 0;
+                        panelHoverWithoutButtonTimer = 0;
+                    }
+                }
+            } else {
+                // Mouse left the panel entirely
+                sharedTooltipTimer = 0;
+                panelHoverWithoutButtonTimer = 0;
+            }
+        } else {
+            sharedTooltipTimer = 0;
+            panelHoverWithoutButtonTimer = 0;
+        }
+        anyTowerButtonHoveredThisFrame = false;
     }
 
     @Override
@@ -67,9 +106,9 @@ static class TowerButton extends Button {
                     applet.rect(icx - ihalf + 4, icy - ihalf + 4, isize - 8, 4, 1);
                     break;
                 case MISSILE:
-                    applet.ellipse(icx, icy, isize, isize);
+                    drawPolyCircle(applet.g, icx, icy, isize * 0.5f, 16);
                     applet.fill(0xFFFFFFFF, 120);
-                    applet.ellipse(icx, icy, isize * 0.4f, isize * 0.4f);
+                    drawPolyCircle(applet.g, icx, icy, isize * 0.2f, 8);
                     break;
                 case LASER: {
                     float lsize = isize * 0.75f;
@@ -80,18 +119,24 @@ static class TowerButton extends Button {
                     applet.rect(-lhalf, -lhalf, lsize, lsize, 3);
                     applet.popMatrix();
                     applet.fill(0xFFFFFFFF, 120);
-                    applet.ellipse(icx, icy, lsize * 0.3f, lsize * 0.3f);
+                    drawPolyCircle(applet.g, icx, icy, lsize * 0.15f, 6);
                     break;
                 }
                 case SLOW:
                     drawTowerIconHexagon(applet, icx, icy, ihalf * 0.9f);
                     applet.fill(0xFFFFFFFF, 120);
-                    applet.ellipse(icx, icy, isize * 0.35f, isize * 0.35f);
+                    drawPolyCircle(applet.g, icx, icy, isize * 0.175f, 8);
                     break;
                 case POISON:
                     drawTowerIconPentagon(applet, icx, icy, ihalf * 0.98f);
                     applet.fill(0xFFFFFFFF, 120);
-                    applet.ellipse(icx, icy, isize * 0.35f, isize * 0.35f);
+                    drawPolyCircle(applet.g, icx, icy, isize * 0.175f, 8);
+                    break;
+                case COMMAND:
+                    float cmdIconOffset = ihalf * 0.25f;
+                    drawTowerIconTriangle(applet, icx, icy + cmdIconOffset, ihalf);
+                    applet.fill(0xFFFFFFFF, 120);
+                    drawPolyCircle(applet.g, icx, icy + cmdIconOffset, ihalf * 0.3f, 6);
                     break;
             }
         } else {
@@ -139,6 +184,108 @@ static class TowerButton extends Button {
         }
 
         applet.popMatrix();
+
+        // Tooltip on long hover
+        if (hoverTimer >= TdAssets.getTooltipDelay() && def != null) {
+            paintTooltip(applet, def);
+        }
+    }
+
+    private void paintTooltip(PApplet g, TowerDef def) {
+        float tipW = 230;
+        float tipH = 120;
+        float arrowW = 8;
+        float pad = 10;
+        float bx = getAbsoluteX();
+        float by = getAbsoluteY();
+        float bw = getWidth();
+        float bh = getHeight();
+
+        // Position to the left of the button
+        float tipX = bx - tipW - arrowW - 4;
+        float tipY = by + (bh - tipH) * 0.5f;
+
+        // Clamp to screen bounds
+        DisplayManager dm = TowerDefenseMin2.inst.engine.getDisplayManager();
+        if (dm != null && dm.getScaleMode() != ScaleMode.NO_SCALE) {
+            float scale = dm.getUniformScale();
+            float maxY = dm.getActualHeight() / scale - tipH - 4;
+            tipY = Math.max(4, Math.min(tipY, maxY));
+        }
+
+        int bg = 0xFF1A2035; // TdTheme.BG_PANEL opaque
+        int border = TdTheme.BORDER;
+        int accent = TdTheme.ACCENT;
+
+        g.pushStyle();
+
+        // Background panel
+        g.noStroke();
+        g.fill(bg);
+        g.rect(tipX, tipY, tipW, tipH);
+
+        // Border
+        g.noFill();
+        g.stroke(border);
+        g.strokeWeight(1);
+        g.rect(tipX + 0.5f, tipY + 0.5f, tipW - 1, tipH - 1);
+
+        // Arrow (pointing right toward button)
+        float arrowY = by + bh * 0.5f;
+        g.noStroke();
+        g.fill(bg);
+        g.beginShape();
+        g.vertex(tipX + tipW, arrowY - 6);
+        g.vertex(tipX + tipW + arrowW, arrowY);
+        g.vertex(tipX + tipW, arrowY + 6);
+        g.endShape(PApplet.CLOSE);
+        // Arrow border (top and bottom edges)
+        g.noFill();
+        g.stroke(border);
+        g.strokeWeight(1);
+        g.line(tipX + tipW, arrowY - 6, tipX + tipW + arrowW, arrowY);
+        g.line(tipX + tipW + arrowW, arrowY, tipX + tipW, arrowY + 6);
+
+        // Title: name + hotkey
+        g.noStroke();
+        g.fill(accent);
+        g.textAlign(PApplet.LEFT, PApplet.TOP);
+        g.textSize(14);
+        String name = TdAssets.i18n(def.nameKey);
+        g.text(name, tipX + pad, tipY + pad);
+        if (hotkey != null && !hotkey.isEmpty()) {
+            float nameW = g.textWidth(name);
+            g.textSize(11);
+            g.fill(TdTheme.TEXT_DIM);
+            g.text("[" + hotkey + "]", tipX + pad + nameW + 6, tipY + pad + 2);
+        }
+
+        // Separator line
+        g.stroke(border);
+        g.strokeWeight(1);
+        g.line(tipX + pad, tipY + pad + 20, tipX + tipW - pad, tipY + pad + 20);
+
+        // Description
+        g.noStroke();
+        g.fill(TdTheme.TEXT);
+        g.textSize(12);
+        g.textAlign(PApplet.LEFT, PApplet.TOP);
+        String desc = TdAssets.i18n(def.descKey);
+        g.text(desc, tipX + pad, tipY + pad + 28, tipW - pad * 2, 40);
+
+        // Stats grid (2x2)
+        g.textSize(11);
+        g.fill(TdTheme.TEXT_DIM);
+        float statsY = tipY + tipH - pad - 28;
+        float col2X = tipX + tipW * 0.55f;
+        g.textAlign(PApplet.LEFT, PApplet.TOP);
+        g.text("造价: $" + def.cost, tipX + pad, statsY);
+        g.text("射程: " + (int)def.range, col2X, statsY);
+        g.text("伤害: " + (int)def.damage, tipX + pad, statsY + 14);
+        String fireRateStr = def.firePeriod > 0 ? String.format("%.2fs", def.firePeriod) : "-";
+        g.text("射速: " + fireRateStr, col2X, statsY + 14);
+
+        g.popStyle();
     }
 
     @Override
@@ -147,6 +294,18 @@ static class TowerButton extends Button {
         if (flashTimer > 0) {
             flashTimer -= dt;
             if (flashTimer < 0) flashTimer = 0;
+        }
+        if (hover) {
+            // If tooltip was already showing within the build panel, show immediately on this button
+            if (sharedTooltipTimer >= TdAssets.getTooltipDelay()) {
+                hoverTimer = TdAssets.getTooltipDelay();
+            } else {
+                hoverTimer += dt;
+            }
+            sharedTooltipTimer += dt;
+            anyTowerButtonHoveredThisFrame = true;
+        } else {
+            hoverTimer = 0;
         }
     }
 
@@ -165,6 +324,14 @@ static class TowerButton extends Button {
             float a = PApplet.TWO_PI / 5 * i - PApplet.PI / 2;
             g.vertex(cx + PApplet.cos(a) * r, cy + PApplet.sin(a) * r);
         }
+        g.endShape(PApplet.CLOSE);
+    }
+
+    private void drawTowerIconTriangle(PApplet g, float cx, float cy, float r) {
+        g.beginShape();
+        g.vertex(cx, cy - r);
+        g.vertex(cx + r * 0.866f, cy + r * 0.5f);
+        g.vertex(cx - r * 0.866f, cy + r * 0.5f);
         g.endShape(PApplet.CLOSE);
     }
 }

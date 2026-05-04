@@ -221,6 +221,7 @@ static final class TdAppLoop {
         }
 
         TdAppInput.handleMouseInput(app, im);
+        TowerButton.postUpdateTooltipTimer(dtReal);
 
         // Tower hover detection (keep highlight when sell menu is open)
         if (app.state == TdState.PLAYING && app.sellMenuPanel == null && !TdAppUtils.isMouseOverHud(app)) {
@@ -390,7 +391,7 @@ static final class TdAppInput {
         }
         app.wasKeySpace = isSpace;
 
-        // Dev mode: Ctrl + hover tower to instant upgrade
+        // Dev mode: Ctrl + hover tower to instant upgrade, or Ctrl + build mode to instant place
         boolean isCtrl = im.isKeyDown(java.awt.event.KeyEvent.VK_CONTROL);
         if (isCtrl && !app.wasKeyCtrl && app.devMode && app.state == TdState.PLAYING) {
             Tower hover = TdAppUtils.getTowerAtMouse(app, im);
@@ -401,6 +402,8 @@ static final class TdAppInput {
                     hover.isUpgrading = true;
                     hover.upgradeProgress = 0;
                 }
+            } else if (app.buildMode != TdBuildMode.NONE && TdGhost.isValid && !TdAppUtils.isMouseOverHud(app)) {
+                TdGameWorld.tryPlaceTower(app.buildMode, TdGhost.gridX, TdGhost.gridY);
             }
         }
         app.wasKeyCtrl = isCtrl;

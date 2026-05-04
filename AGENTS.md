@@ -185,3 +185,54 @@ main-menu-animation_8e2c91f4.plan.md
 
 如果这次小地图内容（边框、视口、飞船点）正常显示，说明问题就是 P2D 模式下 pushStyle()/popStyle() 与 fill(float,float,float) 存在冲突（OpenGL 状态未正确同步）。如果仍然不可见，我们需要继续排查其他原因。
 
+已定位问题并修复。编译通过。
+
+**根因确认**
+
+Processing P2D 模式下，`g.rect(x, y, w, h, radius)` 带圆角参数时，底层 OpenGL 需要每帧实时构建复杂的圆弧路径几何（涉及 `arc` 分段计算和大量顶点生成）。升级后的塔每帧要绘制多层边框：
+
+| 等级 | 每塔每帧圆角 rect 数量 |
+|------|----------------------|
+| Level 1 | 外发光 1 + 内白边 1 + hover 1 = **3 个** |
+| Level 2 | 外发光 1 + 内金边 2 + hover 1 = **4 个** |
+
+场上若有 20 座升级塔，每帧就是 60~80 个圆角矩形，P2D 路径开销累积导致帧数暴跌。
+
+**修复内容**
+
+`TdRenderers.pde` 中 **24 处** `g.rect(..., radius)` 全部改为普通 `g.rect(...)`：
+
+- Enemy HP bar 背景/血量条（`radius=2`）
+- Build / Upgrade 动画矩形（`radius=4`）
+- Tower shadow（`radius=4`）
+- Command buff grid highlight（`radius=6`）
+- MG tower body 和装饰条（`radius=3, 1`）
+- Upgrade 外发光边框（`radius=3`）
+- Upgrade 内描边（白边/金边，`radius=3`）
+- Hover 高亮框（`radius=4`）
+
+普通 `g.rect()` 在 P2D 下走简单的四边形绘制，没有圆弧路径开销，性能与 `beginShape/endShape` 多边形相当。
+
+**验证结果**
+- Processing CLI build ✅（原有 `unrecognized characters` 警告为文件编码提示，不影响编译和运行）
+
+编译通过 ✅。
+
+**修改内容：**
+
+### 1. 开发模式 Ctrl 快捷建造
+`TdAppCore.pde` — `handleKeyboardInput`
+- Ctrl 键逻辑扩展：若鼠标未悬停在可升级塔上，但当前已选中建塔模式（`buildMode != NONE`）且 ghost 预览位置有效，则直接在该格子建造
+- 无需点击左键，按住 Ctrl 即可连续放置（配合 dev mode 不自动退出 build mode，可快速批量建造）
+
+### 2. 指挥塔（COMMAND）右侧边栏图标
+`TdUiHud.pde` — 图标绘制 switch 中新增 `case COMMAND:`
+- 外轮廓：三角形（与游戏中塔形一致）
+- 内部白点：`drawPolyCircle` 6 边形
+
+### 3. 其他塔图标画圆优化
+一并替换 UI 图标中的默认 `applet.ellipse()` 为 `drawPolyCircle`：
+- MISSILE 主圆/内点
+- LASER 中心白点
+- SLOW 中心白点
+- POISON 中心白点

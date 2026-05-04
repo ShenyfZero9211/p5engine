@@ -137,11 +137,13 @@ static final class TdAssets {
             java.util.Map a = (java.util.Map) attachList.get(i);
             int count = a.containsKey("count") ? ((Number) a.get("count")).intValue() : 1;
             float delay = a.containsKey("delay") ? ((Number) a.get("delay")).floatValue() : 0f;
+            float hpMulti = a.containsKey("hpMulti") ? ((Number) a.get("hpMulti")).floatValue() : 1.0f;
             attaches[i] = new SpawnAttach(
                 (String) a.get("type"),
                 count,
                 delay,
                 (String) a.get("route"),
+                hpMulti,
                 loadAttaches(a)
             );
         }
@@ -173,6 +175,15 @@ static final class TdAssets {
         Object v = gs.get("commandKillBonusMax");
         if (v instanceof Number) return ((Number) v).intValue();
         return 3;
+    }
+
+    static float getTooltipDelay() {
+        if (gameSettingsYamlRoot == null) return 1.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.0f;
+        Object v = gs.get("tooltipDelay");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.0f;
     }
 
     static int getLevelCount() {
@@ -294,11 +305,13 @@ static final class TdAssets {
                 WaveSpawn[] spawns = new WaveSpawn[spawnList != null ? spawnList.size() : 0];
                 for (int j = 0; j < spawns.length; j++) {
                     java.util.Map s = (java.util.Map) spawnList.get(j);
+                    float hpMulti = s.containsKey("hpMulti") ? ((Number) s.get("hpMulti")).floatValue() : 1.0f;
                     spawns[j] = new WaveSpawn(
                         (String) s.get("type"),
                         ((Number) s.get("count")).intValue(),
                         ((Number) s.get("interval")).floatValue(),
                         (String) s.get("route"),
+                        hpMulti,
                         loadAttaches(s)
                     );
                 }
