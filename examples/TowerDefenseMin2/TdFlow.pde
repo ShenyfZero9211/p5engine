@@ -123,13 +123,22 @@ static final class TdFlow {
         tm.setUseUnscaledTime(true);
 
         Window win = new Window("menu_win");
-        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
-        win.setBounds(0, 0, 600, 360);
+        int windowH = 280;
+        float scale = app.engine.getDisplayManager().getUniformScale();
+        int actualH = app.engine.getDisplayManager().getActualHeight();
+        int actualW = app.engine.getDisplayManager().getActualWidth();
+        float aspectRatio = (float)actualW / actualH;
+        float baseAspectRatio = 21.0f / 9.0f; // 21:9 基准
+        float spacing = actualH * 0.1f * (baseAspectRatio / aspectRatio);
+        int windowY = (int)((actualH - spacing) / scale) - windowH;
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_TOP);
+        win.setBounds(0, windowY, 320, windowH);
         win.setTitle(TdAssets.i18n("menu.title"));
         win.setMovable(false);
         win.setResizable(false);
         win.setZOrder(10);
         win.setPaintBackground(false);
+        win.hideTitleBar();
         win.fadeIn(0f);
         root.add(win);
 
@@ -154,7 +163,7 @@ static final class TdFlow {
         root.add(versionPanel);
 
         Panel panel = new Panel("menu_panel");
-        panel.setBounds(0, 0, 600, 320);
+        panel.setBounds(0, 0, 320, 280);
         panel.setLayoutManager(new AbsoluteLayout());
         panel.setPaintBackground(false);
         panel.fadeIn(0.1f);
@@ -172,34 +181,34 @@ static final class TdFlow {
         // Buttons start below their final position (keep existing staggered animation)
         Button btnStart = new Button("btn_start");
         btnStart.setLabel(TdAssets.i18n("menu.start"));
-        btnStart.setBounds(180, 180, 240, 52);
+        btnStart.setBounds(40, 74, 240, 52);
         btnStart.setAlpha(0);
         btnStart.setAction(() -> TdFlow.showLevelSelect(app));
         panel.add(btnStart);
 
         Button btnSettings = new Button("btn_settings");
         btnSettings.setLabel(TdAssets.i18n("menu.settings"));
-        btnSettings.setBounds(180, 250, 240, 52);
+        btnSettings.setBounds(40, 144, 240, 52);
         btnSettings.setAlpha(0);
         btnSettings.setAction(() -> TdFlow.showSettings(app, true));
         panel.add(btnSettings);
 
         Button btnQuit = new Button("btn_quit");
         btnQuit.setLabel(TdAssets.i18n("menu.quit"));
-        btnQuit.setBounds(180, 320, 240, 52);
+        btnQuit.setBounds(40, 214, 240, 52);
         btnQuit.setAlpha(0);
         btnQuit.setAction(() -> app.exit());
         panel.add(btnQuit);
 
         // Staggered slide-up + fade-in (start after title begins moving)
         float btnDelay = 0.3f;
-        tm.toY(btnStart, 150, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+        tm.toY(btnStart, 44, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
         tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
 
-        tm.toY(btnSettings, 220, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+        tm.toY(btnSettings, 114, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
         tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
 
-        tm.toY(btnQuit, 290, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
+        tm.toY(btnQuit, 184, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
         tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
 
         // println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
@@ -566,6 +575,7 @@ static final class TdFlow {
         TdSaveData.incGamesPlayed();
         app.state = TdState.PLAYING;
         app.ui.getRoot().removeAllChildren();
+        clearStarCaches();
         try {
             boolean ok = TdGameWorld.startLevel(app, levelId);
             if (!ok) {

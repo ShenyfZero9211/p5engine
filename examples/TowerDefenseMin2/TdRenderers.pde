@@ -3,23 +3,813 @@
  * Drawn inside SceneViewport's off-screen buffer via p5engine renderer.
  */
 
+// ── Blocked zone visual helpers ──
+static boolean RUINS_USE_TEXTURES = true;
+static java.util.IdentityHashMap<BlockedZone, float[]> ZONE_DRIFT_CACHE = new java.util.IdentityHashMap<>();
+static java.util.HashMap<Integer, int[]> ZONE_LAYER_CACHE = new java.util.HashMap<>();
+
+static float[] getZoneDrift(BlockedZone bz, float time) {
+    float[] drift = ZONE_DRIFT_CACHE.get(bz);
+    if (drift == null) {
+        java.util.Random rng = new java.util.Random(bz.hashCode());
+        drift = new float[] {
+            0.15f + rng.nextFloat() * 0.40f,  // 0: freqX
+            0.10f + rng.nextFloat() * 0.40f,  // 1: freqY
+            0.05f + rng.nextFloat() * 0.25f,  // 2: freqRot
+            5f    + rng.nextFloat() * 15f,    // 3: ampX
+            4f    + rng.nextFloat() * 12f,    // 4: ampY
+            0.02f + rng.nextFloat() * 0.08f,  // 5: maxRot
+            rng.nextFloat() * PApplet.TWO_PI, // 6: phaseX
+            rng.nextFloat() * PApplet.TWO_PI, // 7: phaseY
+            rng.nextFloat() * PApplet.TWO_PI  // 8: phaseRot
+        };
+        ZONE_DRIFT_CACHE.put(bz, drift);
+    }
+    float driftX = PApplet.sin(time * drift[0] + drift[6]) * drift[3];
+    float driftY = PApplet.cos(time * drift[1] + drift[7]) * drift[4];
+    float rotation = PApplet.sin(time * drift[2] + drift[8]) * drift[5];
+    return new float[] { driftX, driftY, rotation };
+}
+
+static int[] getZoneLayers(LevelDef lv) {
+    if (lv.blockedZones == null || lv.blockedZones.length == 0) return new int[0];
+    int[] layers = ZONE_LAYER_CACHE.get(lv.id);
+    boolean fromCache = true;
+    if (layers == null || layers.length != lv.blockedZones.length) {
+        fromCache = false;
+        java.util.Random rng = TdAssets.isRandomBackground()
+            ? new java.util.Random()
+            : new java.util.Random(lv.id * 7919 + 7);
+        layers = new int[lv.blockedZones.length];
+
+        // Ruins: only assign to Layer 2 if they stay inside viewport at default camera position
+        float camX = lv.worldW * 0.5f;
+        float camY = lv.worldH * 0.5f;
+        float safeMinX = Math.max(0, camX * 0.45f - 800f);
+        float safeMaxX = camX * 0.45f + 800f;
+        float safeMinY = Math.max(0, camY * 0.45f - 450f);
+        float safeMaxY = camY * 0.45f + 450f;
+        for (int i = 0; i < layers.length; i++) {
+            BlockedZone bz = lv.blockedZones[i];
+            if (bz.visualType == BlockedVisualType.RUINS) {
+                float cx = (bz.type == BlockedZoneType.RECT) ? bz.x + bz.w * 0.5f : bz.cx;
+                float cy = (bz.type == BlockedZoneType.RECT) ? bz.y + bz.h * 0.5f : bz.cy;
+                boolean visibleInL2 = (cx > safeMinX && cx < safeMaxX && cy > safeMinY && cy < safeMaxY);
+                layers[i] = visibleInL2 ? 2 : 3;
+            }
+        }
+
+        for (int i = 0; i < layers.length; i++) {
+            if (lv.blockedZones[i].visualType == BlockedVisualType.ENERGY) {
+                layers[i] = 2;
+            }
+        }
+
+        for (int i = 0; i < layers.length; i++) {
+            if (layers[i] != 0) continue;
+            BlockedZone bz = lv.blockedZones[i];
+            if (bz.visualType == BlockedVisualType.ASTEROID) {
+                layers[i] = 2 + rng.nextInt(2);
+            }
+        }
+        ZONE_LAYER_CACHE.put(lv.id, layers);
+    }
+    return layers;
+}
+
+static void drawBlockedZone(PGraphics g, BlockedZone bz, float time) {
+    switch (bz.visualType) {
+        case VOID:
+            // Cut out platform — show deep space color
+            g.noStroke();
+            g.fill(0xFF080A14);
+            if (bz.type == BlockedZoneType.RECT) {
+                g.rect(bz.x, bz.y, bz.w, bz.h);
+            } else {
+                drawPolyCircle(g, bz.cx, bz.cy, bz.radius, 24);
+            }
+            // Stars inside the void rift (so it looks like real deep space, not just black)
+            g.noStroke();
+            java.util.Random voidRng = new java.util.Random((int)(bz.x + bz.y * 1000 + bz.cx));
+            float voidArea = (bz.type == BlockedZoneType.RECT) ? bz.w * bz.h : bz.radius * bz.radius * 3.14159f;
+            int voidStars = PApplet.max(8, (int)(voidArea / 200));
+            float voidBrightness = TdAssets.getStarBrightness();
+            for (int i = 0; i < voidStars; i++) {
+                float sx, sy;
+                if (bz.type == BlockedZoneType.RECT) {
+                    sx = bz.x + voidRng.nextFloat() * bz.w;
+                    sy = bz.y + voidRng.nextFloat() * bz.h;
+                } else {
+                    float a = voidRng.nextFloat() * PApplet.TWO_PI;
+                    float r = PApplet.sqrt(voidRng.nextFloat()) * bz.radius;
+                    sx = bz.cx + PApplet.cos(a) * r;
+                    sy = bz.cy + PApplet.sin(a) * r;
+                }
+                int b = 160 + voidRng.nextInt(96);
+                int size = 1 + voidRng.nextInt(3);
+                g.fill(b, b, b + 20, (int)((180 + voidRng.nextInt(76)) * voidBrightness));
+                g.rect(sx, sy, size, size);
+            }
+            // Broken jagged border
+            g.noFill();
+            g.stroke(0xFF3A5A85, 200);
+            g.strokeWeight(1);
+            if (bz.type == BlockedZoneType.RECT) {
+                float step = 10;
+                for (float x = bz.x; x < bz.x + bz.w; x += step * 2) {
+                    g.line(x, bz.y, PApplet.min(x + step, bz.x + bz.w), bz.y);
+                }
+                for (float x = bz.x; x < bz.x + bz.w; x += step * 2) {
+                    g.line(x, bz.y + bz.h, PApplet.min(x + step, bz.x + bz.w), bz.y + bz.h);
+                }
+                for (float y = bz.y; y < bz.y + bz.h; y += step * 2) {
+                    g.line(bz.x, y, bz.x, PApplet.min(y + step, bz.y + bz.h));
+                }
+                for (float y = bz.y; y < bz.y + bz.h; y += step * 2) {
+                    g.line(bz.x + bz.w, y, bz.x + bz.w, PApplet.min(y + step, bz.y + bz.h));
+                }
+            } else {
+                drawPolyCircle(g, bz.cx, bz.cy, bz.radius, 24);
+            }
+            break;
+
+        case ASTEROID:
+            RockData[] rocks = ASTEROID_ROCK_CACHE.get(bz);
+            if (rocks == null) {
+                java.util.Random rng = new java.util.Random(System.nanoTime() + bz.hashCode() * 7919L);
+                if (bz.type == BlockedZoneType.RECT) {
+                    rocks = new RockData[3];
+                    rocks[0] = generateFacetedRock(bz.w * 0.38f, bz.h * 0.38f, 0, 0, rng);
+                    rocks[1] = generateFacetedRock(bz.w * 0.22f, bz.h * 0.22f, bz.w * 0.18f, bz.h * 0.12f, rng);
+                    rocks[2] = generateFacetedRock(bz.w * 0.14f, bz.h * 0.14f, -bz.w * 0.22f, bz.h * 0.18f, rng);
+                } else {
+                    rocks = new RockData[3];
+                    rocks[0] = generateFacetedRock(bz.radius * 0.70f, bz.radius * 0.70f, 0, 0, rng);
+                    rocks[1] = generateFacetedRock(bz.radius * 0.32f, bz.radius * 0.32f, bz.radius * 0.35f, bz.radius * 0.22f, rng);
+                    rocks[2] = generateFacetedRock(bz.radius * 0.20f, bz.radius * 0.20f, -bz.radius * 0.22f, bz.radius * 0.18f, rng);
+                }
+                ASTEROID_ROCK_CACHE.put(bz, rocks);
+            }
+            float[] ad = getZoneDrift(bz, time);
+            float spinSpeed = (Math.abs(bz.hashCode()) % 1000) / 1000f * 0.08f - 0.04f;
+            if (bz.type == BlockedZoneType.RECT) {
+                float cx = bz.x + bz.w * 0.5f + ad[0];
+                float cy = bz.y + bz.h * 0.5f + ad[1];
+                g.pushMatrix();
+                g.translate(cx, cy);
+                g.rotate(ad[2] + time * spinSpeed);
+                for (RockData rd : rocks) drawFacetedRock(g, 0, 0, rd);
+                g.popMatrix();
+            } else {
+                g.pushMatrix();
+                g.translate(bz.cx + ad[0], bz.cy + ad[1]);
+                g.rotate(ad[2] + time * spinSpeed);
+                for (RockData rd : rocks) drawFacetedRock(g, 0, 0, rd);
+                g.popMatrix();
+            }
+            break;
+
+        case ENERGY:
+            float[] ed = getZoneDrift(bz, time);
+            float energyPulse = 0.6f + 0.4f * PApplet.sin(time * 2.5f + bz.x * 0.01f);
+            float energyCx = (bz.type == BlockedZoneType.RECT) ? bz.x + bz.w * 0.5f + ed[0] : bz.cx + ed[0];
+            float energyCy = (bz.type == BlockedZoneType.RECT) ? bz.y + bz.h * 0.5f + ed[1] : bz.cy + ed[1];
+            float energyR = (bz.type == BlockedZoneType.RECT) ? Math.max(bz.w, bz.h) * 0.55f : bz.radius;
+            g.noStroke();
+            g.fill(0xFF00DDFF, (int)(14 * energyPulse));
+            drawPolyCircle(g, energyCx, energyCy, energyR, (bz.type == BlockedZoneType.RECT) ? 16 : 24);
+            g.noFill();
+            g.stroke(0xFF00DDFF, (int)(40 * energyPulse));
+            g.strokeWeight(1);
+            g.pushMatrix();
+            g.translate(energyCx, energyCy);
+            g.rotate(time * 0.8f + ed[2]);
+            float lineLen = (bz.type == BlockedZoneType.RECT) ? Math.max(bz.w, bz.h) * 0.25f : bz.radius * 0.4f;
+            g.line(-lineLen, 0, lineLen, 0);
+            g.line(0, -lineLen, 0, lineLen);
+            g.popMatrix();
+            break;
+
+        case RUINS:
+            if (RUINS_USE_TEXTURES && TdAssets.RUINS_TEXTURE_COUNT > 0 && bz.ruinTexIndex >= 0) {
+                shenyf.p5engine.rendering.Texture tex =
+                    TdAssets.RUINS_TEXTURES[bz.ruinTexIndex % TdAssets.RUINS_TEXTURE_COUNT];
+                processing.core.PImage img = tex.getImage();
+                float imgW = img.width;
+                float imgH = img.height;
+                float areaW, areaH, areaX, areaY;
+                if (bz.type == BlockedZoneType.RECT) {
+                    areaW = bz.w; areaH = bz.h; areaX = bz.x; areaY = bz.y;
+                } else {
+                    areaW = bz.radius * 2; areaH = areaW;
+                    areaX = bz.cx - bz.radius; areaY = bz.cy - bz.radius;
+                }
+
+                // Read texture config from YAML
+                String texKey = tex.getKey();
+                String fileName = texKey.substring(texKey.lastIndexOf('/') + 1);
+                TdAssets.TextureConfig cfg = TdAssets.getTextureConfig("ruins", fileName);
+                if (cfg == null) cfg = new TdAssets.TextureConfig("fit", 1.0f, "center", 1.0f);
+
+                float baseScale;
+                if ("stretch".equals(cfg.scaleMode)) {
+                    baseScale = 1.0f;
+                } else if ("fill".equals(cfg.scaleMode)) {
+                    baseScale = Math.max(areaW / imgW, areaH / imgH);
+                } else { // fit
+                    baseScale = Math.min(areaW / imgW, areaH / imgH);
+                }
+
+                float drawW = imgW * baseScale * cfg.scale * cfg.globalScale;
+                float drawH = imgH * baseScale * cfg.scale * cfg.globalScale;
+                float drawX, drawY;
+                if ("topleft".equals(cfg.anchor)) {
+                    drawX = areaX;
+                    drawY = areaY;
+                } else { // center
+                    drawX = areaX + (areaW - drawW) * 0.5f;
+                    drawY = areaY + (areaH - drawH) * 0.5f;
+                }
+
+                // Space drift: each ruin has independent freq/amp/phase
+                float centerX = drawX + drawW * 0.5f;
+                float centerY = drawY + drawH * 0.5f;
+                float[] d = getZoneDrift(bz, time);
+
+                g.pushMatrix();
+                g.translate(centerX + d[0], centerY + d[1]);
+                g.rotate(d[2]);
+                g.image(img, -drawW * 0.5f, -drawH * 0.5f, drawW, drawH);
+                g.popMatrix();
+            } else {
+                g.noStroke();
+                g.fill(0xFF25252A);
+                if (bz.type == BlockedZoneType.RECT) {
+                    g.rect(bz.x + bz.w * 0.05f, bz.y + bz.h * 0.1f, bz.w * 0.9f, bz.h * 0.25f);
+                    g.rect(bz.x + bz.w * 0.2f, bz.y + bz.h * 0.45f, bz.w * 0.6f, bz.h * 0.35f);
+                    g.fill(0xFF1E1E22);
+                    g.rect(bz.x + bz.w * 0.1f, bz.y + bz.h * 0.55f, bz.w * 0.3f, bz.h * 0.2f);
+                } else {
+                    g.rect(bz.cx - bz.radius * 0.4f, bz.cy - bz.radius * 0.3f, bz.radius * 0.8f, bz.radius * 0.25f);
+                    g.rect(bz.cx - bz.radius * 0.2f, bz.cy, bz.radius * 0.5f, bz.radius * 0.35f);
+                }
+            }
+            // DEBUG: red outline for ruins visibility
+            g.noFill();
+            g.stroke(0xFFFF0000);
+            g.strokeWeight(3);
+            if (bz.type == BlockedZoneType.RECT) {
+                g.rect(bz.x, bz.y, bz.w, bz.h);
+            } else {
+                g.ellipse(bz.cx, bz.cy, bz.radius * 2, bz.radius * 2);
+            }
+            g.noStroke();
+            g.strokeWeight(1);
+            break;
+    }
+}
+
+// === Parallax star cache ===
+static final class StarData {
+    final float x, y;
+    final int col;
+    final int size;
+    StarData(float x, float y, int col, int size) {
+        this.x = x; this.y = y; this.col = col; this.size = size;
+    }
+}
+
+static final class GlowStarData {
+    final float x, y;
+    final int size;
+    GlowStarData(float x, float y, int size) { this.x = x; this.y = y; this.size = size; }
+}
+
+static java.util.HashMap<Integer, StarData[]> FAR_STARS = new java.util.HashMap<>();
+static java.util.HashMap<Integer, StarData[]> MID_STARS = new java.util.HashMap<>();
+static java.util.HashMap<Integer, GlowStarData[]> NEAR_STARS = new java.util.HashMap<>();
+
+// ── Procedural nebula clouds ──
+static final class NebulaData {
+    final float x, y;
+    final int col;
+    final int alpha;
+    final float radius;
+    final int verts;
+    final float driftFreqX, driftFreqY;
+    final float driftAmpX, driftAmpY;
+    final float driftPhaseX, driftPhaseY;
+
+    NebulaData(float x, float y, int col, int alpha, float radius, int verts,
+               float driftFreqX, float driftFreqY, float driftAmpX, float driftAmpY,
+               float driftPhaseX, float driftPhaseY) {
+        this.x = x; this.y = y; this.col = col; this.alpha = alpha;
+        this.radius = radius; this.verts = verts;
+        this.driftFreqX = driftFreqX; this.driftFreqY = driftFreqY;
+        this.driftAmpX = driftAmpX; this.driftAmpY = driftAmpY;
+        this.driftPhaseX = driftPhaseX; this.driftPhaseY = driftPhaseY;
+    }
+}
+
+static java.util.HashMap<Integer, NebulaData[]> NEBULA_CACHE = new java.util.HashMap<>();
+
+static final int[] NEBULA_PALETTE = {
+    0xFF00AAAA, 0xFF6600AA, 0xFFAA4400, 0xFF4488FF,
+    0xFFFF5588, 0xFF44FFAA, 0xFFAA44FF, 0xFF44AA88
+};
+
+// ── Faceted low-poly rock rendering ──
+static class RockFacet {
+    float x0, y0, x1, y1, x2, y2;
+    int col;
+    RockFacet(float x0, float y0, float x1, float y1, float x2, float y2, int col) {
+        this.x0=x0; this.y0=y0; this.x1=x1; this.y1=y1; this.x2=x2; this.y2=y2; this.col=col;
+    }
+}
+
+static class RockData {
+    RockFacet[] facets;
+    float offsetX, offsetY;
+    float[] outlineX;
+    float[] outlineY;
+    int outlineVerts;
+}
+
+static java.util.IdentityHashMap<BlockedZone, RockData[]> ASTEROID_ROCK_CACHE = new java.util.IdentityHashMap<>();
+
+static float calcRockBrightness(float cx, float cy, float rx, float ry, java.util.Random rng, float base) {
+    // Position-based lighting: upper faces brighter, lower darker (screen Y goes down)
+    float bright = base;
+    bright += (-cy / (ry + 0.001f)) * 0.22f;     // upper = brighter
+    bright += (cx / (rx + 0.001f)) * 0.06f;      // right side slightly darker
+    bright += (rng.nextFloat() - 0.5f) * 0.10f;  // per-facet randomness
+    return PApplet.constrain(bright, 0.32f, 1.08f);
+}
+
+static RockFacet makeFacet(float x0, float y0, float x1, float y1, float x2, float y2, float brightness) {
+    int br = (int)PApplet.constrain(140 * brightness, 0, 255);
+    int bg = (int)PApplet.constrain(138 * brightness, 0, 255);
+    int bb = (int)PApplet.constrain(134 * brightness, 0, 255);
+    int col = 0xFF000000 | (br << 16) | (bg << 8) | bb;
+    return new RockFacet(x0, y0, x1, y1, x2, y2, col);
+}
+
+// Low-poly rock made of 3~4 large triangles (like a 3D polyhedron projection).
+// A convex polygon is split by 1~2 diagonals into large facets.
+// No single center point — edges connect polygon vertices directly.
+static RockData generateFacetedRock(float rx, float ry, float offX, float offY, java.util.Random rng) {
+    // Larger rocks get 6 verts (4 facets), smaller ones 5 verts (3 facets)
+    int verts = (rx > ry * 0.55f) ? 6 : 5;
+    float[] angles = new float[verts];
+    float[] radii = new float[verts];
+    float angleSum = 0;
+    for (int i = 0; i < verts; i++) {
+        angles[i] = rng.nextFloat() * 0.35f + 0.825f;
+        angleSum += angles[i];
+    }
+    for (int i = 0; i < verts; i++) {
+        angles[i] = angles[i] / angleSum * PApplet.TWO_PI;
+    }
+    for (int i = 0; i < verts; i++) {
+        float n = 0.86f + 0.14f * PApplet.sin(rng.nextFloat() * PApplet.TWO_PI + i * 2.3f);
+        radii[i] = rx * n;
+    }
+    
+    float[] vx = new float[verts];
+    float[] vy = new float[verts];
+    float curA = rng.nextFloat() * PApplet.TWO_PI;
+    for (int i = 0; i < verts; i++) {
+        vx[i] = PApplet.cos(curA) * radii[i];
+        vy[i] = PApplet.sin(curA) * radii[i] * (ry / rx);
+        curA += angles[i];
+    }
+    
+    java.util.ArrayList<RockFacet> facets = new java.util.ArrayList<>();
+    float[] oX = new float[verts];
+    float[] oY = new float[verts];
+    System.arraycopy(vx, 0, oX, 0, verts);
+    System.arraycopy(vy, 0, oY, 0, verts);
+    
+    if (verts == 6) {
+        // 6-gon split into 4 large triangles by diagonals v0-v2 and v0-v4
+        float b0 = calcRockBrightness((vx[0]+vx[1]+vx[2])/3, (vy[0]+vy[1]+vy[2])/3, rx, ry, rng, 0.88f);
+        facets.add(makeFacet(vx[0], vy[0], vx[1], vy[1], vx[2], vy[2], b0));
+        
+        float b1 = calcRockBrightness((vx[0]+vx[2]+vx[4])/3, (vy[0]+vy[2]+vy[4])/3, rx, ry, rng, 0.95f);
+        facets.add(makeFacet(vx[0], vy[0], vx[2], vy[2], vx[4], vy[4], b1));
+        
+        float b2 = calcRockBrightness((vx[2]+vx[3]+vx[4])/3, (vy[2]+vy[3]+vy[4])/3, rx, ry, rng, 0.78f);
+        facets.add(makeFacet(vx[2], vy[2], vx[3], vy[3], vx[4], vy[4], b2));
+        
+        float b3 = calcRockBrightness((vx[0]+vx[4]+vx[5])/3, (vy[0]+vy[4]+vy[5])/3, rx, ry, rng, 0.68f);
+        facets.add(makeFacet(vx[0], vy[0], vx[4], vy[4], vx[5], vy[5], b3));
+    } else {
+        // 5-gon split into 3 large triangles by diagonal v0-v2
+        float b0 = calcRockBrightness((vx[0]+vx[1]+vx[2])/3, (vy[0]+vy[1]+vy[2])/3, rx, ry, rng, 0.88f);
+        facets.add(makeFacet(vx[0], vy[0], vx[1], vy[1], vx[2], vy[2], b0));
+        
+        float b1 = calcRockBrightness((vx[0]+vx[2]+vx[4])/3, (vy[0]+vy[2]+vy[4])/3, rx, ry, rng, 0.92f);
+        facets.add(makeFacet(vx[0], vy[0], vx[2], vy[2], vx[4], vy[4], b1));
+        
+        float b2 = calcRockBrightness((vx[2]+vx[3]+vx[4])/3, (vy[2]+vy[3]+vy[4])/3, rx, ry, rng, 0.72f);
+        facets.add(makeFacet(vx[2], vy[2], vx[3], vy[3], vx[4], vy[4], b2));
+    }
+    
+    RockData rd = new RockData();
+    rd.facets = facets.toArray(new RockFacet[0]);
+    rd.offsetX = offX; rd.offsetY = offY;
+    rd.outlineX = oX; rd.outlineY = oY; rd.outlineVerts = verts;
+    return rd;
+}
+
+static void drawFacetedRock(PGraphics g, float cx, float cy, RockData rock) {
+    float ox = cx + rock.offsetX;
+    float oy = cy + rock.offsetY;
+    g.noStroke();
+    for (RockFacet f : rock.facets) {
+        g.fill(f.col);
+        g.beginShape();
+        g.vertex(ox + f.x0, oy + f.y0);
+        g.vertex(ox + f.x1, oy + f.y1);
+        g.vertex(ox + f.x2, oy + f.y2);
+        g.endShape(PApplet.CLOSE);
+    }
+    g.noFill();
+    g.stroke(0xFF3A3A38, 140);
+    g.strokeWeight(0.8f);
+    g.beginShape();
+    for (int i = 0; i < rock.outlineVerts; i++) {
+        g.vertex(ox + rock.outlineX[i], oy + rock.outlineY[i]);
+    }
+    g.endShape(PApplet.CLOSE);
+}
+
+static void clearStarCaches() {
+    FAR_STARS.clear();
+    MID_STARS.clear();
+    NEAR_STARS.clear();
+    ASTEROID_ROCK_CACHE.clear();
+    ZONE_DRIFT_CACHE.clear();
+    ZONE_LAYER_CACHE.clear();
+}
+
+static StarData[] generateFarStars(LevelDef lv) {
+    java.util.Random rng = TdAssets.isRandomBackground()
+        ? new java.util.Random()
+        : new java.util.Random(lv.id * 7919);
+    int count = (lv.worldW * lv.worldH) / 500;
+    StarData[] arr = new StarData[count];
+    for (int i = 0; i < count; i++) {
+        float sx = rng.nextFloat() * lv.worldW * 3 - lv.worldW;
+        float sy = rng.nextFloat() * lv.worldH * 3 - lv.worldH;
+        int b = 120 + rng.nextInt(80);
+        int a = 120 + rng.nextInt(80);
+        int col = (a << 24) | ((b & 0xFF) << 16) | ((b & 0xFF) << 8) | ((b + 20) & 0xFF);
+        arr[i] = new StarData(sx, sy, col, 1 + rng.nextInt(2));
+    }
+    return arr;
+}
+
+static StarData[] generateMidStars(LevelDef lv) {
+    java.util.Random rng = TdAssets.isRandomBackground()
+        ? new java.util.Random()
+        : new java.util.Random(lv.id * 7919 + 1);
+    int count = (lv.worldW * lv.worldH) / 350;
+    StarData[] arr = new StarData[count];
+    for (int i = 0; i < count; i++) {
+        float sx = rng.nextFloat() * lv.worldW * 3 - lv.worldW;
+        float sy = rng.nextFloat() * lv.worldH * 3 - lv.worldH;
+        int b = 160 + rng.nextInt(96);
+        int a = 160 + rng.nextInt(96);
+        int col = (a << 24) | ((b & 0xFF) << 16) | ((b & 0xFF) << 8) | ((b + 30) & 0xFF);
+        arr[i] = new StarData(sx, sy, col, 1 + rng.nextInt(3));
+    }
+    return arr;
+}
+
+static GlowStarData[] generateNearStars(LevelDef lv) {
+    java.util.Random rng = TdAssets.isRandomBackground()
+        ? new java.util.Random()
+        : new java.util.Random(lv.id * 7919 + 2);
+    int count = (lv.worldW * lv.worldH) / 2000;
+    GlowStarData[] arr = new GlowStarData[count];
+    for (int i = 0; i < count; i++) {
+        float sx = rng.nextFloat() * lv.worldW * 3 - lv.worldW;
+        float sy = rng.nextFloat() * lv.worldH * 3 - lv.worldH;
+        int size = 3 + rng.nextInt(3);
+        arr[i] = new GlowStarData(sx, sy, size);
+    }
+    return arr;
+}
+
+static NebulaData[] generateNebulas(LevelDef lv) {
+    java.util.Random rng = TdAssets.isRandomBackground()
+        ? new java.util.Random()
+        : new java.util.Random(lv.id * 7919 + 3);
+    float w = lv.worldW, h = lv.worldH;
+    float baseR = Math.min(w, h);
+
+    // Radius adaptive to world size: big ~26%, medium ~17%, small ~10%
+    float[] radii = {
+        baseR * (0.17f + rng.nextFloat() * 0.18f), // big:    17~35%
+        baseR * (0.12f + rng.nextFloat() * 0.10f), // medium: 12~22%
+        baseR * (0.07f + rng.nextFloat() * 0.08f)  // small:   7~15%
+    };
+
+    // Generate 3 positions outside the central region
+    float[][] pos = new float[3][2];
+    for (int i = 0; i < 3; i++) {
+        float nx, ny;
+        int attempts = 0;
+        do {
+            nx = w * (0.05f + rng.nextFloat() * 0.90f);
+            ny = h * (0.05f + rng.nextFloat() * 0.90f);
+            float dx = Math.abs(nx / w - 0.5f);
+            float dy = Math.abs(ny / h - 0.5f);
+            if (dx > 0.25f || dy > 0.25f) break;
+            attempts++;
+        } while (attempts < 30);
+        pos[i][0] = nx;
+        pos[i][1] = ny;
+    }
+
+    // Sort by distance from center: farthest gets biggest radius
+    float[] dists = new float[3];
+    for (int i = 0; i < 3; i++) {
+        float dx = pos[i][0] - w * 0.5f;
+        float dy = pos[i][1] - h * 0.5f;
+        dists[i] = dx * dx + dy * dy;
+    }
+    Integer[] order = {0, 1, 2};
+    java.util.Arrays.sort(order, (a, b) -> Float.compare(dists[b], dists[a]));
+
+    // Ensure the two smaller nebulae are close to each other,
+    // and both are far from the big one
+    float bigX = pos[order[0]][0], bigY = pos[order[0]][1];
+    float midX = pos[order[1]][0], midY = pos[order[1]][1];
+    float smallX = pos[order[2]][0], smallY = pos[order[2]][1];
+
+    // If medium is too close to big, nudge it toward small
+    float dBM = PApplet.dist(bigX, bigY, midX, midY);
+    if (dBM < baseR * 0.45f) {
+        midX = (midX + smallX) * 0.5f;
+        midY = (midY + smallY) * 0.5f;
+    }
+    // If small is too close to big, nudge it toward medium
+    float dBS = PApplet.dist(bigX, bigY, smallX, smallY);
+    if (dBS < baseR * 0.45f) {
+        smallX = (smallX + midX) * 0.5f;
+        smallY = (smallY + midY) * 0.5f;
+    }
+    // Clamp to world bounds
+    midX = PApplet.constrain(midX, w * 0.05f, w * 0.95f);
+    midY = PApplet.constrain(midY, h * 0.05f, h * 0.95f);
+    smallX = PApplet.constrain(smallX, w * 0.05f, w * 0.95f);
+    smallY = PApplet.constrain(smallY, h * 0.05f, h * 0.95f);
+
+    NebulaData[] arr = new NebulaData[3];
+    float[][] finalPos = {{bigX, bigY}, {midX, midY}, {smallX, smallY}};
+    for (int i = 0; i < 3; i++) {
+        int col = NEBULA_PALETTE[rng.nextInt(NEBULA_PALETTE.length)];
+        arr[i] = new NebulaData(
+            finalPos[i][0], finalPos[i][1], col,
+            10 + rng.nextInt(10), radii[i], 16,
+            0.010f + rng.nextFloat() * 0.02f,
+            0.010f + rng.nextFloat() * 0.02f,
+            20 + rng.nextFloat() * 30f,
+            15 + rng.nextFloat() * 25f,
+            rng.nextFloat() * PApplet.TWO_PI,
+            rng.nextFloat() * PApplet.TWO_PI
+        );
+    }
+    return arr;
+}
+
+static void getViewportBounds(LevelDef lv, float margin,
+                               float[] outMinMax) {
+    Camera2D cam = TowerDefenseMin2.inst.camera;
+    Rect vp = (cam != null) ? cam.getViewport() : null;
+    if (vp != null) {
+        outMinMax[0] = vp.x - margin;
+        outMinMax[1] = vp.y - margin;
+        outMinMax[2] = vp.x + vp.width + margin;
+        outMinMax[3] = vp.y + vp.height + margin;
+    } else {
+        outMinMax[0] = -lv.worldW;
+        outMinMax[1] = -lv.worldH;
+        outMinMax[2] = lv.worldW * 2;
+        outMinMax[3] = lv.worldH * 2;
+    }
+}
+
 static class WorldBgRenderer extends RendererComponent {
+    // Grid line visibility toggle (default hidden for platform-style maps)
+    static boolean SHOW_GRID_LINES = false;
+    // LOD: true when camera is zoomed out (reduces background rendering cost)
+    static boolean lodActive = false;
+    final int layerIndex;
+
+    WorldBgRenderer() { this(3); }
+    WorldBgRenderer(int layerIndex) { this.layerIndex = layerIndex; }
+
+    @Override
+    public void update(float dt) {
+        Camera2D cam = TowerDefenseMin2.inst.camera;
+        if (cam != null) {
+            lodActive = cam.getZoom() <= TdAssets.getBgLodZoomThreshold();
+        }
+    }
+
     protected void renderShape(PGraphics g) {
         LevelDef lv = TdGameWorld.level;
         if (lv == null) return;
+        float time = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
 
-        // Grid
-        g.stroke(TdTheme.BORDER);
-        g.strokeWeight(1);
-        g.noFill();
-        for (int gx = 0; gx <= lv.worldW; gx += TdConfig.GRID) {
-            g.line(gx, 0, gx, lv.worldH);
+        switch (layerIndex) {
+            case 0: drawFarLayer(g, lv, time); break;
+            case 1: drawMidLayer(g, lv, time); break;
+            case 2: drawNearLayer(g, lv, time); break;
+            default: drawPlatformLayer(g, lv, time); break;
         }
-        for (int gy = 0; gy <= lv.worldH; gy += TdConfig.GRID) {
-            g.line(0, gy, lv.worldW, gy);
+    }
+
+    void drawBlockedZonesForLayer(PGraphics g, LevelDef lv, float time, int layer) {
+        if (lv.blockedZones == null || !TdAssets.isRenderBlockedZones()) return;
+        int[] layers = getZoneLayers(lv);
+        for (int i = 0; i < lv.blockedZones.length; i++) {
+            if (layers[i] == layer) drawBlockedZone(g, lv.blockedZones[i], time);
+        }
+    }
+
+    void drawFarLayer(PGraphics g, LevelDef lv, float time) {
+        // Deep space background (3x3 area to avoid edge visibility under parallax)
+        g.noStroke();
+        g.fill(0xFF080A14);
+        g.rect(-lv.worldW, -lv.worldH, lv.worldW * 3, lv.worldH * 3);
+        if (lodActive) {
+            // LOD: still draw blocked zones even when stars are skipped
+            drawBlockedZonesForLayer(g, lv, time, 0);
+            return;
         }
 
-        // Path with glow 锟?draw all routes (new multi-path format) or legacy pathPoints
+        // Far stars — sparse, small, dim (precomputed + viewport-culled)
+        if (TdAssets.isRenderStars()) {
+            StarData[] stars = FAR_STARS.get(lv.id);
+            if (stars == null) {
+                stars = generateFarStars(lv);
+                FAR_STARS.put(lv.id, stars);
+            }
+            float[] b = new float[4];
+            getViewportBounds(lv, lv.worldW * 0.5f, b);
+            float brightness = TdAssets.getStarBrightness();
+            g.noStroke();
+            for (StarData s : stars) {
+                if (s.x < b[0] || s.x > b[2] || s.y < b[1] || s.y > b[3]) continue;
+                int a = (int)(((s.col >>> 24) & 0xFF) * brightness);
+                g.fill((a << 24) | (s.col & 0x00FFFFFF));
+                g.rect(s.x, s.y, s.size, s.size);
+            }
+        }
+
+        // Blocked zones assigned to far layer
+        drawBlockedZonesForLayer(g, lv, time, 0);
+    }
+
+    void drawMidLayer(PGraphics g, LevelDef lv, float time) {
+        // Mid stars — medium density (precomputed + viewport-culled)
+        if (TdAssets.isRenderStars()) {
+            StarData[] stars = MID_STARS.get(lv.id);
+            if (stars == null) {
+                stars = generateMidStars(lv);
+                MID_STARS.put(lv.id, stars);
+            }
+            float[] b = new float[4];
+            getViewportBounds(lv, lv.worldW * 0.5f, b);
+            float brightness = TdAssets.getStarBrightness();
+            g.noStroke();
+            for (StarData s : stars) {
+                if (s.x < b[0] || s.x > b[2] || s.y < b[1] || s.y > b[3]) continue;
+                int a = (int)(((s.col >>> 24) & 0xFF) * brightness);
+                g.fill((a << 24) | (s.col & 0x00FFFFFF));
+                g.rect(s.x, s.y, s.size, s.size);
+            }
+        }
+
+        // Procedural nebula clouds (slow drift, per-level random)
+        if (TdAssets.isRenderNebulas()) {
+            NebulaData[] nebulas = NEBULA_CACHE.get(lv.id);
+            if (nebulas == null) {
+                nebulas = generateNebulas(lv);
+                NEBULA_CACHE.put(lv.id, nebulas);
+            }
+            float nebBrightness = TdAssets.getStarBrightness();
+            g.noStroke();
+            for (NebulaData n : nebulas) {
+                float nx = n.x + PApplet.sin(time * n.driftFreqX + n.driftPhaseX) * n.driftAmpX;
+                float ny = n.y + PApplet.cos(time * n.driftFreqY + n.driftPhaseY) * n.driftAmpY;
+                g.fill(n.col, (int)(n.alpha * nebBrightness));
+                drawPolyCircle(g, nx, ny, n.radius, n.verts);
+            }
+        }
+
+        // Blocked zones assigned to mid layer
+        drawBlockedZonesForLayer(g, lv, time, 1);
+    }
+
+    void drawNearLayer(PGraphics g, LevelDef lv, float time) {
+        // Bright focal stars with glow (precomputed + viewport-culled)
+        GlowStarData[] stars = NEAR_STARS.get(lv.id);
+        if (stars == null) {
+            stars = generateNearStars(lv);
+            NEAR_STARS.put(lv.id, stars);
+        }
+        float[] b = new float[4];
+        getViewportBounds(lv, lv.worldW * 0.5f, b);
+        float brightness = TdAssets.getStarBrightness();
+        if (!TdAssets.isRenderStars()) brightness = 0;
+        for (GlowStarData s : stars) {
+            if (s.x < b[0] || s.x > b[2] || s.y < b[1] || s.y > b[3]) continue;
+            float cx = s.x + s.size * 0.5f;
+            float cy = s.y + s.size * 0.5f;
+            float half = s.size * 0.5f;
+            if (lodActive) {
+                // LOD: simple rect instead of glow polygons when zoomed out
+                // Match the core star brightness (230) so LOD switch is less noticeable
+                g.fill(255, 255, 255, (int)(230 * brightness));
+                g.rect(cx - 2, cy - 2, 4, 4);
+            } else {
+                // Outer glow
+                g.fill(200, 210, 255, (int)(35 * brightness));
+                drawPolyCircle(g, cx, cy, half + 4, 12);
+                // Inner glow
+                g.fill(220, 230, 255, (int)(70 * brightness));
+                drawPolyCircle(g, cx, cy, half + 1, 10);
+                // Core
+                g.fill(255, 255, 255, (int)(230 * brightness));
+                drawPolyCircle(g, cx, cy, half, 8);
+            }
+        }
+
+        // Blocked zones assigned to near layer
+        drawBlockedZonesForLayer(g, lv, time, 2);
+    }
+
+    void drawPlatformLayer(PGraphics g, LevelDef lv, float time) {
+        // Platform base & terrain
+        if (TdAssets.isRenderPlatformLayer()) {
+            // Platform base (only if no platforms defined)
+            if (lv.platforms == null || lv.platforms.length == 0) {
+                g.noStroke();
+                g.fill(0xFF14182B);
+                g.rect(0, 0, lv.worldW, lv.worldH);
+            }
+
+            // Platforms (buildable terrain with glowing edges)
+            if (lv.platforms != null) {
+                for (PlatformZone pz : lv.platforms) {
+                    if (pz.vertices == null || pz.vertices.length < 3) continue;
+                    float seed = pz.vertices[0].x + pz.vertices[0].y;
+                    float pulse = 0.75f + 0.25f * PApplet.sin(time * 1.5f + seed * 0.01f);
+                    // Outer glow
+                    g.noFill();
+                    g.stroke(pz.edgeColor, (int)(50 * pulse));
+                    g.strokeWeight(5f);
+                    g.beginShape();
+                    for (Vector2 v : pz.vertices) g.vertex(v.x, v.y);
+                    g.endShape(PApplet.CLOSE);
+                    // Inner sharp edge
+                    g.stroke(pz.edgeColor, 200);
+                    g.strokeWeight(1.5f);
+                    g.beginShape();
+                    for (Vector2 v : pz.vertices) g.vertex(v.x, v.y);
+                    g.endShape(PApplet.CLOSE);
+                    // Interior fill
+                    g.noStroke();
+                    g.fill(pz.fillColor);
+                    g.beginShape();
+                    for (Vector2 v : pz.vertices) g.vertex(v.x, v.y);
+                    g.endShape(PApplet.CLOSE);
+                }
+            }
+        }
+
+        // Blocked zones assigned to platform layer
+        drawBlockedZonesForLayer(g, lv, time, 3);
+
+        // Grid lines (toggleable, default hidden)
+        if (SHOW_GRID_LINES) {
+            g.stroke(0xFF354A6B);
+            g.strokeWeight(1);
+            g.noFill();
+            for (int gx = 0; gx <= lv.worldW; gx += TdConfig.GRID) {
+                g.line(gx, 0, gx, lv.worldH);
+            }
+            for (int gy = 0; gy <= lv.worldH; gy += TdConfig.GRID) {
+                g.line(0, gy, lv.worldW, gy);
+            }
+        }
+
+        // Path with glow — draw all routes (new multi-path format) or legacy pathPoints
         float t = (TowerDefenseMin2.inst.engine.getGameTime().getTotalTime() % 2.0f) / 2.0f;
         Vector2[][] routesToDraw = null;
         if (lv.paths != null && lv.paths.length > 0) {
@@ -75,8 +865,7 @@ static class WorldBgRenderer extends RendererComponent {
             }
         }
 
-        // Base 锟?pulsing blue core with rotating ring
-        float time = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
+        // Base — pulsing blue core with rotating ring
         float pulse = 1 + 0.15f * PApplet.sin(time * 3);
         g.noStroke();
         // Outer glow
@@ -97,7 +886,7 @@ static class WorldBgRenderer extends RendererComponent {
         g.arc(0, 0, 36, 36, 0, PApplet.PI * 1.3f);
         g.popMatrix();
 
-        // Exit 锟?red X mark
+        // Exit — red X mark
         g.noStroke();
         g.fill(0xFFFF4444, 80);
         drawPolyCircle(g, lv.exitPos.x, lv.exitPos.y, 14, 12);
@@ -107,7 +896,7 @@ static class WorldBgRenderer extends RendererComponent {
         g.line(lv.exitPos.x - ex, lv.exitPos.y - ex, lv.exitPos.x + ex, lv.exitPos.y + ex);
         g.line(lv.exitPos.x + ex, lv.exitPos.y - ex, lv.exitPos.x - ex, lv.exitPos.y + ex);
 
-        // Spawn 锟?orange pulsing dot
+        // Spawn — orange pulsing dot
         float sp = 1 + 0.2f * PApplet.sin(time * 4);
         g.noStroke();
         g.fill(0xFFFF8C42, 100);
@@ -148,7 +937,6 @@ static class WorldBgRenderer extends RendererComponent {
         }
     }
 }
-
 static class EnemyRenderer extends RendererComponent {
     Enemy enemy;
     EnemyRenderer(Enemy enemy) { this.enemy = enemy; }
@@ -312,7 +1100,7 @@ static class TowerRenderer extends RendererComponent {
 
         // Range indicator (shown when building or manually toggled)
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        boolean shouldShowRange = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
+        boolean shouldShowRange = app.showTowerRanges || app.buildMode != TdBuildMode.NONE || tower == app.hoveredTower;
         if (tower.built && shouldShowRange) {
             g.noFill();
             g.stroke(c & 0x40FFFFFF, (int)(255 * fade));

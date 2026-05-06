@@ -3,11 +3,119 @@
  */
 static final class TdAssets {
 
+    // ── Ruins textures (loaded via engine ImageManager) ──
+    static shenyf.p5engine.rendering.Texture[] RUINS_TEXTURES;
+    static int RUINS_TEXTURE_COUNT = 0;
+
+    // ── Texture atlas config ──
+    public static final class TextureConfig {
+        public final String scaleMode;
+        public final float scale;
+        public final String anchor;
+        public final float globalScale;
+
+        public TextureConfig(String scaleMode, float scale, String anchor, float globalScale) {
+            this.scaleMode = scaleMode;
+            this.scale = scale;
+            this.anchor = anchor;
+            this.globalScale = globalScale;
+        }
+    }
+
+    public static final class TextureSetConfig {
+        public final TextureConfig defaultConfig;
+        public final java.util.Map<String, TextureConfig> entries;
+
+        public TextureSetConfig(TextureConfig defaultConfig, java.util.Map<String, TextureConfig> entries) {
+            this.defaultConfig = defaultConfig;
+            this.entries = entries;
+        }
+
+        public TextureConfig resolve(String fileName) {
+            TextureConfig cfg = entries.get(fileName);
+            return cfg != null ? cfg : defaultConfig;
+        }
+    }
+
+    public static java.util.Map<String, TextureSetConfig> TEXTURE_SET_CONFIGS;
+
+    public static TextureConfig getTextureConfig(String setName, String fileName) {
+        if (TEXTURE_SET_CONFIGS == null) return null;
+        TextureSetConfig set = TEXTURE_SET_CONFIGS.get(setName);
+        if (set == null) return null;
+        return set.resolve(fileName);
+    }
+
+    static void loadRuinsTextures(shenyf.p5engine.rendering.ImageManager images) {
+        if (images == null) return;
+        java.io.File dir = new java.io.File(
+            P5Engine.getInstance().getApplet().sketchPath("textures"));
+        java.util.List<shenyf.p5engine.rendering.Texture> list =
+            new java.util.ArrayList<>();
+        if (dir.exists()) {
+            java.io.File[] files = dir.listFiles(new java.io.FilenameFilter() {
+                public boolean accept(java.io.File d, String name) {
+                    return name.startsWith("ruins_") && name.endsWith(".png");
+                }
+            });
+            if (files != null) {
+                java.util.Arrays.sort(files,
+                    (a, b) -> a.getName().compareTo(b.getName()));
+                for (java.io.File f : files) {
+                    shenyf.p5engine.rendering.Texture tex =
+                        images.load("textures/" + f.getName());
+                    if (tex != null) list.add(tex);
+                }
+            }
+        }
+        RUINS_TEXTURES = list.toArray(
+            new shenyf.p5engine.rendering.Texture[0]);
+        RUINS_TEXTURE_COUNT = RUINS_TEXTURES.length;
+    }
+
     // ── Load all ──
 
     static void loadAll(PApplet app) {
         loadConfigs(app);
+        loadTextureConfigs(app);
         loadI18n(P5Engine.getInstance());
+    }
+
+    static void loadTextureConfigs(PApplet app) {
+        org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
+        java.io.InputStream is = app.createInput("config/textures.yaml");
+        if (is == null) return;
+        java.util.Map root = (java.util.Map) yaml.load(is);
+        java.util.Map sets = (java.util.Map) root.get("textureSets");
+        if (sets == null) return;
+
+        TEXTURE_SET_CONFIGS = new java.util.HashMap<>();
+        for (Object setKeyObj : sets.keySet()) {
+            String setName = (String) setKeyObj;
+            java.util.Map setData = (java.util.Map) sets.get(setKeyObj);
+
+            java.util.Map defMap = (java.util.Map) setData.get("default");
+            String defMode = defMap != null ? (String) defMap.get("scaleMode") : "fit";
+            float defScale = defMap != null ? ((Number) defMap.getOrDefault("scale", 1.0)).floatValue() : 1.0f;
+            String defAnchor = defMap != null ? (String) defMap.getOrDefault("anchor", "center") : "center";
+            float defGlobal = defMap != null ? ((Number) defMap.getOrDefault("globalScale", 1.0)).floatValue() : 1.0f;
+            TextureConfig defaultCfg = new TextureConfig(defMode, defScale, defAnchor, defGlobal);
+
+            java.util.Map<String, TextureConfig> entries = new java.util.HashMap<>();
+            java.util.Map entMap = (java.util.Map) setData.get("entries");
+            if (entMap != null) {
+                for (Object fileKeyObj : entMap.keySet()) {
+                    String fileName = (String) fileKeyObj;
+                    java.util.Map fileData = (java.util.Map) entMap.get(fileKeyObj);
+                    String mode = fileData != null ? (String) fileData.getOrDefault("scaleMode", defMode) : defMode;
+                    float scale = fileData != null ? ((Number) fileData.getOrDefault("scale", defScale)).floatValue() : defScale;
+                    String anchor = fileData != null ? (String) fileData.getOrDefault("anchor", defAnchor) : defAnchor;
+                    float global = fileData != null ? ((Number) fileData.getOrDefault("globalScale", defGlobal)).floatValue() : defGlobal;
+                    entries.put(fileName, new TextureConfig(mode, scale, anchor, global));
+                }
+            }
+            TEXTURE_SET_CONFIGS.put(setName, new TextureSetConfig(defaultCfg, entries));
+        }
     }
 
     // ── i18n ──
@@ -186,6 +294,78 @@ static final class TdAssets {
         return 1.0f;
     }
 
+    static float getStarBrightness() {
+        if (gameSettingsYamlRoot == null) return 1.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.0f;
+        Object v = gs.get("starBrightness");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.0f;
+    }
+
+    static float getMenuStarBrightness() {
+        if (gameSettingsYamlRoot == null) return 1.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.0f;
+        Object v = gs.get("menuStarBrightness");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.0f;
+    }
+
+    static float getBgLodZoomThreshold() {
+        if (gameSettingsYamlRoot == null) return 0.5f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 0.5f;
+        Object v = gs.get("bgLodZoomThreshold");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 0.5f;
+    }
+
+    static boolean isRandomBackground() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("randomBackground");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
+    static boolean isRenderBlockedZones() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("renderBlockedZones");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
+    static boolean isRenderStars() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("renderStars");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
+    static boolean isRenderNebulas() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("renderNebulas");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
+    static boolean isRenderPlatformLayer() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("renderPlatformLayer");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
     static int getLevelCount() {
         return levelYamlList != null ? levelYamlList.size() : 0;
     }
@@ -361,6 +541,68 @@ static final class TdAssets {
             ld.devMode = Boolean.parseBoolean(devObj.toString());
         } else {
             ld.devMode = false;
+        }
+
+        // Blocked zones (optional)
+        java.util.List zoneList = (java.util.List) lvl.get("blockedZones");
+        if (zoneList != null && !zoneList.isEmpty()) {
+            ld.blockedZones = new BlockedZone[zoneList.size()];
+            for (int i = 0; i < zoneList.size(); i++) {
+                java.util.Map z = (java.util.Map) zoneList.get(i);
+                String ztype = (String) z.get("type");
+                String visualStr = (String) z.get("visual");
+                BlockedVisualType visual = BlockedVisualType.VOID;
+                if (visualStr != null) {
+                    try {
+                        visual = BlockedVisualType.valueOf(visualStr.toUpperCase());
+                    } catch (Exception ex) {
+                        visual = BlockedVisualType.VOID;
+                    }
+                }
+                if ("circle".equalsIgnoreCase(ztype)) {
+                    float cx = ((Number) z.get("cx")).floatValue();
+                    float cy = ((Number) z.get("cy")).floatValue();
+                    float r = ((Number) z.get("radius")).floatValue();
+                    ld.blockedZones[i] = new BlockedZone(cx, cy, r, visual);
+                } else {
+                    // default rect
+                    float zx = ((Number) z.get("x")).floatValue();
+                    float zy = ((Number) z.get("y")).floatValue();
+                    float zw = ((Number) z.get("w")).floatValue();
+                    float zh = ((Number) z.get("h")).floatValue();
+                    ld.blockedZones[i] = new BlockedZone(zx, zy, zw, zh, visual);
+                }
+            }
+        }
+
+        // Platforms (optional)
+        java.util.List platList = (java.util.List) lvl.get("platforms");
+        if (platList != null && !platList.isEmpty()) {
+            ld.platforms = new PlatformZone[platList.size()];
+            for (int i = 0; i < platList.size(); i++) {
+                java.util.Map p = (java.util.Map) platList.get(i);
+                java.util.List platPts = (java.util.List) p.get("points");
+                Vector2[] vertices = new Vector2[platPts.size()];
+                for (int j = 0; j < platPts.size(); j++) {
+                    java.util.Map pm = (java.util.Map) platPts.get(j);
+                    vertices[j] = new Vector2(((Number)pm.get("x")).floatValue(), ((Number)pm.get("y")).floatValue());
+                }
+                int edgeColor = 0xFF4A9EFF; // default blue glow
+                int fillColor = 0xFF1A1F2B; // default dark metal
+                java.util.List ec = (java.util.List) p.get("edgeColor");
+                if (ec != null && ec.size() >= 3) {
+                    edgeColor = 0xFF000000 | (((Number)ec.get(0)).intValue() << 16)
+                                              | (((Number)ec.get(1)).intValue() << 8)
+                                              | ((Number)ec.get(2)).intValue();
+                }
+                java.util.List fc = (java.util.List) p.get("fillColor");
+                if (fc != null && fc.size() >= 3) {
+                    fillColor = 0xFF000000 | (((Number)fc.get(0)).intValue() << 16)
+                                              | (((Number)fc.get(1)).intValue() << 8)
+                                              | ((Number)fc.get(2)).intValue();
+                }
+                ld.platforms[i] = new PlatformZone(vertices, edgeColor, fillColor);
+            }
         }
 
         return ld;

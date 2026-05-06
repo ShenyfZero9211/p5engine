@@ -8,3 +8,19 @@ gameSettings:
   commandKillBonusMax: 3
   # 建塔按钮 Tooltip 悬停延迟（秒）
   tooltipDelay: 0.8
+  # 星星背景整体亮度 (0.0 = 完全黑暗, 1.0 = 正常亮度)
+  starBrightness: 0.6
+  # 菜单背景星星/网格整体亮度 (0.0 = 完全黑暗, 1.0 = 正常亮度)
+  menuStarBrightness: 1.0
+  # 背景 LOD 触发阈值：当 camera zoom <= 该值时启用降级渲染 (0.0 = 永久关闭 LOD)
+  bgLodZoomThreshold: 1.7
+  # 背景星星/星云是否每次随机生成 (true = 每次随机, false = 按关卡 ID 固定)
+  randomBackground: true
+  # 是否渲染 blockedZones 视觉元素 (true = 渲染, false = 隐藏)
+  renderBlockedZones: true
+  # 是否渲染背景星星 (true = 渲染, false = 隐藏)
+  renderStars: true
+  # 是否渲染星云 (true = 渲染, false = 隐藏)
+  renderNebulas: true
+  # 是否渲染平台层 (Layer 3: 平台地形 + 该层 blockedZones)
+  renderPlatformLayer: true

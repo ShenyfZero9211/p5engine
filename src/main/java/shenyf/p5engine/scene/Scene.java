@@ -3,6 +3,7 @@ package shenyf.p5engine.scene;
 import shenyf.p5engine.math.Rect;
 import shenyf.p5engine.rendering.Camera2D;
 import shenyf.p5engine.rendering.IRenderer;
+import shenyf.p5engine.rendering.LayerGroup;
 import shenyf.p5engine.rendering.Renderable;
 import shenyf.p5engine.util.Logger;
 
@@ -16,6 +17,7 @@ public class Scene {
     private boolean running;
     private int collisionCheckCount;
     private Camera2D camera;
+    private final List<LayerGroup> layerGroups = new ArrayList<>();
 
     public Scene(String name) {
         this.name = name;
@@ -59,12 +61,30 @@ public class Scene {
     }
 
     /**
+     * Add a layer group for parallax rendering.
+     * Objects with renderLayer within [layerMin, layerMax] will be rendered
+     * with the specified parallax coefficients.
+     */
+    public void addLayerGroup(int layerMin, int layerMax, float parallaxX, float parallaxY) {
+        layerGroups.add(new LayerGroup(layerMin, layerMax, parallaxX, parallaxY));
+    }
+
+    /**
+     * Clear all layer groups. After clearing, renderWorld() falls back to
+     * single-pass rendering with full camera parallax (1.0).
+     */
+    public void clearLayerGroups() {
+        layerGroups.clear();
+    }
+
+    /**
      * Render only the world layer (renderLayer < 100) with the specified camera.
+     * If layer groups are configured, each group is rendered with its own parallax.
      */
     public void renderWorld(IRenderer renderer, Camera2D camera) {
         if (!running) return;
 
-        List<RenderCommand> worldCommands = new ArrayList<>();
+        List<RenderCommand> allWorldCommands = new ArrayList<>();
         for (GameObject go : gameObjects) {
             if (!go.isActive()) continue;
             // Viewport culling (only for world layer)
@@ -77,19 +97,61 @@ public class Scene {
             for (Component c : go.getComponents()) {
                 if (c instanceof Renderable && c.isEnabled()) {
                     if (go.getRenderLayer() < 100) {
-                        worldCommands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
+                        allWorldCommands.add(new RenderCommand(go.getRenderLayer(), go.getZIndex(), (Renderable) c));
                     }
                 }
             }
         }
 
-        worldCommands.sort(cmdSort);
+        allWorldCommands.sort(cmdSort);
 
-        if (camera != null) camera.begin(renderer);
-        for (RenderCommand cmd : worldCommands) {
-            cmd.renderable.render(renderer);
+        if (layerGroups.isEmpty()) {
+            // Default behavior: single pass with full parallax
+            if (camera != null) camera.begin(renderer);
+            for (RenderCommand cmd : allWorldCommands) {
+                cmd.renderable.render(renderer);
+            }
+            if (camera != null) camera.end(renderer);
+        } else {
+            // Grouped parallax rendering
+            Map<LayerGroup, List<RenderCommand>> grouped = new LinkedHashMap<>();
+            for (LayerGroup lg : layerGroups) {
+                grouped.put(lg, new ArrayList<>());
+            }
+            List<RenderCommand> ungrouped = new ArrayList<>();
+
+            for (RenderCommand cmd : allWorldCommands) {
+                boolean assigned = false;
+                for (LayerGroup lg : layerGroups) {
+                    if (lg.contains(cmd.layer)) {
+                        grouped.get(lg).add(cmd);
+                        assigned = true;
+                        break;
+                    }
+                }
+                if (!assigned) {
+                    ungrouped.add(cmd);
+                }
+            }
+
+            for (LayerGroup lg : layerGroups) {
+                List<RenderCommand> cmds = grouped.get(lg);
+                if (cmds.isEmpty()) continue;
+                if (camera != null) camera.begin(renderer, lg.parallaxX, lg.parallaxY);
+                for (RenderCommand cmd : cmds) {
+                    cmd.renderable.render(renderer);
+                }
+                if (camera != null) camera.end(renderer);
+            }
+
+            if (!ungrouped.isEmpty()) {
+                if (camera != null) camera.begin(renderer);
+                for (RenderCommand cmd : ungrouped) {
+                    cmd.renderable.render(renderer);
+                }
+                if (camera != null) camera.end(renderer);
+            }
         }
-        if (camera != null) camera.end(renderer);
     }
 
     /**

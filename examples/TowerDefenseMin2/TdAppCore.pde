@@ -47,13 +47,40 @@ final class TdAppSetup {
         // Connect UI to DisplayManager for design-resolution scaling
         ui.setDisplayManager(engine.getDisplayManager());
 
-        // World background renderer (grid, path, base, exit) — lives in Scene
-        GameObject bgGo = GameObject.create("world_bg");
-        WorldBgRenderer bgR = new WorldBgRenderer();
-        bgGo.addComponent(bgR);
-        bgGo.setRenderLayer(0);
-        bgGo.setCullEnabled(false);
-        gameScene.addGameObject(bgGo);
+        // Layer 0: Far stars (parallax 0.08)
+        GameObject bgFar = GameObject.create("world_bg_far");
+        bgFar.addComponent(new WorldBgRenderer(0));
+        bgFar.setRenderLayer(0);
+        bgFar.setCullEnabled(false);
+        gameScene.addGameObject(bgFar);
+
+        // Layer 1: Mid nebula + stars (parallax 0.25)
+        GameObject bgMid = GameObject.create("world_bg_mid");
+        bgMid.addComponent(new WorldBgRenderer(1));
+        bgMid.setRenderLayer(1);
+        bgMid.setCullEnabled(false);
+        gameScene.addGameObject(bgMid);
+
+        // Layer 2: Near bright stars (parallax 0.45)
+        GameObject bgNear = GameObject.create("world_bg_near");
+        bgNear.addComponent(new WorldBgRenderer(2));
+        bgNear.setRenderLayer(2);
+        bgNear.setCullEnabled(false);
+        gameScene.addGameObject(bgNear);
+
+        // Layer 3: Platforms, path, base (parallax 1.0)
+        GameObject bgPlat = GameObject.create("world_bg_plat");
+        bgPlat.addComponent(new WorldBgRenderer(3));
+        bgPlat.setRenderLayer(3);
+        bgPlat.setCullEnabled(false);
+        gameScene.addGameObject(bgPlat);
+
+        // Configure parallax layer groups
+        gameScene.clearLayerGroups();
+        gameScene.addLayerGroup(0, 0, 0.08f, 0.08f);
+        gameScene.addLayerGroup(1, 1, 0.25f, 0.25f);
+        gameScene.addLayerGroup(2, 2, 0.45f, 0.45f);
+        gameScene.addLayerGroup(3, 99, 1.0f, 1.0f);
 
         // Visual effects renderer — tracers, explosions, lasers, slow waves (layer 95)
         GameObject fxGo = GameObject.create("effects");
@@ -88,6 +115,7 @@ final class TdAppSetup {
 
         lighting = new TdLightingSystem(TowerDefenseMin2.this);
 
+        TdAssets.loadRuinsTextures(engine.getImages());
         TdAssets.loadAll(TowerDefenseMin2.this);
         TdSound.initTracks(TowerDefenseMin2.this);
         // Restore persisted audio & language settings
@@ -611,9 +639,22 @@ static final class TdAppUtils {
 
     static void closeSellMenu(TowerDefenseMin2 app) {
         if (app.sellMenuPanel != null) {
-            Panel root = app.ui.getRoot();
-            root.remove(app.sellMenuPanel);
-            app.sellMenuPanel = null;
+            Panel panel = app.sellMenuPanel;
+            app.sellMenuPanel = null; // clear early to avoid re-trigger during animation
+
+            var tm = app.engine.getTweenManager();
+            if (tm != null) {
+                tm.toAlpha(panel, 0f, 0.1f)
+                  .ease(shenyf.p5engine.tween.Ease::outQuad)
+                  .onComplete(() -> {
+                      Panel root = app.ui.getRoot();
+                      root.remove(panel);
+                  })
+                  .start();
+            } else {
+                Panel root = app.ui.getRoot();
+                root.remove(panel);
+            }
         }
     }
 
@@ -626,6 +667,8 @@ static final class TdAppUtils {
         app.sellMenuPanel.setBounds((int)uiPos.x, (int)uiPos.y, 100, 120);
         app.sellMenuPanel.setZOrder(999);
         app.sellMenuPanel.setPaintBackground(true);
+        app.sellMenuPanel.setAlpha(0);
+        app.sellMenuPanel.appear(0f, 6f, 0.15f);
 
         UpgradeButton btnUpgrade = new UpgradeButton("btn_upgrade", tower);
         btnUpgrade.setBounds(4, 4, 92, 28);

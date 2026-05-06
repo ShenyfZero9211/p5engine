@@ -2,39 +2,79 @@ id: 1
 nameKey: level.1.name
 subtitleKey: level.1.subtitle
 levelType: DEFEND_BASE
-initialMoney: 145
+initialMoney: 200
 baseOrbs: 5
-enemyHpBase: 100
-allowedTowers: [MG]
-#allowedTowers: [MISSILE, LASER, SLOW]
-allowedUpgrades: []   # 只有机枪塔可升级，导弹塔可建造但不可升级
-worldWidth: 1000
-worldHeight: 600
-basePos: { x: 880, y: 520 }
-exitPos: { x: 120, y: 120 }
-spawnPos: { x: 120, y: 120 }
+enemyHpBase: 80
+
+worldWidth: 700
+worldHeight: 400
+
+basePos: { x: 320, y: 170 }
+exitPos: { x: 580, y: 300 }
+spawnPos: { x: 80, y: 70 }
+
 pathPoints:
-  - { x: 120, y: 120 }
-  - { x: 480, y: 120 }
-  - { x: 480, y: 320 }
-  - { x: 480, y: 520 }
-  - { x: 880, y: 520 }
-earnMoneyOnKill: true
+  - { x: 80, y: 70 }
+  - { x: 130, y: 80 }
+  - { x: 220, y: 110 }
+  - { x: 320, y: 170 }
+  - { x: 380, y: 220 }
+  - { x: 480, y: 260 }
+  - { x: 580, y: 300 }
+
+platforms:
+  # P1: 出生平台（左上，蓝色边缘）
+  - points:
+      - { x: 30, y: 30 }
+      - { x: 180, y: 30 }
+      - { x: 190, y: 130 }
+      - { x: 90, y: 140 }
+      - { x: 30, y: 100 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P2: 基地平台（中央，绿色边缘）
+  - points:
+      - { x: 260, y: 120 }
+      - { x: 400, y: 120 }
+      - { x: 420, y: 260 }
+      - { x: 280, y: 270 }
+      - { x: 260, y: 230 }
+    edgeColor: [40, 199, 111]
+    fillColor: [22, 35, 30]
+
+  # P3: 出口平台（右下，橙色边缘）
+  - points:
+      - { x: 520, y: 260 }
+      - { x: 650, y: 260 }
+      - { x: 670, y: 370 }
+      - { x: 540, y: 370 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+blockedZones:
+  - type: circle
+    cx: 240
+    cy: 70
+    radius: 30
+    visual: asteroid
+
+allowedTowers:
+  - MG
+
 waves:
-  - delay: 16.0
+  - delay: 20.0
     spawns:
       - type: level1
-        count: 15
-        interval: 2.5
+        count: 20
+        interval: 1.5
+  - delay: 18.0
+    spawns:
       - type: level1
-        count: 10
-        interval: 2.1
+        count: 25
+        interval: 1.2
+  - delay: 18.0
+    spawns:
       - type: level1
-        count: 8
-        interval: 1.7
-      - type: level1
-        count: 8
-        interval: 1.9
-        attach:
-          - type: level1
-            delay: 0.6
+        count: 30
+        interval: 1.0

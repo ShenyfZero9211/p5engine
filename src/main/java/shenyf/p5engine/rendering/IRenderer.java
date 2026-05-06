@@ -10,6 +10,9 @@ public interface IRenderer {
 
     void drawImage(processing.core.PImage image, float x, float y, float w, float h);
 
+    void drawImage(processing.core.PImage image, float dx, float dy, float dw, float dh,
+                   int sx, int sy, int sw, int sh);
+
     void setTransform(Transform transform);
 
     void resetTransform();

@@ -72,13 +72,22 @@ public class Camera2D extends Component {
      * Must be paired with {@link #end(IRenderer)}.
      */
     public void begin(IRenderer renderer) {
+        begin(renderer, 1.0f, 1.0f);
+    }
+
+    /**
+     * Begin camera transform with parallax coefficients.
+     * parallax=1.0 = normal camera follow, parallax=0.0 = static background.
+     * Must be paired with {@link #end(IRenderer)}.
+     */
+    public void begin(IRenderer renderer, float parallaxX, float parallaxY) {
         Vector2 pos = getTransform().getPosition();
         float rot = getTransform().getRotation();
         renderer.pushTransform();
         renderer.translate(viewportOffsetX + viewportWidth / 2, viewportOffsetY + viewportHeight / 2);
         renderer.scale(zoom, zoom);
         renderer.rotate(rot);
-        renderer.translate(-pos.x, -pos.y);
+        renderer.translate(-pos.x * parallaxX, -pos.y * parallaxY);
     }
 
     /**

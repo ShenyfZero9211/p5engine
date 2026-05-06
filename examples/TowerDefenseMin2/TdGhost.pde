@@ -63,11 +63,35 @@ static class GhostRenderer extends RendererComponent {
     protected void renderShape(PGraphics g) {
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         if (app.buildMode == TdBuildMode.NONE) return;
+        LevelDef lv = TdGameWorld.level;
+        if (lv == null) return;
 
-        // Blocked grid overlay — show all restricted cells in semi-transparent red
+        // === Buildable area overlay: green grid ===
+        int maxGX = (int)(lv.worldW / TdConfig.GRID) + 1;
+        int maxGY = (int)(lv.worldH / TdConfig.GRID) + 1;
+        for (int gx = 0; gx <= maxGX; gx++) {
+            for (int gy = 0; gy <= maxGY; gy++) {
+                if (TdGameWorld.blockedGrids.contains(gx + "," + gy)) continue;
+                float bx = gx * TdConfig.GRID;
+                float by = gy * TdConfig.GRID;
+                // Green fill
+                g.noStroke();
+                g.fill(0x1A33CC33);
+                g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                // Green grid line
+                g.noFill();
+                g.stroke(0x4422AA22);
+                g.strokeWeight(1);
+                g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+            }
+        }
+
+        /*
+        // === Blocked grid overlay (legacy: red/orange) — kept for future use ===
         g.noStroke();
-        g.fill(0x55FF4444);
-        for (String key : TdGameWorld.blockedGrids) {
+        // Zone-blocked (environment hazards)
+        g.fill(0x55FF8844);
+        for (String key : TdGameWorld.zoneBlockedGrids) {
             String[] parts = key.split(",");
             int bgx = Integer.parseInt(parts[0]);
             int bgy = Integer.parseInt(parts[1]);
@@ -75,6 +99,18 @@ static class GhostRenderer extends RendererComponent {
             float by = bgy * TdConfig.GRID;
             g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
         }
+        // Path-blocked (route proximity)
+        g.fill(0x55FF4444);
+        for (String key : TdGameWorld.blockedGrids) {
+            if (TdGameWorld.zoneBlockedGrids.contains(key)) continue;
+            String[] parts = key.split(",");
+            int bgx = Integer.parseInt(parts[0]);
+            int bgy = Integer.parseInt(parts[1]);
+            float bx = bgx * TdConfig.GRID;
+            float by = bgy * TdConfig.GRID;
+            g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+        }
+        */
 
         if (!TdGhost.isValid) return;
 

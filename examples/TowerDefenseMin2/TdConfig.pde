@@ -44,7 +44,7 @@ static final class TdConfig {
 
     // ── Game ──
     static final int INITIAL_MONEY = 420;
-    static final int MAX_LEVELS = 7;
+    static final int MAX_LEVELS = 10;
     static final float ENEMY_RADIUS = 14;
     // killReward moved to enemies.yaml (EnemyDef.killReward)
 }
@@ -298,6 +298,64 @@ static final class TowerDef {
         this.upgrade2Cost = upgrade2Cost;
         this.upgrade2BuildTime = upgrade2BuildTime;
     }
+
+}
+
+/**
+ * Blocked zone shape type.
+ */
+enum BlockedZoneType { RECT, CIRCLE }
+
+/**
+ * Visual style for blocked (no-build) zones.
+ */
+enum BlockedVisualType { VOID, ASTEROID, ENERGY, RUINS }
+
+/**
+ * A zone where towers cannot be built.
+ */
+static final class BlockedZone {
+    final BlockedZoneType type;
+    final float x, y, w, h;        // for RECT
+    final float cx, cy, radius;    // for CIRCLE
+    final BlockedVisualType visualType;
+
+    final int ruinTexIndex;
+
+    BlockedZone(float x, float y, float w, float h, BlockedVisualType visualType) {
+        this.type = BlockedZoneType.RECT;
+        this.x = x; this.y = y; this.w = w; this.h = h;
+        this.cx = 0; this.cy = 0; this.radius = 0;
+        this.visualType = visualType;
+        this.ruinTexIndex = (visualType == BlockedVisualType.RUINS && TdAssets.RUINS_TEXTURE_COUNT > 0)
+            ? (int)(Math.random() * TdAssets.RUINS_TEXTURE_COUNT) : -1;
+    }
+
+    BlockedZone(float cx, float cy, float radius, BlockedVisualType visualType) {
+        this.type = BlockedZoneType.CIRCLE;
+        this.x = 0; this.y = 0; this.w = 0; this.h = 0;
+        this.cx = cx; this.cy = cy; this.radius = radius;
+        this.visualType = visualType;
+        this.ruinTexIndex = (visualType == BlockedVisualType.RUINS && TdAssets.RUINS_TEXTURE_COUNT > 0)
+            ? (int)(Math.random() * TdAssets.RUINS_TEXTURE_COUNT) : -1;
+    }
+}
+
+/**
+ * A platform zone where towers CAN be built.
+ * When platforms are defined, the world defaults to unbuildable (deep space),
+ * and only grid cells inside platforms are unlocked.
+ */
+static final class PlatformZone {
+    final Vector2[] vertices;   // polygon vertices
+    final int edgeColor;        // glowing edge color
+    final int fillColor;        // interior fill color
+
+    PlatformZone(Vector2[] vertices, int edgeColor, int fillColor) {
+        this.vertices = vertices;
+        this.edgeColor = edgeColor;
+        this.fillColor = fillColor;
+    }
 }
 
 /**
@@ -324,6 +382,8 @@ static final class LevelDef {
     TowerType[] allowedUpgrades; // null = all towers upgradable
     boolean earnMoneyOnKill;   // default true
     boolean devMode;           // default false
+    BlockedZone[] blockedZones; // optional no-build zones
+    PlatformZone[] platforms;   // optional buildable platforms (null = whole world buildable)
 }
 
 enum TdState { MENU, LEVEL_SELECT, SETTINGS, PLAYING, PAUSED, WIN, LOSE }

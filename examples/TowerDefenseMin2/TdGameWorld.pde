@@ -12,6 +12,7 @@ static final class TdGameWorld {
     static ArrayList<Effect> effects = new ArrayList<>();
     static ArrayList<PendingLaserHit> pendingLaserHits = new ArrayList<>();
     static java.util.HashSet<String> blockedGrids = new java.util.HashSet<>();
+    static java.util.HashSet<String> zoneBlockedGrids = new java.util.HashSet<>();
     static float waveTimer, spawnTimer;
     static boolean waveInProgress;
     static float levelStartTotalTime = 0;
@@ -50,6 +51,10 @@ static final class TdGameWorld {
             app.state = TdState.MENU;
             return false;
         }
+        // Clear cached layer/drift data so YAML changes always take effect
+        ZONE_LAYER_CACHE.clear();
+        ZONE_DRIFT_CACHE.clear();
+        ASTEROID_ROCK_CACHE.clear();
         app.devMode = level.devMode;
         money = level.initialMoney;
         if (level.levelType == LevelType.DEFEND_BASE) {
@@ -441,17 +446,120 @@ static final class TdGameWorld {
         return true;
     }
 
+    /**
+     * Ray-casting point-in-polygon test.
+     */
+    static boolean pointInPolygon(float px, float py, Vector2[] poly) {
+        if (poly == null || poly.length < 3) return false;
+        boolean inside = false;
+        for (int i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            if (((poly[i].y > py) != (poly[j].y > py)) &&
+                (px < (poly[j].x - poly[i].x) * (py - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
     static void computeBlockedGrids() {
         blockedGrids.clear();
+        zoneBlockedGrids.clear();
         if (level == null) return;
         int maxGX = (int)(level.worldW / TdConfig.GRID) + 1;
         int maxGY = (int)(level.worldH / TdConfig.GRID) + 1;
+
+        boolean hasPlatforms = level.platforms != null && level.platforms.length > 0;
+
+        // Step 1: if platforms defined, default ALL grids to blocked (deep space)
+        if (hasPlatforms) {
+            for (int gx = 0; gx <= maxGX; gx++) {
+                for (int gy = 0; gy <= maxGY; gy++) {
+                    blockedGrids.add(gx + "," + gy);
+                }
+            }
+            // Step 2: unlock grids inside platforms
+            for (PlatformZone pz : level.platforms) {
+                float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+                float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+                for (Vector2 v : pz.vertices) {
+                    minX = Math.min(minX, v.x);
+                    minY = Math.min(minY, v.y);
+                    maxX = Math.max(maxX, v.x);
+                    maxY = Math.max(maxY, v.y);
+                }
+                int gx0 = (int)(minX / TdConfig.GRID);
+                int gy0 = (int)(minY / TdConfig.GRID);
+                int gx1 = (int)(maxX / TdConfig.GRID) + 1;
+                int gy1 = (int)(maxY / TdConfig.GRID) + 1;
+                for (int gx = gx0; gx <= gx1; gx++) {
+                    for (int gy = gy0; gy <= gy1; gy++) {
+                        float cx = (gx + 0.5f) * TdConfig.GRID;
+                        float cy = (gy + 0.5f) * TdConfig.GRID;
+                        // Tower visual size is GRID * 0.75f; ensure all four corners
+                        // of the tower's occupied area are inside the platform polygon
+                        float th = TdConfig.GRID * 0.375f;
+                        if (pointInPolygon(cx - th, cy - th, pz.vertices) &&
+                            pointInPolygon(cx + th, cy - th, pz.vertices) &&
+                            pointInPolygon(cx - th, cy + th, pz.vertices) &&
+                            pointInPolygon(cx + th, cy + th, pz.vertices)) {
+                            blockedGrids.remove(gx + "," + gy);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Step 3: path proximity → blocked (overrides platform unlock)
         for (int gx = 0; gx <= maxGX; gx++) {
             for (int gy = 0; gy <= maxGY; gy++) {
                 float cx = (gx + 0.5f) * TdConfig.GRID;
                 float cy = (gy + 0.5f) * TdConfig.GRID;
                 if (isTooCloseToPath(cx, cy)) {
                     blockedGrids.add(gx + "," + gy);
+                }
+            }
+        }
+
+        // Step 4: blockedZones in layer 3 (Platform) → blocked
+        // Only platform-layer blockedZones affect building; Far/Mid/Near layers are decorative only
+        if (level.blockedZones != null) {
+            int[] zoneLayers = getZoneLayers(level);
+            for (int i = 0; i < level.blockedZones.length; i++) {
+                if (zoneLayers[i] != 3) continue; // skip non-platform layers (decorative)
+                BlockedZone bz = level.blockedZones[i];
+                if (bz.type == BlockedZoneType.RECT) {
+                    int gx0 = (int)(bz.x / TdConfig.GRID);
+                    int gy0 = (int)(bz.y / TdConfig.GRID);
+                    int gx1 = (int)((bz.x + bz.w) / TdConfig.GRID) + 1;
+                    int gy1 = (int)((bz.y + bz.h) / TdConfig.GRID) + 1;
+                    for (int gx = gx0; gx <= gx1; gx++) {
+                        for (int gy = gy0; gy <= gy1; gy++) {
+                            float cx = (gx + 0.5f) * TdConfig.GRID;
+                            float cy = (gy + 0.5f) * TdConfig.GRID;
+                            if (cx >= bz.x && cx <= bz.x + bz.w && cy >= bz.y && cy <= bz.y + bz.h) {
+                                blockedGrids.add(gx + "," + gy);
+                                zoneBlockedGrids.add(gx + "," + gy);
+                            }
+                        }
+                    }
+                } else if (bz.type == BlockedZoneType.CIRCLE) {
+                    int gx0 = (int)((bz.cx - bz.radius) / TdConfig.GRID);
+                    int gy0 = (int)((bz.cy - bz.radius) / TdConfig.GRID);
+                    int gx1 = (int)((bz.cx + bz.radius) / TdConfig.GRID) + 1;
+                    int gy1 = (int)((bz.cy + bz.radius) / TdConfig.GRID) + 1;
+                    float rSq = bz.radius * bz.radius;
+                    for (int gx = gx0; gx <= gx1; gx++) {
+                        for (int gy = gy0; gy <= gy1; gy++) {
+                            float cx = (gx + 0.5f) * TdConfig.GRID;
+                            float cy = (gy + 0.5f) * TdConfig.GRID;
+                            float dx = cx - bz.cx;
+                            float dy = cy - bz.cy;
+                            if (dx * dx + dy * dy <= rSq) {
+                                blockedGrids.add(gx + "," + gy);
+                                zoneBlockedGrids.add(gx + "," + gy);
+                            }
+                        }
+                    }
                 }
             }
         }

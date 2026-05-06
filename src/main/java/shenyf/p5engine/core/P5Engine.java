@@ -44,6 +44,7 @@ public class P5Engine {
     private final SingleInstanceGuard singleInstanceGuard;
     private final DebugOverlay debugOverlay;
     private final AudioManager audioManager;
+    private final shenyf.p5engine.rendering.ImageManager imageManager;
     private final I18n i18n;
     private shenyf.p5engine.rendering.PostProcessor postProcessor;
     private shenyf.p5engine.rendering.DisplayManager displayManager;
@@ -91,6 +92,7 @@ public class P5Engine {
         this.tweenManager = new TweenManager();
         this.debugOverlay = new DebugOverlay();
         this.audioManager = new AudioManager(applet);
+        this.imageManager = new shenyf.p5engine.rendering.ImageManager(applet);
         this.i18n = new I18n(applet);
         this.displayManager = new shenyf.p5engine.rendering.DisplayManager(
             config.getDisplayConfig(), config.getWidth(), config.getHeight());
@@ -1032,6 +1034,7 @@ public class P5Engine {
         }
 
         setMouseConfined(false);
+        imageManager.clear();
         audioManager.shutdown();
         sceneManager.destroy();
         singleInstanceGuard.releaseLock();
@@ -1167,6 +1170,10 @@ public class P5Engine {
 
     public AudioManager getAudio() {
         return audioManager;
+    }
+
+    public shenyf.p5engine.rendering.ImageManager getImages() {
+        return imageManager;
     }
 
     public I18n getI18n() {

@@ -35,6 +35,12 @@ public class ProcessingRenderer implements IRenderer {
     }
 
     @Override
+    public void drawImage(processing.core.PImage image, float dx, float dy, float dw, float dh,
+                          int sx, int sy, int sw, int sh) {
+        graphics.image(image, dx, dy, dw, dh, sx, sy, sw, sh);
+    }
+
+    @Override
     public void setTransform(Transform transform) {
         graphics.pushMatrix();
         Vector2 pos = transform.getPosition();

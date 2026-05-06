@@ -1,0 +1,163 @@
+# 贴图集配置
+# 按 textureSets -> {setName} -> default / entries 组织
+# default: 该 set 下所有贴图的默认值
+# entries: 单张贴图覆盖，不写则继承 default
+
+textureSets:
+  ruins:
+    default:
+      scaleMode: fit      # fit=等比例适应区域, fill=等比例填充(可能裁切), stretch=拉伸到区域
+      scale: 1.0          # 在 scaleMode 结果上再乘的系数 (1.0=占满, 0.9=留边距, 1.2=超出区域)
+      anchor: center      # center=居中, topleft=贴左上角
+      globalScale: 0.5    # 全局额外缩放：在 scale 之后再乘一遍，用于统一调整 ruins 整体大小
+
+    entries:
+      ruins_0.png:
+        scaleMode: fit
+        scale: 1.00
+      ruins_1.png:
+        scaleMode: fit
+        scale: 0.60
+      ruins_2.png:
+        scaleMode: fit
+        scale: 0.80
+      ruins_3.png:
+        scaleMode: fit
+        scale: 0.80
+      ruins_4.png:
+        scaleMode: fit
+        scale: 1.2
+      ruins_5.png:
+        scaleMode: fit
+        scale: 0.80
+      ruins_6.png:
+        scaleMode: fit
+        scale: 0.7
+      ruins_7.png:
+        scaleMode: fit
+        scale: 0.7
+      ruins_8.png:
+        scaleMode: fit
+        scale: 0.4
+      ruins_9.png:
+        scaleMode: fit
+        scale: 0.4
+      ruins_10.png:
+        scaleMode: fit
+        scale: 0.8
+
+      ruins_11.png:
+        scaleMode: fit
+        scale: 0.8
+      ruins_12.png:
+        scaleMode: fit
+        scale: 0.65
+      ruins_13.png:
+        scaleMode: fit
+        scale: 0.4
+      ruins_14.png:
+        scaleMode: fit
+        scale: 0.6
+      ruins_15.png:
+        scaleMode: fit
+        scale: 0.35
+      ruins_16.png:
+        scaleMode: fit
+        scale: 1.2
+      ruins_17.png:
+        scaleMode: fit
+        scale: 1.1
+      ruins_18.png:
+        scaleMode: fit
+        scale: 1.00
+      ruins_19.png:
+        scaleMode: fit
+        scale: 1.2
+      ruins_20.png:
+        scaleMode: fit
+        scale: 0.5
+
+      ruins_21.png:
+        scaleMode: fit
+        scale: 1.2
+      ruins_22.png:
+        scaleMode: fit
+        scale: 1.00
+      ruins_23.png:
+        scaleMode: fit
+        scale: 0.3
+      ruins_24.png:
+        scaleMode: fit
+        scale: 0.5
+      ruins_25.png:
+        scaleMode: fit
+        scale: 0.35
+      ruins_26.png:
+        scaleMode: fit
+        scale: 0.2
+      ruins_27.png:
+        scaleMode: fit
+        scale: 0.2
+      ruins_28.png:
+        scaleMode: fit
+        scale: 0.2
+      ruins_29.png:
+        scaleMode: fit
+        scale: 0.4
+      ruins_30.png:
+        scaleMode: fit
+        scale: 1.00
+
+      ruins_31.png:
+        scaleMode: fit
+        scale: 0.3
+      ruins_32.png:
+        scaleMode: fit
+        scale: 0.8
+      ruins_33.png:
+        scaleMode: fit
+        scale: 0.9
+      ruins_34.png:
+        scaleMode: fit
+        scale: 0.8
+      ruins_35.png:
+        scaleMode: fit
+        scale: 0.6
+      ruins_36.png:
+        scaleMode: fit
+        scale: 1.00
+      ruins_37.png:
+        scaleMode: fit
+        scale: 1.2
+      ruins_38.png:
+        scaleMode: fit
+        scale: 0.3
+      ruins_39.png:
+        scaleMode: fit
+        scale: 0.9
+      ruins_40.png:
+        scaleMode: fit
+        scale: 1.00
+
+      ruins_41.png:
+        scaleMode: fit
+        scale: 0.65
+      ruins_42.png:
+        scaleMode: fit
+        scale: 0.2
+      ruins_43.png:
+        scaleMode: fit
+        scale: 0.2
+      ruins_44.png:
+        scaleMode: fit
+        scale: 0.3
+      ruins_45.png:
+        scaleMode: fit
+        scale: 0.3
+      ruins_46.png:
+        scaleMode: fit
+        scale: 0.8
+      ruins_47.png:
+        scaleMode: fit
+        scale: 0.9
+      
