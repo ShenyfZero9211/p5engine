@@ -71,6 +71,7 @@ examples/**/data/*.wav
 examples/**/data/*.mp3
 examples/**/data/music/
 examples/**/data/sounds/
+examples/**/data/save/
 examples/**/logs/
 examples/**/output/
 examples/**/save.json
