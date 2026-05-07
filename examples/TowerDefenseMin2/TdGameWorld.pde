@@ -15,14 +15,18 @@ static final class TdGameWorld {
     static java.util.HashSet<String> zoneBlockedGrids = new java.util.HashSet<>();
     static float waveTimer, spawnTimer;
     static boolean waveInProgress;
+    static boolean firstTowerPlaced;
     static float levelStartTotalTime = 0;
     static int waveSpawnIndex;        // current spawn group within wave
     static int waveSpawnCount;        // how many spawned in current group
     static java.util.Random pathRng = new java.util.Random();
     static ArrayList<PendingAttach> pendingAttaches = new ArrayList<>();
     static float baseIncomeAccumulator = 0;
+    static float difficultyHpMulti = 1.0f;
+    static float difficultyRewardMulti = 1.0f;
+    static String currentDifficultyKey = "normal";
 
-    static boolean startLevel(TowerDefenseMin2 app, int levelId) {
+    static boolean startLevel(TowerDefenseMin2 app, int levelId, String difficultyKey) {
         // Clean up old entities
         for (Enemy e : enemies) {
             if (e.gameObject != null) e.gameObject.markForDestroy();
@@ -46,10 +50,21 @@ static final class TdGameWorld {
         pendingAttaches.clear();
         TowerDefenseMin2.inst.lighting.clear();
 
-        level = TdAssets.loadLevel(levelId);
+        level = TdAssets.loadLevel(levelId, difficultyKey);
         if (level == null) {
             app.state = TdState.MENU;
             return false;
+        }
+        // Apply difficulty multipliers
+        DifficultyDef diff = TdAssets.getDifficulty(difficultyKey);
+        if (diff != null) {
+            difficultyHpMulti = diff.enemyHpMultiplier;
+            difficultyRewardMulti = diff.killRewardMultiplier;
+            currentDifficultyKey = difficultyKey;
+        } else {
+            difficultyHpMulti = 1.0f;
+            difficultyRewardMulti = 1.0f;
+            currentDifficultyKey = "normal";
         }
         // Clear cached layer/drift data so YAML changes always take effect
         ZONE_LAYER_CACHE.clear();
@@ -69,6 +84,7 @@ static final class TdGameWorld {
         waveSpawnIndex = 0;
         waveSpawnCount = 0;
         waveInProgress = false;
+        firstTowerPlaced = false;
         waveTimer = (level.waves != null && level.waves.length > 0) ? level.waves[0].delay : 9999f;
         spawnTimer = 0;
 
@@ -108,7 +124,7 @@ static final class TdGameWorld {
         }
 
         // Wave management
-        if (!waveInProgress && currentWave < totalWaves) {
+        if (!waveInProgress && currentWave < totalWaves && firstTowerPlaced) {
             waveTimer -= dt;
             if (waveTimer <= 0) {
                 currentWave++;
@@ -212,6 +228,7 @@ static final class TdGameWorld {
                             }
                         }
                     }
+                    reward = (int)(reward * difficultyRewardMulti);
                     money += reward;
                 }
                 TdSaveData.incEnemiesKilled();
@@ -321,7 +338,7 @@ static final class TdGameWorld {
         e.activeRoute = route;
         e.routeProgress = 0;
         e.pos = route.path.sample(0);
-        e.hp = level.enemyHpBase * def.hpMultiplier * hpMulti;
+        e.hp = level.enemyHpBase * def.hpMultiplier * hpMulti * difficultyHpMulti;
         e.maxHp = e.hp;
         e.speed = def.speedMultiplier * 60; // base speed 60
         e.radius = def.radius;
@@ -631,6 +648,12 @@ static final class TdGameWorld {
         t.gameObject = go;
 
         towers.add(t);
+        if (!firstTowerPlaced) {
+            firstTowerPlaced = true;
+            if (level.waves != null && level.waves.length > 0) {
+                waveTimer = level.waves[0].delay;
+            }
+        }
         TdAssets.playSfx(def.sfxPlace);
         return true;
     }

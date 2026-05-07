@@ -131,7 +131,16 @@ public class TdTheme implements Theme {
         g.fill(a(fill));
         g.rect(x, y, w, h, r);
 
-        // Glow border on hover
+        // Determine custom border color based on label
+        int customBorder = -1;
+        if (label != null) {
+            String saveLabel = TdAssets.i18n("game.saveProgress");
+            String loadLabel = TdAssets.i18n("game.loadProgress");
+            if (label.equals(saveLabel)) customBorder = 0xB44ADE80;
+            else if (label.equals(loadLabel)) customBorder = 0xB4FF5B5B;
+        }
+
+        // Glow border on hover, custom border when matched, or default border
         if (hover && !disabled) {
             g.stroke(a(ACCENT));
             g.strokeWeight(2);
@@ -141,6 +150,11 @@ public class TdTheme implements Theme {
             g.stroke(a(ACCENT & 0x40FFFFFF));
             g.strokeWeight(1);
             g.rect(x + 2, y + 2, w - 4, h - 4, r - 1);
+        } else if (customBorder != -1 && !disabled) {
+            g.stroke(a(customBorder));
+            g.strokeWeight(2);
+            g.noFill();
+            g.rect(x + 1, y + 1, w - 2, h - 2, r);
         } else {
             g.stroke(a(disabled ? BORDER : BORDER));
             g.strokeWeight(1);
@@ -333,6 +347,14 @@ public class TdTheme implements Theme {
         }
         g.image(img, x, y, w, h);
         g.popStyle();
+    }
+
+    @Override
+    public void drawFocusRing(PApplet g, float x, float y, float w, float h) {
+        g.noFill();
+        g.stroke(a(ACCENT), Math.round(180 * currentAlpha));
+        g.strokeWeight(2);
+        g.rect(x - 3, y - 3, w + 6, h + 6, 2);
     }
 
     @Override

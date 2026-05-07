@@ -264,7 +264,13 @@ static final class TdFlow {
             Button btn = new Button("btn_level_" + i);
             btn.setBounds(bx, by, btnW, btnH);
             btn.setLabel(TdAssets.i18n("levelSelect.level", i));
-            btn.setAction(() -> TdFlow.startLevel(app, lid));
+            btn.setAction(() -> {
+                if (TdSaveLoad.hasSave(app, lid)) {
+                    TdFlow.showLevelResumeDialog(app, lid);
+                } else {
+                    TdFlow.showDifficultySelect(app, lid);
+                }
+            });
             btn.appear(0.05f * i, 16f, 0.4f);
             panel.add(btn);
         }
@@ -571,13 +577,81 @@ static final class TdFlow {
         panel.add(btnBack);
     }
 
+    static void showDifficultySelect(TowerDefenseMin2 app, int levelId) {
+        app.state = TdState.LEVEL_SELECT;
+        Panel root = app.ui.getRoot();
+        root.removeAllChildren();
+        app.engine.getTweenManager().killAll();
+        app.engine.getTweenManager().setUseUnscaledTime(true);
+
+        Window win = new Window("difficulty_win");
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 400, 380);
+        win.hideTitleBar();
+        win.setResizable(false);
+        win.setZOrder(10);
+        win.setPaintBackground(false);
+        win.fadeIn(0f);
+        root.add(win);
+
+        Panel panel = new Panel("difficulty_panel");
+        panel.setBounds(0, 0, 400, 380);
+        panel.setPaintBackground(false);
+        panel.fadeIn(0f);
+        win.add(panel);
+
+        // Title
+        Label lblTitle = new Label("lbl_diff_title");
+        lblTitle.setText(TdAssets.i18n("difficulty.selectTitle"));
+        lblTitle.setBounds(0, 20, 400, 40);
+        lblTitle.setTextAlign(PApplet.CENTER);
+        panel.add(lblTitle);
+
+        // Difficulty buttons
+        String[] diffKeys = { "easy", "normal", "hard", "challenge" };
+        int btnW = 280;
+        int btnH = 48;
+        int startY = 75;
+        int gap = 12;
+        for (int i = 0; i < diffKeys.length; i++) {
+            final String dKey = diffKeys[i];
+            DifficultyDef diff = TdAssets.getDifficulty(dKey);
+            String label = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : dKey;
+            Button btn = new Button("btn_diff_" + dKey);
+            btn.setBounds((400 - btnW) / 2, startY + i * (btnH + gap), btnW, btnH);
+            btn.setLabel(label);
+            btn.setAction(() -> startLevel(app, levelId, dKey));
+            btn.appear(0.05f * (i + 1), 16f, 0.4f);
+            panel.add(btn);
+        }
+
+        // Back button (same width as difficulty buttons)
+        int backY = startY + diffKeys.length * (btnH + gap) + 8;
+        Button btnBack = new Button("btn_back");
+        btnBack.setLabel(TdAssets.i18n("menu.back"));
+        btnBack.setBounds((400 - btnW) / 2, backY, btnW, btnH);
+        btnBack.setAction(() -> {
+            if (TdSaveLoad.hasSave(app, levelId)) {
+                showLevelResumeDialog(app, levelId);
+            } else {
+                showLevelSelect(app);
+            }
+        });
+        btnBack.appear(0.3f, 16f, 0.4f);
+        panel.add(btnBack);
+    }
+
     static void startLevel(TowerDefenseMin2 app, int levelId) {
+        startLevel(app, levelId, "normal");
+    }
+
+    static void startLevel(TowerDefenseMin2 app, int levelId, String difficultyKey) {
         TdSaveData.incGamesPlayed();
         app.state = TdState.PLAYING;
         app.ui.getRoot().removeAllChildren();
         clearStarCaches();
         try {
-            boolean ok = TdGameWorld.startLevel(app, levelId);
+            boolean ok = TdGameWorld.startLevel(app, levelId, difficultyKey);
             if (!ok) {
                 buildMainMenu(app);
                 return;
@@ -619,7 +693,8 @@ static final class TdFlow {
         btnNext.setBounds(150, 60, 200, 44);
         btnNext.setAction(() -> {
             int next = TdGameWorld.level != null ? TdGameWorld.level.id + 1 : 1;
-            if (next <= TdAssets.getLevelCount()) startLevel(app, next);
+            String diff = TdGameWorld.currentDifficultyKey;
+            if (next <= TdAssets.getLevelCount()) startLevel(app, next, diff);
             else buildMainMenu(app);
         });
         btnNext.appear(0.1f);
@@ -637,6 +712,12 @@ static final class TdFlow {
 
     static void showWin(TowerDefenseMin2 app) {
         TdSaveData.saveSettings();
+        // Update max level reached
+        int currentMax = TdSaveData.getMaxLevelReached();
+        if (TdGameWorld.level != null && TdGameWorld.level.id >= currentMax) {
+            TdSaveData.setMaxLevelReached(TdGameWorld.level.id + 1);
+            TdSaveData.saveSettings();
+        }
         app.state = TdState.WIN;
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
@@ -654,9 +735,28 @@ static final class TdFlow {
         });
     }
 
+    static void setFocusableRecursive(UIComponent c, boolean focusable) {
+        if (c instanceof shenyf.p5engine.ui.Container) {
+            for (UIComponent child : ((shenyf.p5engine.ui.Container) c).getChildren()) {
+                setFocusableRecursive(child, focusable);
+            }
+        }
+        c.setFocusable(focusable);
+    }
+
     static void showPauseMenu(TowerDefenseMin2 app) {
         app.state = TdState.PAUSED;
         Panel root = app.ui.getRoot();
+        // Remove any load-success toast before killing tweens (prevents orphaned label)
+        for (UIComponent c : new java.util.ArrayList<>(root.getChildren())) {
+            if ("lbl_load_success".equals(c.getId())) {
+                root.remove(c);
+            }
+        }
+        // Disable focus on HUD elements so pause-menu navigation only cycles menu buttons
+        if (app.hudTopBar != null) setFocusableRecursive(app.hudTopBar, false);
+        if (app.hudBuildPanel != null) setFocusableRecursive(app.hudBuildPanel, false);
+        if (app.hudMinimap != null) setFocusableRecursive(app.hudMinimap, false);
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
@@ -681,7 +781,7 @@ static final class TdFlow {
 
         Window win = new Window("pause_win");
         win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
-        win.setBounds(0, 0, 400, 240);
+        win.setBounds(0, 0, 400, 300);
         win.setTitle(TdAssets.i18n("game.pause"));
         win.setMovable(false);
         win.setResizable(false);
@@ -691,40 +791,103 @@ static final class TdFlow {
         root.add(win);
 
         Panel panel = new Panel("pause_panel");
-        panel.setBounds(0, 0, 400, 240);
+        panel.setBounds(0, 0, 400, 300);
         panel.setLayoutManager(new AbsoluteLayout());
         panel.setPaintBackground(false);
         panel.fadeIn(0f);
         win.add(panel);
 
+        // Level + difficulty info label above buttons
+        String levelText = (TdGameWorld.level != null)
+            ? TdAssets.i18n("levelSelect.level", TdGameWorld.level.id) : "";
+        DifficultyDef diff = TdAssets.getDifficulty(TdGameWorld.currentDifficultyKey);
+        String diffText = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : "";
+        Label lblInfo = new Label("lbl_pause_info");
+        lblInfo.setText(levelText + " - " + diffText);
+        lblInfo.setBounds(0, 10, 400, 28);
+        lblInfo.setTextAlign(PApplet.CENTER);
+        lblInfo.setTextColor(0xFF8899AA);
+        panel.add(lblInfo);
+
+        int btnX = 100, btnW = 200, btnH = 36, gap = 12;
+        int y = 46;
+
         Button btnResume = new Button("btn_resume");
         btnResume.setLabel(TdAssets.i18n("game.resume"));
-        btnResume.setBounds(100, 50, 200, 40);
+        btnResume.setBounds(btnX, y, btnW, btnH);
         btnResume.setAction(() -> hidePauseMenu(app));
         btnResume.appear(0.1f);
         panel.add(btnResume);
+        y += btnH + gap;
+
+        // Save progress
+        Label lblSaveHint = new Label("lbl_save_hint");
+        lblSaveHint.setText("");
+        lblSaveHint.setBounds(0, -20, 400, 28);
+        lblSaveHint.setTextAlign(PApplet.CENTER);
+        lblSaveHint.setTextColor(0xFF4ADE80);
+        lblSaveHint.setAlpha(0);
+        panel.add(lblSaveHint);
+
+        java.util.function.Consumer<Float> saveHintAlphaSetter = v -> lblSaveHint.setAlpha(v);
+
+        Button btnSave = new Button("btn_save");
+        btnSave.setLabel(TdAssets.i18n("game.saveProgress"));
+        btnSave.setBounds(btnX, y, btnW, btnH);
+        btnSave.setAction(() -> {
+            boolean ok = TdSaveLoad.saveGame(app);
+            if (ok) {
+                lblSaveHint.setText(TdAssets.i18n("game.saved"));
+                lblSaveHint.setAlpha(0);
+                TweenManager tm = app.engine.getTweenManager();
+                tm.killTarget(saveHintAlphaSetter);
+                tm.toFloat(0f, 1f, 0.4f, saveHintAlphaSetter).ease(Ease::outQuad).start();
+                tm.toFloat(1f, 0f, 0.5f, saveHintAlphaSetter).ease(Ease::inQuad).delay(1.8f).start();
+            }
+        });
+        btnSave.appear(0.13f);
+        panel.add(btnSave);
+        y += btnH + gap;
+
+        // Load progress
+        Button btnLoad = new Button("btn_load");
+        btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
+        btnLoad.setBounds(btnX, y, btnW, btnH);
+        btnLoad.setAction(() -> {
+            if (TdGameWorld.level != null) {
+                boolean ok = TdSaveLoad.loadGame(app, TdGameWorld.level.id);
+                if (ok) {
+                    hidePauseMenu(app);
+                    showLoadSuccessToast(app);
+                }
+            }
+        });
+        btnLoad.appear(0.16f);
+        panel.add(btnLoad);
+        y += btnH + gap;
 
         Button btnRetry = new Button("btn_retry");
         btnRetry.setLabel(TdAssets.i18n("game.retry"));
-        btnRetry.setBounds(100, 100, 200, 40);
+        btnRetry.setBounds(btnX, y, btnW, btnH);
         btnRetry.setAction(() -> {
             hidePauseMenu(app);
             if (TdGameWorld.level != null) {
-                TdGameWorld.startLevel(app, TdGameWorld.level.id);
+                TdGameWorld.startLevel(app, TdGameWorld.level.id, TdGameWorld.currentDifficultyKey);
                 app.state = TdState.PLAYING;
             }
         });
-        btnRetry.appear(0.15f);
+        btnRetry.appear(0.19f);
         panel.add(btnRetry);
+        y += btnH + gap;
 
         Button btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
-        btnMenu.setBounds(100, 150, 200, 40);
+        btnMenu.setBounds(btnX, y, btnW, btnH);
         btnMenu.setAction(() -> {
             hidePauseMenu(app);
             buildMainMenu(app);
         });
-        btnMenu.appear(0.2f);
+        btnMenu.appear(0.22f);
         panel.add(btnMenu);
     }
 
@@ -737,7 +900,101 @@ static final class TdFlow {
                 root.remove(c);
             }
         }
+        // Restore focus on HUD elements
+        if (app.hudTopBar != null) setFocusableRecursive(app.hudTopBar, true);
+        if (app.hudBuildPanel != null) setFocusableRecursive(app.hudBuildPanel, true);
+        if (app.hudMinimap != null) setFocusableRecursive(app.hudMinimap, true);
         app.state = TdState.PLAYING;
+    }
+
+    static void showLevelResumeDialog(TowerDefenseMin2 app, int levelId) {
+        app.state = TdState.LEVEL_SELECT;
+        Panel root = app.ui.getRoot();
+        root.removeAllChildren();
+        app.engine.getTweenManager().killAll();
+        app.engine.getTweenManager().setUseUnscaledTime(true);
+
+        Window win = new Window("resume_win");
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 400, 280);
+        win.hideTitleBar();
+        win.setResizable(false);
+        win.setZOrder(10);
+        win.setPaintBackground(false);
+        win.fadeIn(0f);
+        root.add(win);
+
+        Panel panel = new Panel("resume_panel");
+        panel.setBounds(0, 0, 400, 280);
+        panel.setPaintBackground(false);
+        win.add(panel);
+
+        Label lblTitle = new Label("lbl_resume_title");
+        lblTitle.setText(TdAssets.i18n("levelSelect.level", levelId));
+        lblTitle.setBounds(0, 20, 400, 40);
+        lblTitle.setTextAlign(PApplet.CENTER);
+        panel.add(lblTitle);
+
+        Label lblHint = new Label("lbl_resume_hint");
+        lblHint.setText(TdAssets.i18n("game.hasSaveHint"));
+        lblHint.setBounds(0, 58, 400, 28);
+        lblHint.setTextAlign(PApplet.CENTER);
+        lblHint.setTextColor(0xFF8899AA);
+        panel.add(lblHint);
+
+        Button btnRestart = new Button("btn_restart");
+        btnRestart.setLabel(TdAssets.i18n("game.restart"));
+        btnRestart.setBounds(60, 96, 280, 44);
+        btnRestart.setAction(() -> showDifficultySelect(app, levelId));
+        btnRestart.appear(0.1f);
+        panel.add(btnRestart);
+
+        Button btnLoad = new Button("btn_load_save");
+        btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
+        btnLoad.setBounds(60, 148, 280, 44);
+        btnLoad.setAction(() -> {
+            boolean ok = TdSaveLoad.loadGame(app, levelId);
+            if (ok) {
+                app.ui.getRoot().removeAllChildren();
+                app.state = TdState.PLAYING;
+                app.setupWorldViewport();
+                app.setupHud();
+                TdSound.playBgmGame();
+                showLoadSuccessToast(app);
+            }
+        });
+        btnLoad.appear(0.15f);
+        panel.add(btnLoad);
+
+        Button btnBack = new Button("btn_back");
+        btnBack.setLabel(TdAssets.i18n("menu.back"));
+        btnBack.setBounds(60, 200, 280, 44);
+        btnBack.setAction(() -> showLevelSelect(app));
+        btnBack.appear(0.2f);
+        panel.add(btnBack);
+    }
+
+    static void showLoadSuccessToast(TowerDefenseMin2 app) {
+        Panel root = app.ui.getRoot();
+        Label lbl = new Label("lbl_load_success");
+        lbl.setText(TdAssets.i18n("game.loadSuccess"));
+        lbl.setBounds(0, 0, 400, 40);
+        lbl.setTextAlign(PApplet.CENTER);
+        lbl.setTextColor(0xFF4ADE80);
+        lbl.setAlpha(0);
+        // Center in screen
+        DisplayManager dm = app.engine.getDisplayManager();
+        float sw = dm.getActualWidth() / dm.getUniformScale();
+        float sh = dm.getActualHeight() / dm.getUniformScale();
+        lbl.setPosition((sw - 400) * 0.5f, sh * 0.45f);
+        root.add(lbl);
+
+        TweenManager tm = app.engine.getTweenManager();
+        java.util.function.Consumer<Float> alphaSetter = v -> lbl.setAlpha(v);
+        tm.toFloat(0f, 1f, 0.4f, alphaSetter).ease(Ease::outQuad).start();
+        tm.toFloat(1f, 0f, 0.5f, alphaSetter).ease(Ease::inQuad).delay(1.8f).onComplete(() -> {
+            root.remove(lbl);
+        }).start();
     }
 
     static void buildLoseMenu(TowerDefenseMin2 app) {
@@ -768,7 +1025,8 @@ static final class TdFlow {
         btnRetry.setBounds(150, 60, 200, 44);
         btnRetry.setAction(() -> {
             int id = TdGameWorld.level != null ? TdGameWorld.level.id : 1;
-            startLevel(app, id);
+            String diff = TdGameWorld.currentDifficultyKey;
+            startLevel(app, id, diff);
         });
         btnRetry.appear(0.1f);
         panel.add(btnRetry);

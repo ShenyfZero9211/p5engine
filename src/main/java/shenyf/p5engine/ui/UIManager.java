@@ -4,6 +4,8 @@ import processing.core.PApplet;
 import processing.core.PFont;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
+import shenyf.p5engine.input.AsyncInput;
+import shenyf.p5engine.platform.win32.ImeHelper;
 import shenyf.p5engine.rendering.DisplayManager;
 import shenyf.p5engine.rendering.ScaleMode;
 import shenyf.p5engine.util.Logger;
@@ -24,6 +26,10 @@ public final class UIManager {
 
     public static boolean isPaintingContext(UIComponent c) {
         return paintingUi != null && paintingUi.focusManager.getFocused() == c;
+    }
+
+    public static boolean isFocusRingVisible() {
+        return paintingUi != null && paintingUi.focusRingVisible;
     }
 
     public static PApplet getActiveApplet() {
@@ -47,6 +53,16 @@ public final class UIManager {
     private PFont uiFont;
     private final FocusManager focusManager = new FocusManager();
     private final DragManager dragManager = new DragManager();
+    private boolean focusRingVisible = false;
+
+    // Key-repeat state
+    private int heldKeyCode = -1;
+    private char heldKeyChar;
+    private boolean heldShiftDown;
+    private float heldTime = 0;
+    private float keyRepeatAccumulator = 0;
+    private static final float KEY_REPEAT_DELAY = 1.0f;
+    private static final float KEY_REPEAT_INTERVAL = 0.05f;
     private final Map<String, UIComponent> pool = new HashMap<>();
     private final Set<String> frameSeen = new HashSet<>();
     private boolean inFrame;
@@ -56,6 +72,27 @@ public final class UIManager {
     private Window mouseOverWindow;
     private UIComponent mouseOverComponent;
     private DisplayManager displayManager;
+
+    // IME window handle for toggling input method on TextInput focus
+    private long imeHwnd;
+    private UIComponent lastFocusedForIme;
+
+    // AsyncInput fallback for UI navigation when AWT events are lost
+    private final AsyncInput asyncInput = new AsyncInput();
+    private final Map<Integer, Boolean> lastAsyncDown = new HashMap<>();
+
+    // Deduplicate AWT key events vs AsyncInput synthesized events
+    private int lastAwtKeyCode = -1;
+    private long lastAwtKeyTime = 0;
+    private static final long AWT_ASYNC_DEDUP_MS = 100;
+
+    // Time-based deduplication for duplicate KEY_PRESSED from any source
+    private int lastDispatchKeyCode = -1;
+    private long lastDispatchTime = 0;
+    private static final long DISPATCH_DEDUP_MS = 40;
+
+    // When true, navigation keys are reserved for game input (camera scroll etc.)
+    private boolean gameInputActive = false;
 
     public UIManager(PApplet applet) {
         this.applet = applet;
@@ -204,6 +241,19 @@ public final class UIManager {
 
     public void setTheme(Theme theme) {
         this.theme = theme != null ? theme : new DefaultTheme();
+    }
+
+    /** Sets the native window handle for IME toggle (TextInput focus). */
+    public void setImeHwnd(long hwnd) {
+        this.imeHwnd = hwnd;
+    }
+
+    /**
+     * When true, navigation keys (arrows, Tab) are consumed by game input
+     * and will not trigger UI focus changes. Call from the game loop based on state.
+     */
+    public void setGameInputActive(boolean active) {
+        this.gameInputActive = active;
     }
 
     /**
@@ -365,6 +415,54 @@ public final class UIManager {
             root.layout(applet);
         }
         root.update(applet, dt);
+
+        // Key-repeat: after initial delay, fire repeated KEY_PRESSED events
+        if (heldKeyCode >= 0) {
+            heldTime += dt;
+            if (heldTime >= KEY_REPEAT_DELAY) {
+                keyRepeatAccumulator += dt;
+                while (keyRepeatAccumulator >= KEY_REPEAT_INTERVAL) {
+                    keyRepeatAccumulator -= KEY_REPEAT_INTERVAL;
+                    dispatchKeyPress(heldKeyChar, heldKeyCode, heldShiftDown);
+                }
+            }
+        }
+
+        // IME toggle on TextInput focus change
+        if (imeHwnd != 0) {
+            UIComponent focused = focusManager.getFocused();
+            if (focused != lastFocusedForIme) {
+                if (focused instanceof TextInput) {
+                    ImeHelper.restoreIme(imeHwnd);
+                } else if (lastFocusedForIme instanceof TextInput) {
+                    ImeHelper.disableIme(imeHwnd);
+                }
+                lastFocusedForIme = focused;
+            }
+        }
+
+        // AsyncInput fallback: synthesize KEY_PRESSED / KEY_RELEASED for navigation keys
+        // when AWT events are lost (e.g. stubborn IME still intercepting)
+        asyncInput.update();
+        for (int vk : AsyncInput.getTrackedKeys()) {
+            boolean down = asyncInput.isDown(vk);
+            Boolean prev = lastAsyncDown.get(vk);
+            if (prev == null) prev = false;
+            if (!prev && down) {
+                // Skip if AWT already handled this key very recently
+                if (vk == lastAwtKeyCode && System.currentTimeMillis() - lastAwtKeyTime < AWT_ASYNC_DEDUP_MS) {
+                    continue;
+                }
+                // Synthesize KEY_PRESSED for navigation / action keys only
+                if (vk == java.awt.event.KeyEvent.VK_UP || vk == java.awt.event.KeyEvent.VK_DOWN
+                        || vk == java.awt.event.KeyEvent.VK_LEFT || vk == java.awt.event.KeyEvent.VK_RIGHT
+                        || vk == java.awt.event.KeyEvent.VK_TAB || vk == java.awt.event.KeyEvent.VK_ENTER
+                        || vk == java.awt.event.KeyEvent.VK_SPACE || vk == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    dispatchKeyPress((char) 0, vk, false);
+                }
+            }
+            lastAsyncDown.put(vk, down);
+        }
     }
 
     public void render() {
@@ -416,6 +514,7 @@ public final class UIManager {
                 fhit = fhit.getParent();
             }
             focusManager.setFocused(fhit);
+            focusRingVisible = false;
 
             // Window-specific handling (buttons, resize, drag, double-click)
             Window win = findWindowInHierarchy(hit);
@@ -568,29 +667,84 @@ public final class UIManager {
     }
 
     public void keyEvent(KeyEvent e) {
+        if (!applet.focused) return;
         int act = e.getAction();
-        UIComponent f = focusManager.getFocused();
         if (act == KeyEvent.PRESS) {
-            int kc = e.getKeyCode();
-            if (kc == PApplet.TAB) {
-                if (e.isShiftDown()) {
-                    focusManager.focusPrevious(root);
-                } else {
-                    focusManager.focusNext(root);
-                }
-                return;
-            }
-            if (f != null) {
-                f.onEvent(UIEvent.key(UIEvent.Type.KEY_PRESSED, e.getKey(), kc), designMouseX, designMouseY);
-            }
+            heldKeyCode = e.getKeyCode();
+            heldKeyChar = e.getKey();
+            heldShiftDown = e.isShiftDown();
+            heldTime = 0;
+            keyRepeatAccumulator = 0;
+            lastAwtKeyCode = heldKeyCode;
+            lastAwtKeyTime = System.currentTimeMillis();
+            dispatchKeyPress(heldKeyChar, heldKeyCode, heldShiftDown);
         } else if (act == KeyEvent.TYPE) {
+            UIComponent f = focusManager.getFocused();
             if (f != null) {
                 f.onEvent(UIEvent.key(UIEvent.Type.KEY_TYPED, e.getKey(), e.getKeyCode()), designMouseX, designMouseY);
             }
         } else if (act == KeyEvent.RELEASE) {
-            if (f != null) {
-                f.onEvent(UIEvent.key(UIEvent.Type.KEY_RELEASED, e.getKey(), e.getKeyCode()), designMouseX, designMouseY);
+            int kc = e.getKeyCode();
+            if (kc == heldKeyCode) {
+                heldKeyCode = -1;
+                heldTime = 0;
+                keyRepeatAccumulator = 0;
             }
+            UIComponent f = focusManager.getFocused();
+            if (f != null) {
+                f.onEvent(UIEvent.key(UIEvent.Type.KEY_RELEASED, e.getKey(), kc), designMouseX, designMouseY);
+            }
+        }
+    }
+
+    /** Core key-press handling used for both initial press and auto-repeat. */
+    private void dispatchKeyPress(char keyChar, int keyCode, boolean shiftDown) {
+        // Deduplicate duplicate KEY_PRESSED events from any source (AWT duplicate, AsyncInput overlap, etc.)
+        long now = System.currentTimeMillis();
+        if (keyCode == lastDispatchKeyCode && now - lastDispatchTime < DISPATCH_DEDUP_MS) {
+            return;
+        }
+        lastDispatchKeyCode = keyCode;
+        lastDispatchTime = now;
+
+        // During gameplay, navigation keys control the game (camera scroll) not UI focus
+        if (gameInputActive) {
+            if (keyCode == PApplet.TAB
+                    || keyCode == java.awt.event.KeyEvent.VK_UP
+                    || keyCode == java.awt.event.KeyEvent.VK_DOWN
+                    || keyCode == java.awt.event.KeyEvent.VK_LEFT
+                    || keyCode == java.awt.event.KeyEvent.VK_RIGHT) {
+                return;
+            }
+        }
+
+        UIComponent f = focusManager.getFocused();
+        if (keyCode == PApplet.TAB) {
+            if (shiftDown) {
+                focusManager.focusPrevious(root);
+            } else {
+                focusManager.focusNext(root);
+            }
+            focusRingVisible = true;
+            return;
+        }
+        // Directional navigation
+        int dir = -1;
+        if (keyCode == java.awt.event.KeyEvent.VK_UP) dir = 0;
+        else if (keyCode == java.awt.event.KeyEvent.VK_DOWN) dir = 1;
+        else if (keyCode == java.awt.event.KeyEvent.VK_LEFT) dir = 2;
+        else if (keyCode == java.awt.event.KeyEvent.VK_RIGHT) dir = 3;
+        if (dir >= 0) {
+            // Let focused component consume arrow keys first (e.g. Slider uses LEFT/RIGHT)
+            if (f != null && f.onEvent(UIEvent.key(UIEvent.Type.KEY_PRESSED, keyChar, keyCode), designMouseX, designMouseY)) {
+                return;
+            }
+            focusManager.focusDirection(root, dir);
+            focusRingVisible = true;
+            return;
+        }
+        if (f != null) {
+            f.onEvent(UIEvent.key(UIEvent.Type.KEY_PRESSED, keyChar, keyCode), designMouseX, designMouseY);
         }
     }
 

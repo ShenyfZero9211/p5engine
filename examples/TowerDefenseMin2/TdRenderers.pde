@@ -254,17 +254,17 @@ static void drawBlockedZone(PGraphics g, BlockedZone bz, float time) {
                     g.rect(bz.cx - bz.radius * 0.2f, bz.cy, bz.radius * 0.5f, bz.radius * 0.35f);
                 }
             }
-            // DEBUG: red outline for ruins visibility
-            g.noFill();
-            g.stroke(0xFFFF0000);
-            g.strokeWeight(3);
-            if (bz.type == BlockedZoneType.RECT) {
-                g.rect(bz.x, bz.y, bz.w, bz.h);
-            } else {
-                g.ellipse(bz.cx, bz.cy, bz.radius * 2, bz.radius * 2);
-            }
-            g.noStroke();
-            g.strokeWeight(1);
+            // DEBUG: red outline for ruins visibility (disabled)
+            // g.noFill();
+            // g.stroke(0xFFFF0000);
+            // g.strokeWeight(3);
+            // if (bz.type == BlockedZoneType.RECT) {
+            //     g.rect(bz.x, bz.y, bz.w, bz.h);
+            // } else {
+            //     g.ellipse(bz.cx, bz.cy, bz.radius * 2, bz.radius * 2);
+            // }
+            // g.noStroke();
+            // g.strokeWeight(1);
             break;
     }
 }

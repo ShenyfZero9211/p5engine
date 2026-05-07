@@ -21,6 +21,7 @@ import shenyf.p5engine.i18n.I18n;
 import shenyf.p5engine.resource.ppak.PPak;
 import java.io.File;
 import java.awt.Frame;
+import shenyf.p5engine.platform.win32.ImeHelper;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
@@ -67,6 +68,8 @@ public class P5Engine {
     private boolean mouseConfinedEnabled;
     private boolean wasFocused = true;
     private boolean windowPositionApplied;
+    private long imeHwnd;
+
 
     private int defaultBackgroundColor = 0xFF000000;
     private GameState gameState = GameState.READY;
@@ -337,6 +340,20 @@ public class P5Engine {
             nativeSurface = applet.getSurface().getNative();
         } catch (Exception e) {
             Logger.debug("Could not cache native surface: " + e.getMessage());
+        }
+
+        // Disable IME for the game window so arrow keys / Space are not intercepted
+        // by Chinese/Japanese/Korean input methods. TextInput will re-enable IME
+        // temporarily when focused.
+        try {
+            Frame frame = getFrameFromSurface();
+            long hwnd = ImeHelper.getHwnd(nativeSurface, frame, resolveApplicationTitleBase());
+            if (hwnd != 0 && ImeHelper.disableIme(hwnd)) {
+                this.imeHwnd = hwnd;
+                Logger.info("IME disabled for game window (HWND: " + hwnd + ")");
+            }
+        } catch (Exception e) {
+            Logger.debug("Could not disable IME: " + e.getMessage());
         }
 
         // Apply window position (center or custom) before window is fully visible
@@ -739,6 +756,7 @@ public class P5Engine {
     }
 
     public void keyEvent(processing.event.KeyEvent event) {
+        if (!applet.focused) return;
         inputManager.onKeyEvent(event);
         int action = event.getAction();
         int code = event.getKeyCode();
@@ -872,6 +890,8 @@ public class P5Engine {
             wasFocused = nowFocused;
         }
 
+        inputManager.setWindowFocused(applet.focused);
+        inputManager.update();
         inputManager.updateMouse(applet.mouseX, applet.mouseY, applet.mousePressed, applet.mouseButton);
         inputManager.postUpdate();
 
@@ -1132,6 +1152,14 @@ public class P5Engine {
 
     public int getMouseY() {
         return applet.mouseY;
+    }
+
+    /**
+     * Returns the native window handle (HWND) used for IME toggle,
+     * or 0 if not available (non-Windows or initialization failed).
+     */
+    public long getImeHwnd() {
+        return imeHwnd;
     }
 
     public InputManager getInput() {

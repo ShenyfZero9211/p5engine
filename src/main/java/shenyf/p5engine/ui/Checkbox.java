@@ -73,6 +73,9 @@ public class Checkbox extends UIComponent {
     public void paint(PApplet applet, Theme theme) {
         theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawCheckbox(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), label, checked, hover, !isEnabled());
+        if (UIManager.isPaintingContext(this) && UIManager.isFocusRingVisible()) {
+            theme.drawFocusRing(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+        }
     }
 
     @Override
@@ -80,6 +83,12 @@ public class Checkbox extends UIComponent {
         if (!isEnabled()) return false;
         if (event.getType() == UIEvent.Type.MOUSE_RELEASED && event.getMouseButton() == PApplet.LEFT) {
             if (containsPoint(absMouseX, absMouseY)) {
+                checked = !checked;
+                return true;
+            }
+        }
+        if (event.getType() == UIEvent.Type.KEY_PRESSED) {
+            if (event.getKeyCode() == java.awt.event.KeyEvent.VK_SPACE) {
                 checked = !checked;
                 return true;
             }

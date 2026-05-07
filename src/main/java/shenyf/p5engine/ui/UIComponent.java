@@ -18,6 +18,13 @@ public abstract class UIComponent {
     private Object layoutConstraint;
     private boolean layoutDirty = true;
 
+    // ── Keyboard navigation ──
+    private int tabIndex = 0;
+    private UIComponent neighborUp;
+    private UIComponent neighborDown;
+    private UIComponent neighborLeft;
+    private UIComponent neighborRight;
+
     // Anchor constraints for adaptive layout (bitmask)
     public static final int ANCHOR_TOP = 1;
     public static final int ANCHOR_BOTTOM = 2;
@@ -171,6 +178,35 @@ public abstract class UIComponent {
 
     public void setFocusable(boolean focusable) {
         this.focusable = focusable;
+    }
+
+    // ── Keyboard navigation ──
+
+    public int getTabIndex() {
+        return tabIndex;
+    }
+
+    public void setTabIndex(int tabIndex) {
+        this.tabIndex = tabIndex;
+    }
+
+    public void setFocusNeighbor(int direction, UIComponent target) {
+        switch (direction) {
+            case 0: neighborUp = target; break;
+            case 1: neighborDown = target; break;
+            case 2: neighborLeft = target; break;
+            case 3: neighborRight = target; break;
+        }
+    }
+
+    public UIComponent getFocusNeighbor(int direction) {
+        switch (direction) {
+            case 0: return neighborUp;
+            case 1: return neighborDown;
+            case 2: return neighborLeft;
+            case 3: return neighborRight;
+            default: return null;
+        }
     }
 
     public float getAlpha() {

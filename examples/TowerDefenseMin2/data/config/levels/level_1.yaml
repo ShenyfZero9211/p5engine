@@ -78,3 +78,42 @@ waves:
       - type: level1
         count: 30
         interval: 1.0
+
+# 难度 wave 覆盖（可选，未定义的难度使用默认 waves）
+difficulties:
+  easy:
+    waves:
+      - delay: 25.0
+        spawns:
+          - type: level1
+            count: 15
+            interval: 2.0
+      - delay: 20.0
+        spawns:
+          - type: level1
+            count: 18
+            interval: 1.8
+  hard:
+    waves:
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 30
+            interval: 1.0
+      - delay: 12.0
+        spawns:
+          - type: level1
+            count: 40
+            interval: 0.8
+  challenge:
+    waves:
+      - delay: 10.0
+        spawns:
+          - type: level1
+            count: 40
+            interval: 0.6
+      - delay: 8.0
+        spawns:
+          - type: level1
+            count: 60
+            interval: 0.4

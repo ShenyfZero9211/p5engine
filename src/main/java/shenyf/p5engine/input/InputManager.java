@@ -13,6 +13,7 @@ import java.util.Map;
 public class InputManager {
 
     private final Map<Integer, KeyState> keyStates = new HashMap<>();
+    private final AsyncInput asyncInput = new AsyncInput();
 
     private float mouseX;
     private float mouseY;
@@ -30,6 +31,44 @@ public class InputManager {
     private boolean dragDirty;
 
     public InputManager() {
+    }
+
+    /**
+     * Polls the low-level keyboard state via {@link AsyncInput} and merges
+     * it with AWT KeyEvent-driven states. Call once per frame, before
+     * {@link #postUpdate()}.
+     */
+    public void update() {
+        asyncInput.update();
+        for (int vk : AsyncInput.getTrackedKeys()) {
+            boolean asyncDown = asyncInput.isDown(vk);
+            KeyState state = keyStates.get(vk);
+            if (state == null) {
+                if (!asyncDown) continue;
+                state = new KeyState();
+                keyStates.put(vk, state);
+            }
+            if (!state.held && asyncDown) {
+                // AsyncInput detected a press that AWT missed (e.g. IME intercept)
+                state.pressed = true;
+                state.held = true;
+                state.released = false;
+            } else if (state.held && !asyncDown) {
+                // AsyncInput no longer sees the key — mark as released
+                state.released = true;
+                state.held = false;
+            }
+        }
+    }
+
+    /** Returns the raw async keyboard poller (for direct access if needed). */
+    public AsyncInput getAsyncInput() {
+        return asyncInput;
+    }
+
+    /** Propagates window focus state to the low-level async poller. */
+    public void setWindowFocused(boolean focused) {
+        asyncInput.setWindowFocused(focused);
     }
 
     public void updateMouse(float x, float y, boolean pressed, int button) {

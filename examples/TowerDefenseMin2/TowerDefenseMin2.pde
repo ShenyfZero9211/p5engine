@@ -5,6 +5,8 @@ import shenyf.p5engine.math.*;
 import shenyf.p5engine.rendering.*;
 import shenyf.p5engine.audio.*;
 import shenyf.p5engine.tween.*;
+import shenyf.p5engine.input.*;
+import shenyf.p5engine.platform.win32.*;
 
 // ============================================
 //  实例与核心引用
@@ -87,10 +89,10 @@ public void setup() {
   inst = this;
   // Load config before any fullscreen check
   TdSaveData.load(this);
-  // setResizable interferes with fullScreen() on some platforms
-  if (!TdSaveData.isFullscreen()) {
-    surface.setResizable(true);
-  }
+  // NOTE: surface.setResizable(true) is intentionally removed to avoid a
+  // Processing P2D deadlock on Windows (processing/processing#5579).
+  // Window resizing is handled by P5Engine WindowManager via NEWT reflection
+  // (setSize/setPosition), which does not trigger the deadlock.
   new TdAppSetup().run();
 }
 

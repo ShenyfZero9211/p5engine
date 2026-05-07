@@ -139,6 +139,7 @@ static final class TdAssets {
     static java.util.List levelYamlList;
     static java.util.Map enemyYamlRoot;
     static java.util.Map gameSettingsYamlRoot;
+    static java.util.Map<String, DifficultyDef> difficulties;
 
     static void loadConfigs(PApplet app) {
         org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
@@ -159,6 +160,28 @@ static final class TdAssets {
         if (gis != null) {
             gameSettingsYamlRoot = (java.util.Map) yaml.load(gis);
         }
+
+        loadDifficulties();
+    }
+
+    static void loadDifficulties() {
+        if (gameSettingsYamlRoot == null) return;
+        java.util.Map diffMap = (java.util.Map) gameSettingsYamlRoot.get("difficulties");
+        if (diffMap == null) return;
+        difficulties = new java.util.HashMap<>();
+        for (Object keyObj : diffMap.keySet()) {
+            String key = (String) keyObj;
+            java.util.Map d = (java.util.Map) diffMap.get(keyObj);
+            String nameKey = (String) d.get("nameKey");
+            float hpMulti = d.containsKey("enemyHpMultiplier") ? ((Number) d.get("enemyHpMultiplier")).floatValue() : 1.0f;
+            float rewardMulti = d.containsKey("killRewardMultiplier") ? ((Number) d.get("killRewardMultiplier")).floatValue() : 1.0f;
+            difficulties.put(key, new DifficultyDef(key, nameKey, hpMulti, rewardMulti));
+        }
+    }
+
+    static DifficultyDef getDifficulty(String key) {
+        if (difficulties == null || key == null) return null;
+        return difficulties.get(key);
     }
 
     static TowerDef loadTowerDef(TowerType type) {
@@ -215,6 +238,10 @@ static final class TdAssets {
     }
 
     static LevelDef loadLevel(int levelId) {
+        return loadLevel(levelId, null);
+    }
+
+    static LevelDef loadLevel(int levelId, String difficultyKey) {
         // Verify level exists in index
         boolean found = false;
         for (Object obj : levelYamlList) {
@@ -234,7 +261,17 @@ static final class TdAssets {
             throw new RuntimeException("Cannot load config/levels/level_" + levelId + ".yaml");
         }
         java.util.Map lvl = (java.util.Map) yaml.load(levelIs);
-        return parseLevel(lvl);
+        LevelDef level = parseLevel(lvl);
+
+        // Apply difficulty wave override if present
+        if (difficultyKey != null && level.difficultyWaves != null) {
+            WaveDef[] override = level.difficultyWaves.get(difficultyKey);
+            if (override != null) {
+                level.waves = override;
+            }
+        }
+
+        return level;
     }
 
     static SpawnAttach[] loadAttaches(java.util.Map s) {
@@ -390,6 +427,31 @@ static final class TdAssets {
         );
     }
 
+    static WaveDef[] parseWaves(java.util.List waveList) {
+        if (waveList == null || waveList.isEmpty()) return null;
+        WaveDef[] waves = new WaveDef[waveList.size()];
+        for (int i = 0; i < waveList.size(); i++) {
+            java.util.Map w = (java.util.Map) waveList.get(i);
+            float delay = ((Number) w.get("delay")).floatValue();
+            java.util.List spawnList = (java.util.List) w.get("spawns");
+            WaveSpawn[] spawns = new WaveSpawn[spawnList != null ? spawnList.size() : 0];
+            for (int j = 0; j < spawns.length; j++) {
+                java.util.Map s = (java.util.Map) spawnList.get(j);
+                float hpMulti = s.containsKey("hpMulti") ? ((Number) s.get("hpMulti")).floatValue() : 1.0f;
+                spawns[j] = new WaveSpawn(
+                    (String) s.get("type"),
+                    ((Number) s.get("count")).intValue(),
+                    ((Number) s.get("interval")).floatValue(),
+                    (String) s.get("route"),
+                    hpMulti,
+                    loadAttaches(s)
+                );
+            }
+            waves[i] = new WaveDef(delay, spawns);
+        }
+        return waves;
+    }
+
     private static LevelDef parseLevel(java.util.Map lvl) {
         LevelDef ld = new LevelDef();
         ld.id = ((Number) lvl.get("id")).intValue();
@@ -474,28 +536,22 @@ static final class TdAssets {
             }
         }
 
-        // Waves
+        // Waves (default)
         java.util.List waveList = (java.util.List) lvl.get("waves");
-        if (waveList != null) {
-            ld.waves = new WaveDef[waveList.size()];
-            for (int i = 0; i < waveList.size(); i++) {
-                java.util.Map w = (java.util.Map) waveList.get(i);
-                float delay = ((Number) w.get("delay")).floatValue();
-                java.util.List spawnList = (java.util.List) w.get("spawns");
-                WaveSpawn[] spawns = new WaveSpawn[spawnList != null ? spawnList.size() : 0];
-                for (int j = 0; j < spawns.length; j++) {
-                    java.util.Map s = (java.util.Map) spawnList.get(j);
-                    float hpMulti = s.containsKey("hpMulti") ? ((Number) s.get("hpMulti")).floatValue() : 1.0f;
-                    spawns[j] = new WaveSpawn(
-                        (String) s.get("type"),
-                        ((Number) s.get("count")).intValue(),
-                        ((Number) s.get("interval")).floatValue(),
-                        (String) s.get("route"),
-                        hpMulti,
-                        loadAttaches(s)
-                    );
+        ld.waves = parseWaves(waveList);
+
+        // Difficulty wave overrides
+        java.util.Map lvlDiffMap = (java.util.Map) lvl.get("difficulties");
+        if (lvlDiffMap != null) {
+            ld.difficultyWaves = new java.util.HashMap<>();
+            for (Object diffKeyObj : lvlDiffMap.keySet()) {
+                String diffKey = (String) diffKeyObj;
+                java.util.Map diffData = (java.util.Map) lvlDiffMap.get(diffKeyObj);
+                java.util.List diffWaveList = (java.util.List) diffData.get("waves");
+                WaveDef[] diffWaves = parseWaves(diffWaveList);
+                if (diffWaves != null) {
+                    ld.difficultyWaves.put(diffKey, diffWaves);
                 }
-                ld.waves[i] = new WaveDef(delay, spawns);
             }
         }
 

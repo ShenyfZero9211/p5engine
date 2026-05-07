@@ -50,6 +50,8 @@ public interface Theme {
         drawButton(g, x, y, w, h, label, hover, pressed, disabled);
     }
 
+    void drawFocusRing(PApplet g, float x, float y, float w, float h);
+
     /**
      * Called by {@link UIComponent#paint} before rendering this component.
      * Themes that support per-component alpha should store this value and apply

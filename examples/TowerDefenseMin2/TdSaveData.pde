@@ -75,6 +75,16 @@ static final class TdSaveData {
     static boolean isFullscreen() { return cfg.getBoolean("display", "fullscreen", false); }
     static void setFullscreen(boolean v) { cfg.set("display", "fullscreen", v); }
 
+    // ── Progress ──
+
+    static int getMaxLevelReached() {
+        return cfg.getInt("progress", "maxLevelReached", 1);
+    }
+
+    static void setMaxLevelReached(int level) {
+        cfg.set("progress", "maxLevelReached", level);
+    }
+
     static void saveSettings() {
         if (cfg != null) cfg.save();
     }

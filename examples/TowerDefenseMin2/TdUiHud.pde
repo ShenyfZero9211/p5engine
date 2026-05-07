@@ -419,6 +419,30 @@ static class TdMinimapComponent extends UIComponent {
                     }
                 }
             }
+            // Platforms
+            if (TdGameWorld.level.platforms != null) {
+                for (PlatformZone pz : TdGameWorld.level.platforms) {
+                    if (pz.vertices == null || pz.vertices.length < 3) continue;
+                    applet.noStroke();
+                    applet.fill(pz.fillColor);
+                    applet.beginShape();
+                    for (Vector2 v : pz.vertices) {
+                        applet.vertex(ox + v.x * scale, oy + v.y * scale);
+                    }
+                    applet.endShape(PApplet.CLOSE);
+                    applet.noFill();
+                    applet.stroke(pz.edgeColor, 128);
+                    applet.strokeWeight(0.5f);
+                    Vector2[] vv = pz.vertices;
+                    for (int i = 0; i < vv.length; i++) {
+                        Vector2 a = vv[i];
+                        Vector2 b = vv[(i + 1) % vv.length];
+                        applet.line(ox + a.x * scale, oy + a.y * scale,
+                                    ox + b.x * scale, oy + b.y * scale);
+                    }
+                }
+            }
+
             // Path — draw all routes (multi-path) or legacy pathPoints
             applet.stroke(0xFF4A9EFF);
             applet.strokeWeight(1);
@@ -618,7 +642,9 @@ static class TdTopBar extends Panel {
 
         // Next wave countdown
         String nextWaveText;
-        if (TdGameWorld.waveInProgress) {
+        if (!TdGameWorld.firstTowerPlaced) {
+            nextWaveText = TdAssets.i18n("game.placeFirstTower");
+        } else if (TdGameWorld.waveInProgress) {
             nextWaveText = TdAssets.i18n("game.waveIncoming");
         } else if (TdGameWorld.currentWave >= (TdGameWorld.level != null ? TdGameWorld.level.waves.length : 0)) {
             nextWaveText = TdAssets.i18n("game.waveFinal");

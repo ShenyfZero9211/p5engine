@@ -40,6 +40,9 @@ public class Slider extends UIComponent {
     public void paint(PApplet applet, Theme theme) {
         theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawSliderTrack(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), value01, hover, !isEnabled());
+        if (UIManager.isPaintingContext(this) && UIManager.isFocusRingVisible()) {
+            theme.drawFocusRing(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+        }
     }
 
     @Override
@@ -62,6 +65,17 @@ public class Slider extends UIComponent {
             case MOUSE_RELEASED:
                 if (dragging && event.getMouseButton() == PApplet.LEFT) {
                     dragging = false;
+                    return true;
+                }
+                return false;
+            case KEY_PRESSED:
+                int kc = event.getKeyCode();
+                float step = 0.05f;
+                if (kc == java.awt.event.KeyEvent.VK_LEFT) {
+                    setValue(value01 - step);
+                    return true;
+                } else if (kc == java.awt.event.KeyEvent.VK_RIGHT) {
+                    setValue(value01 + step);
                     return true;
                 }
                 return false;

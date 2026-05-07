@@ -83,6 +83,9 @@ public class Button extends UIComponent {
     public void paint(PApplet applet, Theme theme) {
         theme.setCurrentAlpha(getEffectiveAlpha());
         theme.drawButton(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), label, hover, pressedVisual, !isEnabled());
+        if (UIManager.isPaintingContext(this) && UIManager.isFocusRingVisible()) {
+            theme.drawFocusRing(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+        }
     }
 
     @Override
@@ -118,6 +121,34 @@ public class Button extends UIComponent {
                 return false;
             case MOUSE_DRAGGED:
                 return pressedVisual;
+            case KEY_PRESSED:
+                int kc = event.getKeyCode();
+                if (kc == java.awt.event.KeyEvent.VK_SPACE || kc == java.awt.event.KeyEvent.VK_ENTER) {
+                    pressedVisual = true;
+                    return true;
+                }
+                return false;
+            case KEY_RELEASED:
+                int kc2 = event.getKeyCode();
+                if (pressedVisual && (kc2 == java.awt.event.KeyEvent.VK_SPACE || kc2 == java.awt.event.KeyEvent.VK_ENTER)) {
+                    pressedVisual = false;
+                    if (action != null) {
+                        action.run();
+                        if (sfxPath != null) {
+                            var engine = shenyf.p5engine.core.P5Engine.getInstance();
+                            if (engine != null) {
+                                try {
+                                    engine.getAudio().playOneShot(sfxPath, "sfx");
+                                } catch (Exception e) {
+                                    // ignore audio errors
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
+                pressedVisual = false;
+                return false;
             default:
                 return false;
         }

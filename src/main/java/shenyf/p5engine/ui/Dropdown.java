@@ -277,6 +277,10 @@ public class Dropdown extends UIComponent {
             float listY = expandUpward ? y - visible * rowHeight : y + h;
             drawExpandedList(applet, theme, x, listY, w);
         }
+
+        if (!expanded && UIManager.isPaintingContext(this) && UIManager.isFocusRingVisible()) {
+            theme.drawFocusRing(applet, x, y, w, h);
+        }
     }
 
     private void drawArrow(PApplet g, float cx, float cy, float alpha) {
@@ -396,9 +400,51 @@ public class Dropdown extends UIComponent {
                 }
                 return false;
 
+            case KEY_PRESSED:
+                int kc = event.getKeyCode();
+                if (!expanded) {
+                    if (kc == java.awt.event.KeyEvent.VK_ENTER || kc == java.awt.event.KeyEvent.VK_SPACE) {
+                        setExpanded(true);
+                        return true;
+                    }
+                    return false;
+                }
+                // Expanded state keyboard navigation
+                if (kc == java.awt.event.KeyEvent.VK_UP) {
+                    if (selectedIndex > 0) {
+                        selectedIndex--;
+                        ensureSelectedVisible();
+                    }
+                    return true;
+                } else if (kc == java.awt.event.KeyEvent.VK_DOWN) {
+                    if (selectedIndex < items.size() - 1) {
+                        selectedIndex++;
+                        ensureSelectedVisible();
+                    }
+                    return true;
+                } else if (kc == java.awt.event.KeyEvent.VK_ENTER) {
+                    setExpanded(false);
+                    if (onSelect != null) onSelect.run();
+                    return true;
+                } else if (kc == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    setExpanded(false);
+                    return true;
+                }
+                return false;
+
             default:
                 return false;
         }
+    }
+
+    private void ensureSelectedVisible() {
+        if (selectedIndex < firstVisibleIndex) {
+            firstVisibleIndex = selectedIndex;
+        } else if (selectedIndex >= firstVisibleIndex + getVisibleRows()) {
+            firstVisibleIndex = selectedIndex - getVisibleRows() + 1;
+        }
+        int maxFirst = Math.max(0, items.size() - getVisibleRows());
+        firstVisibleIndex = Math.max(0, Math.min(maxFirst, firstVisibleIndex));
     }
 
     private void updateScrollFromMouse(float absMouseY) {

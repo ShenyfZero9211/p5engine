@@ -34,6 +34,7 @@ final class TdAppSetup {
 
         ui = new UIManager(TowerDefenseMin2.this);
         ui.attach();
+        ui.setImeHwnd(engine.getImeHwnd());
         sketchUi = new SketchUiCoordinator(TowerDefenseMin2.this, ui);
         TdTheme theme = new TdTheme();
         PFont cnFont = createFont("Microsoft YaHei", 48);
@@ -231,6 +232,9 @@ static final class TdAppLoop {
 
         InputManager im = app.engine.getInput();
         TdAppInput.handleKeyboardInput(app, im);
+
+        // During gameplay, navigation keys control camera scroll, not UI focus
+        app.ui.setGameInputActive(app.state == TdState.PLAYING);
 
         TdAppUtils.syncCameraToWindow(app);
 

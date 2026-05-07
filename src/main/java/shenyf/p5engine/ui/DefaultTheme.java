@@ -304,6 +304,14 @@ public final class DefaultTheme implements Theme {
     }
 
     @Override
+    public void drawFocusRing(PApplet g, float x, float y, float w, float h) {
+        g.noFill();
+        g.stroke(a(ACCENT), Math.round(180 * currentAlpha));
+        g.strokeWeight(2);
+        g.rect(x - 3, y - 3, w + 6, h + 6, 2);
+    }
+
+    @Override
     public void setCurrentAlpha(float alpha) {
         this.currentAlpha = Math.max(0f, Math.min(1f, alpha));
     }

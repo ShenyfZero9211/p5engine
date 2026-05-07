@@ -2,9 +2,9 @@ id: 8
 nameKey: level.8.name
 subtitleKey: level.8.subtitle
 levelType: DEFEND_BASE
-initialMoney: 400
-baseOrbs: 5
-enemyHpBase: 100
+initialMoney: 40000
+baseOrbs: 5000
+enemyHpBase: 1000
 
 worldWidth: 2000
 worldHeight: 1400
@@ -223,24 +223,24 @@ blockedZones:
 waves:
   - delay: 18.0
     spawns:
-      - type: level1
+      - type: level3
         count: 30
         interval: 1.4
   - delay: 18.0
     spawns:
-      - type: level1
-        count: 20
+      - type: level4
+        count: 200
         interval: 1.2
-      - type: level2
-        count: 12
+      - type: level3
+        count: 120
         interval: 1.6
   - delay: 18.0
     spawns:
-      - type: level2
+      - type: level4
         count: 25
         interval: 1.2
-      - type: level1
-        count: 15
+      - type: level3
+        count: 150
         interval: 1.0
         hpMulti: 1.5
   - delay: 18.0
@@ -248,8 +248,8 @@ waves:
       - type: level3
         count: 18
         interval: 1.1
-      - type: level2
-        count: 18
+      - type: level4
+        count: 180
         interval: 1.2
   - delay: 18.0
     spawns:
@@ -257,7 +257,7 @@ waves:
         count: 25
         interval: 1.0
       - type: level2
-        count: 25
+        count: 250
         interval: 1.1
         hpMulti: 2.0
   - delay: 20.0
@@ -271,10 +271,10 @@ waves:
   - delay: 20.0
     spawns:
       - type: level4
-        count: 30
+        count: 300
         interval: 0.9
       - type: level3
-        count: 25
+        count: 250
         interval: 0.8
         hpMulti: 2.0
   - delay: 22.0

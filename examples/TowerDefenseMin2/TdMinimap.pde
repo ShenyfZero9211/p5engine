@@ -113,6 +113,32 @@ static final class TdMinimap {
                     app.ellipse(ox + end.x * scale, oy + end.y * scale, 5, 5);
                 }
             }
+            // Platforms
+            if (TdGameWorld.level.platforms != null) {
+                for (PlatformZone pz : TdGameWorld.level.platforms) {
+                    if (pz.vertices == null || pz.vertices.length < 3) continue;
+                    // Use a bright, visible fill for minimap (ignore dark world fillColor)
+                    app.noStroke();
+                    app.fill(0xFF3A5A8A); // bright blue-ish, visible on dark bg
+                    app.beginShape();
+                    for (Vector2 v : pz.vertices) {
+                        app.vertex(ox + v.x * scale, oy + v.y * scale);
+                    }
+                    app.endShape(PApplet.CLOSE);
+                    // Bright edge
+                    app.noFill();
+                    app.stroke(pz.edgeColor);
+                    app.strokeWeight(2);
+                    Vector2[] vv = pz.vertices;
+                    for (int i = 0; i < vv.length; i++) {
+                        Vector2 a = vv[i];
+                        Vector2 b = vv[(i + 1) % vv.length];
+                        app.line(ox + a.x * scale, oy + a.y * scale,
+                                 ox + b.x * scale, oy + b.y * scale);
+                    }
+                }
+            }
+
             // Path
             app.stroke(0xFF4A9EFF);
             app.strokeWeight(1);

@@ -359,6 +359,23 @@ static final class PlatformZone {
 }
 
 /**
+ * Difficulty definition loaded from game_settings.yaml.
+ */
+static final class DifficultyDef {
+    final String key;
+    final String nameKey;
+    final float enemyHpMultiplier;
+    final float killRewardMultiplier;
+
+    DifficultyDef(String key, String nameKey, float enemyHpMultiplier, float killRewardMultiplier) {
+        this.key = key;
+        this.nameKey = nameKey;
+        this.enemyHpMultiplier = enemyHpMultiplier;
+        this.killRewardMultiplier = killRewardMultiplier;
+    }
+}
+
+/**
  * Level definition loaded from levels.yaml.
  */
 static final class LevelDef {
@@ -378,6 +395,7 @@ static final class LevelDef {
     int worldW;
     int worldH;
     WaveDef[] waves;
+    java.util.Map<String, WaveDef[]> difficultyWaves; // difficulty key -> wave override
     TowerType[] allowedTowers; // null = all towers allowed
     TowerType[] allowedUpgrades; // null = all towers upgradable
     boolean earnMoneyOnKill;   // default true
