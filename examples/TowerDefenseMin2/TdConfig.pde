@@ -404,5 +404,5 @@ static final class LevelDef {
     PlatformZone[] platforms;   // optional buildable platforms (null = whole world buildable)
 }
 
-enum TdState { MENU, LEVEL_SELECT, SETTINGS, PLAYING, PAUSED, WIN, LOSE }
+enum TdState { INTRO, MENU, LEVEL_SELECT, SETTINGS, BRIEFING, PLAYING, PAUSED, WIN, LOSE }
 enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW, POISON, COMMAND }

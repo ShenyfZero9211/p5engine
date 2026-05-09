@@ -31,6 +31,7 @@ TdState state = TdState.MENU;
 TdBuildMode buildMode = TdBuildMode.NONE;
 boolean showTowerRanges = false;
 boolean devMode = false;
+boolean introSkipRequested = false;
 
 // ============================================
 //  输入状态
@@ -107,6 +108,11 @@ void windowResize(int newW, int newH) {
 }
 
 public void keyPressed() {
+  if (engine != null && engine.hasActiveIntro()) {
+    introSkipRequested = true;
+    key = 0; // Block Processing default ESC quit behavior during intro
+    return;
+  }
   TdAppInput.keyPressed(this);
 }
 

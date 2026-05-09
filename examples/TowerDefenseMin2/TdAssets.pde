@@ -349,6 +349,33 @@ static final class TdAssets {
         return 1.0f;
     }
 
+    static int getMenuBgR() {
+        if (gameSettingsYamlRoot == null) return 8;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 8;
+        Object v = gs.get("menuBgR");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 8;
+    }
+
+    static int getMenuBgG() {
+        if (gameSettingsYamlRoot == null) return 12;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 12;
+        Object v = gs.get("menuBgG");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 12;
+    }
+
+    static int getMenuBgB() {
+        if (gameSettingsYamlRoot == null) return 28;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 28;
+        Object v = gs.get("menuBgB");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 28;
+    }
+
     static float getBgLodZoomThreshold() {
         if (gameSettingsYamlRoot == null) return 0.5f;
         java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
@@ -403,8 +430,45 @@ static final class TdAssets {
         return true;
     }
 
+    static float getIntroDelay() {
+        if (gameSettingsYamlRoot == null) return 1.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.0f;
+        Object v = gs.get("introDelay");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.0f;
+    }
+
+    static float getIntroPostDelay() {
+        if (gameSettingsYamlRoot == null) return 1.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.0f;
+        Object v = gs.get("introPostDelay");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.0f;
+    }
+
     static int getLevelCount() {
         return levelYamlList != null ? levelYamlList.size() : 0;
+    }
+
+    static String loadBriefingText(int levelId, String locale) {
+        String briefPath = "config/levels/brief/level_" + levelId + "_" + locale + ".txt";
+        try {
+            java.io.InputStream is = P5Engine.getInstance().getApplet().createInput(briefPath);
+            if (is == null) return "\u8bfb\u53d6\u5931\u8d25";
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append('\n');
+            }
+            reader.close();
+            String result = sb.toString().trim();
+            return result.isEmpty() ? "\u8bfb\u53d6\u5931\u8d25" : result;
+        } catch (Exception e) {
+            return "\u8bfb\u53d6\u5931\u8d25";
+        }
     }
 
     static EnemyDef loadEnemyDef(String typeKey) {

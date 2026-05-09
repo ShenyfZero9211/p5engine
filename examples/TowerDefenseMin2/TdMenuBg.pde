@@ -43,9 +43,29 @@ static final class TdMenuBg {
     static float time = 0;
     static boolean initialized = false;
     static processing.core.PFont font;
+    static processing.core.PFont titleFont;
 
     // Title animation state (0 = start, 1 = end)
     static float titleProgress = 0f;
+
+    // Cached title text width in design coords (animScale=1), for ellipse activation
+    static float cachedTitleWidth = -1f;
+    static String cachedTitleText = null;
+
+    // Background layered fade-in progress (0 = black, 1 = fully visible)
+    static float bgFadeProgress = 0f;
+    static final float BG_FADE_SPEED = 0.35f;
+    static boolean titleAnimStarted = false;
+    static boolean buttonAnimStarted = false;
+
+    // Button references for delayed fade-in
+    static Button btnStartRef;
+    static Button btnSettingsRef;
+    static Button btnQuitRef;
+
+    // Offscreen buffer & shader for flashlight grid effect
+    static processing.core.PGraphics gridLayer;
+    static PShader flashlightShader;
 
     // Track window size so stars regenerate on resize
     static int lastStarW = -1;
@@ -53,6 +73,10 @@ static final class TdMenuBg {
 
     static void setFont(processing.core.PFont f) {
         font = f;
+    }
+
+    static void setTitleFont(processing.core.PFont f) {
+        titleFont = f;
     }
 
     static void resetCamera() {
@@ -126,6 +150,48 @@ static final class TdMenuBg {
         time += dt;
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
         menuCamera.update(dt, app.mouseX, app.mouseY, app.width, app.height);
+
+        if (bgFadeProgress < 1f) {
+            bgFadeProgress += dt * BG_FADE_SPEED;
+        }
+        if (!titleAnimStarted && bgFadeProgress >= 0.55f) {
+            titleAnimStarted = true;
+            startTitleTween();
+        }
+        if (!buttonAnimStarted && bgFadeProgress >= 0.70f) {
+            buttonAnimStarted = true;
+            startButtonTweens();
+        }
+    }
+
+    static void startTitleTween() {
+        TweenManager tm = TowerDefenseMin2.inst.engine.getTweenManager();
+        tm.toFloat(0f, 1f, 0.8f, v -> {
+            TdMenuBg.titleProgress = v;
+        }).ease(Ease::outBack).start();
+    }
+
+    static void startButtonTweens() {
+        TweenManager tm = TowerDefenseMin2.inst.engine.getTweenManager();
+        if (btnStartRef != null) tm.toAlpha(btnStartRef, 1f, 0.5f).start();
+        if (btnSettingsRef != null) tm.toAlpha(btnSettingsRef, 1f, 0.5f).delay(0.08f).start();
+        if (btnQuitRef != null) tm.toAlpha(btnQuitRef, 1f, 0.5f).delay(0.16f).start();
+    }
+
+    static void resetMenuFade() {
+        // Don't reset if the menu animation has already fully played once.
+        // This prevents the fade-in animation from replaying when returning
+        // from sub-menus (settings, level select) back to the main menu.
+        if (bgFadeProgress >= 1f && titleProgress >= 1f) {
+            return;
+        }
+        bgFadeProgress = 0f;
+        titleAnimStarted = false;
+        buttonAnimStarted = false;
+        titleProgress = 0f;
+        btnStartRef = null;
+        btnSettingsRef = null;
+        btnQuitRef = null;
     }
 
     static float wrapCoord(float v, float size) {
@@ -165,9 +231,9 @@ static final class TdMenuBg {
         int dsw = app.engine.getDisplayManager().getDesignWidth();
         int dsh = app.engine.getDisplayManager().getDesignHeight();
         float cx = dsw * 0.5f;
-        // Animated position: center (dsh*0.5) -> final (dsh*0.167)
+        // Animated position: center -> red-box area center (~35% of design height)
         float startY = dsh * 0.5f;
-        float endY = dsh * 0.12f;
+        float endY = dsh * 0.25f;
         float curY = startY + (endY - startY) * titleProgress;
 
         // Animated alpha: 0 -> 255
@@ -176,11 +242,19 @@ static final class TdMenuBg {
         // Animated scale: 0.8 -> 1.0
         float scale = Math.max(0, 0.8f + 0.2f * titleProgress);
 
+        float baseTextSize = 84f;
         g.textAlign(PApplet.CENTER, PApplet.CENTER);
-        if (font != null) g.textFont(font);
-        g.textSize(48 * scale);
+        if (titleFont != null) g.textFont(titleFont);
+        else if (font != null) g.textFont(font);
+        g.textSize(baseTextSize * scale);
 
         float tw = g.textWidth(title);
+        // Cache normalized width (animScale=1) for flashlight grid ellipse
+        // Re-calculate when title text changes (language switch) or first time
+        if (!title.equals(cachedTitleText) || (titleProgress >= 0.99f && cachedTitleWidth < 0)) {
+            cachedTitleWidth = tw / scale;
+            cachedTitleText = title;
+        }
 
         // Glow shadow
         g.fill(74, 158, 255, (int)(60 * titleProgress));
@@ -192,7 +266,8 @@ static final class TdMenuBg {
         // Accent underline
         g.stroke(74, 158, 255, (int)(180 * titleProgress));
         g.strokeWeight(2);
-        g.line(cx - tw * 0.5f, curY + 32, cx + tw * 0.5f, curY + 32);
+        float underlineOffset = baseTextSize * 0.65f;
+        g.line(cx - tw * 0.5f, curY + underlineOffset, cx + tw * 0.5f, curY + underlineOffset);
     }
 
     static void draw(PApplet g) {
@@ -201,46 +276,146 @@ static final class TdMenuBg {
         int dw = app.width;
         int dh = app.height;
         float brightness = TdAssets.getMenuStarBrightness();
+        float p = bgFadeProgress;
 
-        // Deep space background
-        g.background(14, 18, 34);
+        // Background transitions from black to configured menu bg color (0 ~ 0.75)
+        float bgT = Math.min(1f, p / 0.75f);
+        int baseR = TdAssets.getMenuBgR();
+        int baseG = TdAssets.getMenuBgG();
+        int baseB = TdAssets.getMenuBgB();
+        int bgR = (int)(baseR * bgT);
+        int bgG = (int)(baseG * bgT);
+        int bgB = (int)(baseB * bgT);
+        g.background(bgR, bgG, bgB);
 
-        // Draw parallax star layers: Far -> Mid -> Near
-        drawStarLayer(g, farStars, brightness, dw, dh);
-        drawStarLayer(g, midStars, brightness, dw, dh);
-        drawNearLayer(g, brightness, dw, dh);
-
-        // Subtle perspective grid
-        g.stroke(40, 60, 100, (int)(40 * brightness));
-        g.strokeWeight(1);
-        float horizonY = dh * 0.556f;  // 400/720 ≈ 0.556
-        // Horizontal lines
-        for (int i = 0; i < 12; i++) {
-            float y = horizonY + i * 35;
-            if (y > dh) break;
-            float alpha = PApplet.map(y, horizonY, dh, 30, 80) * brightness;
-            g.stroke(40, 60, 100, (int)alpha);
-            g.line(0, y, dw, y);
-        }
-        // Vertical perspective lines
-        float cx = dw * 0.5f;
-        for (int i = -8; i <= 8; i++) {
-            float x2 = cx + i * 120;
-            g.stroke(40, 60, 100, (int)(25 * brightness));
-            g.line(cx, horizonY - 100, x2, dh);
+        // Stage 1: Stars fade in (0 ~ 0.35)
+        float starAlpha = Math.min(1f, p / 0.35f);
+        if (starAlpha > 0) {
+            drawStarLayer(g, farStars, brightness * starAlpha, dw, dh);
+            drawStarLayer(g, midStars, brightness * starAlpha, dw, dh);
+            drawNearLayer(g, brightness * starAlpha, dw, dh);
         }
 
-        // Subtle vignette (darken edges)
+        // Stage 2: Perspective grid lines (subtle background grid)
+        float gridAlpha = (p > 0.25f) ? Math.min(1f, (p - 0.25f) / 0.25f) : 0f;
+        if (gridAlpha > 0) {
+            g.stroke(40, 60, 100, (int)(40 * brightness * gridAlpha));
+            g.strokeWeight(1);
+            float horizonY = dh * 0.556f;
+            // Horizontal lines
+            for (int i = 0; i < 12; i++) {
+                float y = horizonY + i * 35;
+                if (y > dh) break;
+                float alpha = PApplet.map(y, horizonY, dh, 30, 80) * brightness * gridAlpha;
+                g.stroke(40, 60, 100, (int)alpha);
+                g.line(0, y, dw, y);
+            }
+            // Vertical perspective lines
+            float cx = dw * 0.5f;
+            for (int i = -8; i <= 8; i++) {
+                float x2 = cx + i * 120;
+                g.stroke(40, 60, 100, (int)(25 * brightness * gridAlpha));
+                g.line(cx, horizonY - 100, x2, dh);
+            }
+        }
+
+        // Stage 3: Flashlight grid overlay (only on main menu, hidden in settings/level select)
+        if (app.state == TdState.MENU) {
+            drawFlashlightGrid(g, dw, dh);
+        }
+
+        // Stage 3: Vignette fades in (0.55 ~ 0.85)
+        float vignetteAlpha = (p > 0.55f) ? Math.min(1f, (p - 0.55f) / 0.30f) : 0f;
+        if (vignetteAlpha > 0) {
+            g.noStroke();
+            for (int i = 0; i < 3; i++) {
+                float t = i / 3f;
+                int a = (int)(40 * (1 - t) * brightness * vignetteAlpha);
+                g.fill(0, 0, 0, a);
+                float margin = t * 200;
+                g.rect(0, 0, dw, margin);
+                g.rect(0, dh - margin, dw, margin);
+                g.rect(0, 0, margin, dh);
+                g.rect(dw - margin, 0, margin, dh);
+            }
+        }
+
+        // Bottom-center credit text (只在主菜单显示)
+        if (app.state == TdState.MENU) {
+            shenyf.p5engine.rendering.DisplayManager dm = app.engine.getDisplayManager();
+            float uiScale = dm.getUniformScale();
+            g.textAlign(PApplet.CENTER, PApplet.BOTTOM);
+            if (font != null) g.textFont(font);
+            g.textSize(14 * uiScale);
+            g.fill(200, 210, 230, (int)(100 * p));
+            g.text("- Achieved with P5engine -", dw * 0.5f, dh - 12 * uiScale);
+        }
+    }
+
+    static void drawFlashlightGrid(PApplet g, int dw, int dh) {
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
+        shenyf.p5engine.rendering.DisplayManager dm = app.engine.getDisplayManager();
+
+        // Title final position in physical screen pixels
+        float scale = dm.getUniformScale();
+        float offsetX = dm.getOffsetX();
+        float offsetY = dm.getOffsetY();
+        float titleCx = offsetX + dm.getDesignWidth() * 0.5f * scale;
+        float titleCy = offsetY + dm.getDesignHeight() * 0.25f * scale;
+
+        float mx = app.mouseX;
+        float my = app.mouseY;
+
+        // Activation: elliptical zone around the title text (adapts to CN/EN width)
+        float titleTextW = (cachedTitleWidth > 0 ? cachedTitleWidth : 300f) * scale;
+        float titleTextH = 84f * scale;
+        float margin = 40f * scale;
+        float halfW = (titleTextW * 0.5f + margin) * 0.5f;  // shrink 50%
+        float halfH = (titleTextH * 0.5f + margin) * 0.5f;
+
+        float dx = mx - titleCx;
+        float dy = my - titleCy;
+        // Normalized ellipse distance: <=1 means inside the ellipse
+        float ellipseDist = PApplet.sqrt((dx * dx) / (halfW * halfW) + (dy * dy) / (halfH * halfH));
+
+        float fadeRange = 0.8f;  // tighten the overall activation zone
+        if (ellipseDist > 1f + fadeRange) return;
+
+        float activation;
+        if (ellipseDist <= 1f) {
+            activation = 1.0f;
+        } else {
+            float t = (ellipseDist - 1f) / fadeRange;
+            // smoothstep: zero derivative at both ends for imperceptible fade-in/out
+            t = t * t * (3f - 2f * t);
+            activation = 1f - t;
+        }
+
+        float lightRadius = Math.min(dw, dh) * 0.132f;
+
+        // ---- Debug: visualize the elliptical activation zone ----
+        // g.noFill();
+        // g.strokeWeight(2);
+        // g.stroke(255, 60, 60, 120);
+        // g.ellipse(titleCx, titleCy, halfW * 2f, halfH * 2f);
+
+        // ---- Shader: grid lines generated in fragment shader ----
+        if (flashlightShader == null) {
+            flashlightShader = g.loadShader("shaders/flashlight_grid.glsl");
+        }
+        flashlightShader.set("resolution", (float)dw, (float)dh);
+        flashlightShader.set("mouse", mx, dh - my);
+        flashlightShader.set("gridSize", 40f);
+        flashlightShader.set("lightRadius", lightRadius);
+        flashlightShader.set("activation", activation);
+        flashlightShader.set("rectSize", 0f, 0f);
+
+        g.blendMode(PApplet.ADD);
+        g.shader(flashlightShader);
         g.noStroke();
-        for (int i = 0; i < 3; i++) {
-            float t = i / 3f;
-            int a = (int)(40 * (1 - t) * brightness);
-            g.fill(0, 0, 0, a);
-            float margin = t * 200;
-            g.rect(0, 0, dw, margin);
-            g.rect(0, dh - margin, dw, margin);
-            g.rect(0, 0, margin, dh);
-            g.rect(dw - margin, 0, margin, dh);
-        }
+        g.fill(255);
+        g.rect(0, 0, dw, dh);
+        g.resetShader();
+        g.blendMode(PApplet.BLEND);
     }
 }

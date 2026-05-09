@@ -10,6 +10,8 @@ public class Label extends UIComponent {
     private String i18nKey;
     private Object[] i18nArgs;
     private Runnable localeListener;
+    private float wrapWidth = 0;
+    private float textSize = -1;
 
     public Label(String id) {
         super(id);
@@ -71,14 +73,60 @@ public class Label extends UIComponent {
         return textColor;
     }
 
+    public void setWrapWidth(float wrapWidth) {
+        this.wrapWidth = wrapWidth;
+        markLayoutDirtyUp();
+    }
+
+    public float getWrapWidth() {
+        return wrapWidth;
+    }
+
+    public void setTextSize(float textSize) {
+        this.textSize = textSize;
+        markLayoutDirtyUp();
+    }
+
+    public float getTextSize() {
+        return textSize;
+    }
+
     @Override
     public void measure(PApplet applet) {
         applet.pushStyle();
-        applet.textSize(14);
-        float tw = applet.textWidth(text) + 12;
-        float th = 22;
-        setSize(Math.max(getWidth(), tw), Math.max(getHeight(), th));
+        float ts = textSize > 0 ? textSize : 14;
+        applet.textSize(ts);
+        if (wrapWidth > 0) {
+            float tw = wrapWidth + 12;
+            float lineH = applet.textAscent() + applet.textDescent();
+            int lines = countWrapLines(applet, text, wrapWidth);
+            float th = lines * lineH + 8;
+            setSize(Math.max(getWidth(), tw), Math.max(getHeight(), th));
+        } else {
+            float tw = applet.textWidth(text) + 12;
+            float th = 22;
+            setSize(Math.max(getWidth(), tw), Math.max(getHeight(), th));
+        }
         applet.popStyle();
+    }
+
+    private int countWrapLines(PApplet applet, String text, float maxW) {
+        if (text == null || text.isEmpty()) return 1;
+        int lines = 1;
+        int lineStart = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                lines++;
+                lineStart = i + 1;
+            } else {
+                float w = applet.textWidth(text.substring(lineStart, i + 1));
+                if (w > maxW && i > lineStart) {
+                    lines++;
+                    lineStart = i;
+                }
+            }
+        }
+        return Math.max(1, lines);
     }
 
     @Override
@@ -93,7 +141,8 @@ public class Label extends UIComponent {
             }
             applet.fill(c);
             applet.noStroke();
-            applet.textSize(Math.min(14, getHeight() * 0.5f));
+            float ts = textSize > 0 ? textSize : Math.min(14, getHeight() * 0.5f);
+            applet.textSize(ts);
             float tx;
             if (textAlign == PApplet.CENTER) {
                 tx = getAbsoluteX() + getWidth() * 0.5f;
@@ -102,9 +151,14 @@ public class Label extends UIComponent {
             } else {
                 tx = getAbsoluteX() + 4;
             }
-            applet.textAlign(textAlign, PApplet.BASELINE);
-            float ty = getAbsoluteY() + getHeight() * 0.5f + (applet.textAscent() - applet.textDescent()) * 0.5f;
-            applet.text(text != null ? text : "", tx, ty);
+            if (wrapWidth > 0) {
+                applet.textAlign(textAlign, PApplet.TOP);
+                applet.text(text != null ? text : "", getAbsoluteX() + 4, getAbsoluteY() + 4, getWidth() - 8, getHeight() - 8);
+            } else {
+                applet.textAlign(textAlign, PApplet.BASELINE);
+                float ty = getAbsoluteY() + getHeight() * 0.5f + (applet.textAscent() - applet.textDescent()) * 0.5f;
+                applet.text(text != null ? text : "", tx, ty);
+            }
         } else {
             theme.setCurrentAlpha(getEffectiveAlpha());
             theme.drawLabel(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);

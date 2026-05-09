@@ -108,6 +108,7 @@ static class WinLoseTextAnimator {
 static final class TdFlow {
 
     static WinLoseTextAnimator winLoseAnimator = null;
+    static int briefingLevelId = -1;
 
     static void buildMainMenu(TowerDefenseMin2 app) {
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
@@ -122,6 +123,8 @@ static final class TdFlow {
         // println("[DEBUG] tween active count after killAll=" + tm.getActiveCount());
         tm.setUseUnscaledTime(true);
 
+        TdMenuBg.resetMenuFade();
+
         Window win = new Window("menu_win");
         int windowH = 280;
         float scale = app.engine.getDisplayManager().getUniformScale();
@@ -130,7 +133,7 @@ static final class TdFlow {
         float aspectRatio = (float)actualW / actualH;
         float baseAspectRatio = 21.0f / 9.0f; // 21:9 基准
         float spacing = actualH * 0.1f * (baseAspectRatio / aspectRatio);
-        int windowY = (int)((actualH - spacing) / scale) - windowH;
+        int windowY = (int)((actualH - spacing) / scale) - windowH + 20;
         win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_TOP);
         win.setBounds(0, windowY, 320, windowH);
         win.setTitle(TdAssets.i18n("menu.title"));
@@ -169,46 +172,40 @@ static final class TdFlow {
         panel.fadeIn(0.1f);
         win.add(panel);
 
-        // Title animation: start from center, float up with outBack
-        // println("[DEBUG] titleProgress before=" + TdMenuBg.titleProgress);
-        TdMenuBg.titleProgress = 0f;
-        // println("[DEBUG] titleProgress after reset=" + TdMenuBg.titleProgress);
-        tm.toFloat(0f, 1f, 0.8f, v -> {
-            TdMenuBg.titleProgress = v;
-        }).ease(Ease::outBack).start();
-        // println("[DEBUG] title tween started, active count=" + tm.getActiveCount());
-
-        // Buttons start below their final position (keep existing staggered animation)
+        // Buttons start invisible; TdMenuBg will trigger their fade-in
         Button btnStart = new Button("btn_start");
         btnStart.setLabel(TdAssets.i18n("menu.start"));
-        btnStart.setBounds(40, 74, 240, 52);
+        btnStart.setBounds(40, 90, 240, 52);
         btnStart.setAlpha(0);
         btnStart.setAction(() -> TdFlow.showLevelSelect(app));
         panel.add(btnStart);
+        TdMenuBg.btnStartRef = btnStart;
 
         Button btnSettings = new Button("btn_settings");
         btnSettings.setLabel(TdAssets.i18n("menu.settings"));
-        btnSettings.setBounds(40, 144, 240, 52);
+        btnSettings.setBounds(40, 160, 240, 52);
         btnSettings.setAlpha(0);
         btnSettings.setAction(() -> TdFlow.showSettings(app, true));
         panel.add(btnSettings);
+        TdMenuBg.btnSettingsRef = btnSettings;
 
         Button btnQuit = new Button("btn_quit");
         btnQuit.setLabel(TdAssets.i18n("menu.quit"));
-        btnQuit.setBounds(40, 214, 240, 52);
+        btnQuit.setBounds(40, 230, 240, 52);
         btnQuit.setAlpha(0);
         btnQuit.setAction(() -> app.exit());
         panel.add(btnQuit);
+        TdMenuBg.btnQuitRef = btnQuit;
 
         // Staggered slide-up + fade-in (start after title begins moving)
         float btnDelay = 0.3f;
-        tm.toY(btnStart, 44, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+        tm.toY(btnStart, 60, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
         tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
 
-        tm.toY(btnSettings, 114, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+        tm.toY(btnSettings, 130, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
         tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
 
-        tm.toY(btnQuit, 184, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
+        tm.toY(btnQuit, 200, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
         tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
 
         // println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
@@ -620,7 +617,7 @@ static final class TdFlow {
             Button btn = new Button("btn_diff_" + dKey);
             btn.setBounds((400 - btnW) / 2, startY + i * (btnH + gap), btnW, btnH);
             btn.setLabel(label);
-            btn.setAction(() -> startLevel(app, levelId, dKey));
+            btn.setAction(() -> showBriefing(app, levelId, dKey));
             btn.appear(0.05f * (i + 1), 16f, 0.4f);
             panel.add(btn);
         }
@@ -639,6 +636,103 @@ static final class TdFlow {
         });
         btnBack.appear(0.3f, 16f, 0.4f);
         panel.add(btnBack);
+    }
+
+    static void showBriefing(TowerDefenseMin2 app, int levelId, String difficultyKey) {
+        briefingLevelId = levelId;
+        app.state = TdState.BRIEFING;
+        Panel root = app.ui.getRoot();
+        root.removeAllChildren();
+        app.engine.getTweenManager().killAll();
+        app.engine.getTweenManager().setUseUnscaledTime(true);
+
+        float designW = app.engine.getDisplayManager().getDesignWidth();
+        float designH = app.engine.getDisplayManager().getDesignHeight();
+
+        int winW = 840;
+        int winH = 480;
+        int winX = (int)(designW - winW) / 2;
+        int winY = (int)(designH - winH) / 2;
+
+        Window win = new Window("briefing_win");
+        win.setBounds(winX, winY, winW, winH);
+        win.hideTitleBar();
+        win.setResizable(false);
+        win.setZOrder(10);
+        win.setPaintBackground(false);
+        win.fadeIn(0f);
+        root.add(win);
+
+        Panel panel = new Panel("briefing_panel");
+        panel.setBounds(0, 0, winW, winH);
+        panel.setPaintBackground(false);
+        panel.fadeIn(0f);
+        win.add(panel);
+
+        // Title: level name
+        String levelName = TdAssets.i18n("level." + levelId + ".name");
+        Label lblTitle = new Label("lbl_briefing_title");
+        lblTitle.setText(levelName);
+        lblTitle.setBounds(0, 20, winW, 44);
+        lblTitle.setTextAlign(PApplet.CENTER);
+        panel.add(lblTitle);
+
+        // Difficulty label
+        DifficultyDef diff = TdAssets.getDifficulty(difficultyKey);
+        String diffLabel = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : difficultyKey;
+        Label lblDiff = new Label("lbl_briefing_diff");
+        lblDiff.setText(diffLabel);
+        lblDiff.setBounds(0, 68, winW, 30);
+        lblDiff.setTextAlign(PApplet.CENTER);
+        panel.add(lblDiff);
+
+        // Briefing text: load from locale-specific txt file
+        String locale = P5Engine.getInstance().getI18n().getLocale();
+        String briefingText = TdAssets.loadBriefingText(levelId, locale);
+
+        float contentW = 700;
+        float contentH = 720; // generous height for text() to layout all lines
+
+        ScrollPane sp = new ScrollPane("briefing_scroll");
+        sp.setBounds(60, 108, 720, 360);
+        sp.setShowVerticalBar(true);
+        sp.setBackgroundColor(0x801A2035);
+
+        Label lblBriefing = new Label("lbl_briefing_text");
+        lblBriefing.setText(briefingText);
+        lblBriefing.setWrapWidth(contentW);
+        lblBriefing.setTextAlign(PApplet.LEFT);
+        lblBriefing.setTextColor(0xFFE0E6F0);
+        lblBriefing.setTextSize(18);
+        lblBriefing.setBounds(0, 0, (int)contentW, (int)contentH);
+
+        sp.getViewport().setPaintBackground(false);
+        sp.getViewport().setSize((int)contentW, (int)contentH);
+        sp.getViewport().add(lblBriefing);
+        panel.add(sp);
+
+        // Buttons placed outside the window, horizontally aligned
+        int btnW = 200;
+        int btnH = 48;
+        int btnGap = 20;
+        int btnY = winY + winH + 16;
+        int btnBaseX = winX + (winW - btnW * 2 - btnGap) / 2;
+
+        Button btnBack = new Button("btn_briefing_back");
+        btnBack.setLabel(TdAssets.i18n("briefing.back"));
+        btnBack.setBounds(btnBaseX, btnY, btnW, btnH);
+        btnBack.setAction(() -> showDifficultySelect(app, levelId));
+        btnBack.setZOrder(11);
+        btnBack.appear(0.15f, 16f, 0.4f);
+        root.add(btnBack);
+
+        Button btnStart = new Button("btn_briefing_start");
+        btnStart.setLabel(TdAssets.i18n("briefing.start"));
+        btnStart.setBounds(btnBaseX + btnW + btnGap, btnY, btnW, btnH);
+        btnStart.setAction(() -> startLevel(app, levelId, difficultyKey));
+        btnStart.setZOrder(11);
+        btnStart.appear(0.25f, 16f, 0.4f);
+        root.add(btnStart);
     }
 
     static void startLevel(TowerDefenseMin2 app, int levelId) {

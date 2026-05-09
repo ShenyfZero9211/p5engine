@@ -1,0 +1,8 @@
+Multiple enemy types are attacking together; single-firepower is no longer sufficient.
+
+Combine machine gun towers and missile towers, leveraging their respective range and damage characteristics to build a crossfire network.
+
+Mission Objectives:
+- Cover the first half of the path with machine gun towers
+- Use missile towers against clustered enemies
+- Prevent all enemies from escaping

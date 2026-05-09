@@ -27,6 +27,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 
 import shenyf.p5engine.GameState;
+import shenyf.p5engine.intro.IntroSequence;
 
 public class P5Engine {
     private static P5Engine instance;
@@ -50,6 +51,7 @@ public class P5Engine {
     private shenyf.p5engine.rendering.PostProcessor postProcessor;
     private shenyf.p5engine.rendering.DisplayManager displayManager;
     private shenyf.p5engine.core.WindowManager windowManager;
+    private IntroSequence introSequence;
 
     private final List<Runnable> onDisposeListeners = new ArrayList<>();
     private float lastMouseX;
@@ -899,6 +901,10 @@ public class P5Engine {
             debugOverlay.update(inputManager, applet.width, applet.height);
         }
 
+        if (hasActiveIntro()) {
+            introSequence.update(gameTime.getRealDeltaTime());
+        }
+
         scheduler.update(gameTime.getDeltaTime(), gameTime.getRealDeltaTime());
         tweenManager.update(gameTime);
         audioManager.update();
@@ -992,6 +998,14 @@ public class P5Engine {
      * Automatically clears the background before rendering.
      */
     public void render(int backgroundColor) {
+        if (hasActiveIntro()) {
+            renderer.clear(backgroundColor);
+            introSequence.render(applet);
+            if (debugOverlay != null) {
+                debugOverlay.render(applet, this);
+            }
+            return;
+        }
         Scene activeScene = sceneManager.getActiveScene();
         if (activeScene != null) {
             renderer.clear(backgroundColor);
@@ -1098,6 +1112,18 @@ public class P5Engine {
 
     public SceneManager getSceneManager() {
         return sceneManager;
+    }
+
+    public void setIntroSequence(IntroSequence seq) {
+        this.introSequence = seq;
+    }
+
+    public IntroSequence getIntroSequence() {
+        return introSequence;
+    }
+
+    public boolean hasActiveIntro() {
+        return introSequence != null && !introSequence.isComplete();
     }
 
     public P5GameTime getGameTime() {

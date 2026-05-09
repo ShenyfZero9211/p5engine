@@ -37,9 +37,11 @@ final class TdAppSetup {
         ui.setImeHwnd(engine.getImeHwnd());
         sketchUi = new SketchUiCoordinator(TowerDefenseMin2.this, ui);
         TdTheme theme = new TdTheme();
-        PFont cnFont = createFont("Microsoft YaHei", 48);
-        theme.setFont(cnFont);
-        TdMenuBg.setFont(cnFont);
+        PFont cnFontSmall = createFont("Microsoft YaHei", 16);
+        PFont cnFontLarge = createFont("Microsoft YaHei", 128);
+        theme.setFont(cnFontSmall);
+        TdMenuBg.setFont(cnFontSmall);
+        TdMenuBg.setTitleFont(cnFontLarge);
         ui.setTheme(theme);
 
         gameScene = engine.getSceneManager().getActiveScene();
@@ -163,7 +165,22 @@ final class TdAppSetup {
             }, 200);
         }
 
-        TdFlow.buildMainMenu(TowerDefenseMin2.this);
+        // Setup intro sequence
+        IntroSequence intro = new IntroSequence();
+        float introDelay = TdAssets.getIntroDelay();
+        float introPostDelay = TdAssets.getIntroPostDelay();
+        intro.add(new FadeTextSegment(
+            new String[]{"SharpEye  Presents", "Achieved With P5Engine"},
+            0.6f, 0.2f, 1.5f, 0.8f, introDelay, introPostDelay,
+            0xFFFFFFFF, 0xFF000000, 72f, 0f
+        ));
+        intro.onComplete(() -> {
+            TowerDefenseMin2.this.state = TdState.MENU;
+            TdFlow.buildMainMenu(TowerDefenseMin2.this);
+        });
+        engine.setIntroSequence(intro);
+        TowerDefenseMin2.this.state = TdState.INTRO;
+        intro.start();
     }
 
     void setupCamera() {
@@ -224,6 +241,20 @@ static final class TdAppLoop {
         float dt = app.engine.getGameTime().getDeltaTime();
         float dtReal = app.engine.getGameTime().getRealDeltaTime();
         DisplayManager dm = app.engine.getDisplayManager();
+
+        // === Intro sequence (plays before any menu/game logic) ===
+        shenyf.p5engine.intro.IntroSequence intro = app.engine.getIntroSequence();
+        if (intro != null && !intro.isComplete()) {
+            app.background(0);
+            intro.update(dtReal);
+            intro.render(app);
+            // Any key press or mouse click skips the entire intro
+            if (app.introSkipRequested || app.mousePressed) {
+                app.introSkipRequested = false;
+                intro.skipAll();
+            }
+            return;
+        }
 
         // === Layer 1: Background & World (actual screen pixels, no scaling) ===
         if (app.state == TdState.PLAYING || app.state == TdState.PAUSED) {
@@ -288,7 +319,7 @@ static final class TdAppLoop {
         }
 
         // Menu background covers entire actual window (before FIT scaling)
-        if (app.state == TdState.MENU || app.state == TdState.LEVEL_SELECT || app.state == TdState.SETTINGS) {
+        if (app.state == TdState.MENU || app.state == TdState.LEVEL_SELECT || app.state == TdState.SETTINGS || app.state == TdState.BRIEFING) {
             TdMenuBg.update(dtReal);
             TdMenuBg.draw(app);
         }
@@ -366,6 +397,8 @@ static final class TdAppInput {
                 if (app.state == TdState.PLAYING) {
                     TdFlow.showPauseMenu(app);
                 }
+            } else if (app.state == TdState.BRIEFING) {
+                TdFlow.showDifficultySelect(app, TdFlow.briefingLevelId);
             } else if (app.state == TdState.PLAYING) {
                 TdFlow.showPauseMenu(app);
             } else if (app.state == TdState.PAUSED) {

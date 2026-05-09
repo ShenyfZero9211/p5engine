@@ -1,6 +1,7 @@
 id: 3
 nameKey: level.3.name
 subtitleKey: level.3.subtitle
+briefingKey: level.3.briefing
 levelType: DEFEND_BASE
 initialMoney: 350
 baseOrbs: 5

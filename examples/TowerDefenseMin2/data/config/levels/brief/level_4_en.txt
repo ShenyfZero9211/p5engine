@@ -1,0 +1,8 @@
+The enemy has learned to attack in waves and at varying rhythms.
+
+You need to maintain sufficient firepower at every node along the path without any blind spots. Anticipate the enemy's attack rhythm and layout in advance.
+
+Mission Objectives:
+- Respond to multi-rhythm mixed assaults
+- Maintain full-path firepower coverage
+- Prevent all enemies from escaping

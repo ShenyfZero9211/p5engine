@@ -72,12 +72,18 @@
   "ui.cancel": "Cancel",
   "level.1.name": "First Strike",
   "level.1.subtitle": "Learn MG tower defense basics",
+  "level.1.briefing": "Welcome to TowerDefenseMin.\n\nYour base is under its first enemy assault. Place Machine Gun towers along the winding path to stop enemies from reaching your base.\n\nMission Objectives:\n- Build MG towers along the path\n- Prevent any enemy from escaping\n- Protect the base orbs",
   "level.2.name": "Winding Defense",
   "level.2.subtitle": "Master upgrades and path coverage",
+  "level.2.briefing": "Enemy routes have become more complex.\n\nThe battlefield path is winding, requiring careful planning of tower coverage. Make good use of the upgrade system to reinforce key positions.\n\nMission Objectives:\n- Cover all path corners\n- Learn to upgrade towers\n- Prevent any enemy from escaping",
   "level.3.name": "Crossfire",
   "level.3.subtitle": "Combine MG and Missile towers",
+  "level.3.briefing": "Mixed enemy types are attacking; single firepower is no longer enough.\n\nCombine Machine Gun and Missile towers, using their range and damage characteristics to build a crossfire network.\n\nMission Objectives:\n- MG towers cover the front half\n- Missile towers strike clusters\n- Prevent any enemy from escaping",
   "level.4.name": "Mixed Assault",
   "level.4.subtitle": "Multiple rhythms per wave",
+  "level.4.briefing": "Enemies have learned multi-rhythm assaults.\n\nYou must maintain sufficient firepower at every node of the path without any dead zones. Anticipate enemy attack rhythms and prepare in advance.\n\nMission Objectives:\n- Respond to multi-rhythm mixed assaults\n- Maintain full-path fire coverage\n- Prevent any enemy from escaping",
   "level.5.name": "Proving Ground",
-  "level.5.subtitle": "Test towers and enemies"
+  "level.5.subtitle": "Test towers and enemies",
+  "briefing.start": "Start Mission",
+  "briefing.back": "Back"
 }

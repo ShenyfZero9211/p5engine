@@ -12,6 +12,10 @@ gameSettings:
   starBrightness: 0.6
   # 菜单背景星星/网格整体亮度 (0.0 = 完全黑暗, 1.0 = 正常亮度)
   menuStarBrightness: 1.0
+  # 主菜单背景颜色 (RGB, 0~255)
+  menuBgR: 8
+  menuBgG: 12
+  menuBgB: 28
   # 背景 LOD 触发阈值：当 camera zoom <= 该值时启用降级渲染 (0.0 = 永久关闭 LOD)
   bgLodZoomThreshold: 1.7
   # 背景星星/星云是否每次随机生成 (true = 每次随机, false = 按关卡 ID 固定)
@@ -24,6 +28,10 @@ gameSettings:
   renderNebulas: true
   # 是否渲染平台层 (Layer 3: 平台地形 + 该层 blockedZones)
   renderPlatformLayer: true
+  # 片头动画开始前的黑屏延迟（秒）
+  introDelay: 2.0
+  # 片头动画结束后的黑屏延迟（秒）
+  introPostDelay: 1.0
 
 # 游戏难度参数
 difficulties:
@@ -37,9 +45,9 @@ difficulties:
     killRewardMultiplier: 1.0
   hard:
     nameKey: "difficulty.hard"
-    enemyHpMultiplier: 1.5
-    killRewardMultiplier: 0.8
+    enemyHpMultiplier: 1.2
+    killRewardMultiplier: 1.0
   challenge:
     nameKey: "difficulty.challenge"
-    enemyHpMultiplier: 2.0
-    killRewardMultiplier: 0.6
+    enemyHpMultiplier: 1.5
+    killRewardMultiplier: 0.8
