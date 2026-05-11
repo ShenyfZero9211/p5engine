@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
 """
-PPAK Pack - Pack a directory into a .ppak file
+PPAK Pack - Pack one or more directories into a .ppak file
 
 Usage:
+    # Single directory (backward compatible)
     python ppak_pack.py <source_dir> [output.ppak] [options]
 
+    # Multiple directories (uses directory base name as path prefix)
+    python ppak_pack.py data/ music/ sounds/ textures/ -o data.ppak
+
 Options:
+    -o, --output <file>  Output .ppak file path
     --manifest <file>    Use manifest file for metadata
-    --compress          Compress file data
-    --include-hidden    Include hidden files/directories
-    --name <name>       Package name
-    --version <ver>     Package version
-    --author <author>   Package author
+    --compress           Compress file data
+    --include-hidden     Include hidden files/directories
+    --name <name>        Package name
+    --version <ver>      Package version
+    --author <author>    Package author
 
 Examples:
     python ppak_pack.py my_sketch/
     python ppak_pack.py my_sketch/ my_sketch.ppak
-    python ppak_pack.py my_sketch/ --manifest manifest.json --compress
+    python ppak_pack.py data/ music/ sounds/ -o output.ppak --compress
 """
 
 import sys
@@ -29,6 +34,7 @@ from ppak_lib import (
     PPAKWriter,
     PPAKManifest,
     pack_directory,
+    pack_multi_directory,
     load_manifest_from_file,
     create_manifest,
 )
@@ -36,10 +42,16 @@ from ppak_lib import (
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Pack a directory into a .ppak package file"
+        description="Pack one or more directories into a .ppak package file"
     )
-    parser.add_argument("source_dir", help="Source directory to pack")
-    parser.add_argument("output", nargs="?", help="Output .ppak file path")
+    parser.add_argument(
+        "source_dirs",
+        nargs="+",
+        help="Source directory(s) to pack. If multiple, each dir's base name becomes the path prefix inside the PPAK.",
+    )
+    parser.add_argument(
+        "-o", "--output", help="Output .ppak file path"
+    )
     parser.add_argument("--manifest", "-m", help="Manifest JSON file")
     parser.add_argument(
         "--compress", "-c", action="store_true", help="Compress file data"
@@ -54,15 +66,23 @@ def main():
 
     args = parser.parse_args()
 
-    source_dir = Path(args.source_dir)
-    if not source_dir.exists() or not source_dir.is_dir():
-        print(f"Error: Source directory not found: {source_dir}", file=sys.stderr)
-        sys.exit(1)
+    # Validate source directories
+    valid_dirs = []
+    for sd in args.source_dirs:
+        p = Path(sd)
+        if not p.exists() or not p.is_dir():
+            print(f"Error: Source directory not found: {p}", file=sys.stderr)
+            sys.exit(1)
+        valid_dirs.append(str(p.resolve()))
 
+    # Resolve output path
     if args.output:
         output_ppak = args.output
+    elif len(valid_dirs) == 1:
+        output_ppak = str(Path(valid_dirs[0]).with_suffix(".ppak"))
     else:
-        output_ppak = str(source_dir.with_suffix(".ppak"))
+        print("Error: --output is required when packing multiple directories", file=sys.stderr)
+        sys.exit(1)
 
     manifest = None
     if args.manifest:
@@ -75,19 +95,31 @@ def main():
             description=args.description or "",
         )
 
-    print(f"Packing: {source_dir}")
+    print(f"Packing {len(valid_dirs)} director{'y' if len(valid_dirs) == 1 else 'ies'}:")
+    for d in valid_dirs:
+        prefix = os.path.basename(os.path.normpath(d))
+        print(f"  {d}  ->  prefix: {prefix}/")
     print(f"Output:  {output_ppak}")
 
-    pack_directory(
-        str(source_dir),
-        output_ppak,
-        manifest=manifest,
-        include_hidden=args.include_hidden,
-        compress=args.compress,
-    )
+    if len(valid_dirs) == 1:
+        pack_directory(
+            valid_dirs[0],
+            output_ppak,
+            manifest=manifest,
+            include_hidden=args.include_hidden,
+            compress=args.compress,
+        )
+    else:
+        pack_multi_directory(
+            valid_dirs,
+            output_ppak,
+            manifest=manifest,
+            include_hidden=args.include_hidden,
+            compress=args.compress,
+        )
 
     size = os.path.getsize(output_ppak)
-    print(f"Done! Created {output_ppak} ({size} bytes)")
+    print(f"Done! Created {output_ppak} ({size:,} bytes)")
 
 
 if __name__ == "__main__":

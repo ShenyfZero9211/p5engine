@@ -52,14 +52,21 @@ public class ImageManager {
         return currentMemory;
     }
 
-    /** Load from the sketch's data/ folder. */
+    /** Load from PPAK if available, otherwise from the sketch's data/ folder. */
     public Texture load(String path) {
         String key = normalizeKey(path);
         Texture cached = cache.get(key);
         if (cached != null) return cached;
 
-        PImage img = applet.loadImage(path);
-        if (img == null) {
+        PImage img = null;
+        shenyf.p5engine.resource.ppak.PPak ppak = shenyf.p5engine.resource.ppak.PPak.getInstance();
+        if (ppak.isReady()) {
+            img = ppak.image(path);
+        }
+        if (img == null || (img.width == 1 && img.height == 1)) {
+            img = applet.loadImage(path);
+        }
+        if (img == null || (img.width == 1 && img.height == 1)) {
             Logger.warn("ImageManager: failed to load " + path);
             return null;
         }

@@ -174,7 +174,6 @@ class PPAKWriter:
     def add_directory(
         self, dir_path: str, base_path: str = "", include_hidden: bool = False
     ):
-        base_path = base_path or dir_path
         dir_path = Path(dir_path)
 
         for root, dirs, files in os.walk(dir_path):
@@ -186,6 +185,8 @@ class PPAKWriter:
                 file_path = Path(root) / file
                 rel_path = os.path.relpath(file_path, dir_path)
                 rel_path = rel_path.replace(os.sep, "/")
+                if base_path:
+                    rel_path = base_path + "/" + rel_path
 
                 with open(file_path, "rb") as f:
                     self.add_file(rel_path, f.read())
@@ -257,6 +258,27 @@ def pack_directory(
 ):
     writer = PPAKWriter(output_ppak, manifest)
     writer.add_directory(source_dir, include_hidden=include_hidden)
+    writer.write(compress=compress)
+
+
+def pack_multi_directory(
+    source_dirs: List[str],
+    output_ppak: str,
+    manifest: Optional[PPAKManifest] = None,
+    include_hidden: bool = False,
+    compress: bool = False,
+):
+    """Pack multiple directories into a single .ppak file.
+    
+    Each directory's base name is used as the path prefix inside the PPAK.
+    For example, packing ['data/', 'music/'] will produce entries like:
+        data/config/levels.yaml
+        music/TopGun.ogg
+    """
+    writer = PPAKWriter(output_ppak, manifest)
+    for source_dir in source_dirs:
+        dir_name = os.path.basename(os.path.normpath(source_dir))
+        writer.add_directory(source_dir, base_path=dir_name, include_hidden=include_hidden)
     writer.write(compress=compress)
 
 

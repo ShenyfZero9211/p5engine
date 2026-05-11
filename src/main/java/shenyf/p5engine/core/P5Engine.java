@@ -337,6 +337,19 @@ public class P5Engine {
         // Initialize audio
         audioManager.init();
 
+        // Auto-detect and initialize PPAK if data.ppak exists
+        try {
+            PPak ppak = PPak.getInstance();
+            ppak.init(applet);
+            if (ppak.isReady()) {
+                Logger.info("  PPak: loaded " + ppak.count() + " resources from " + ppak.getPath());
+            } else {
+                Logger.info("  PPak: not found, using file system fallback");
+            }
+        } catch (Exception e) {
+            Logger.warn("  PPak initialization failed: " + e.getMessage());
+        }
+
         // Cache native surface for mouse confinement and other native operations
         try {
             nativeSurface = applet.getSurface().getNative();

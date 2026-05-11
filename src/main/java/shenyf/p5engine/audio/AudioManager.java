@@ -63,108 +63,83 @@ public class AudioManager {
 
     // ===== Loaders =====
 
-    /** Load a music clip from the sketch's data/ folder. */
+    /** Load a music clip (PPAK preferred, fallback to sketch data). */
     public TinyMusicClip loadMusic(String path) {
         return loadMusic(path, true); // streaming by default for BGM
     }
 
-    /** Load a music clip from the sketch's data/ folder. */
+    /** Load a music clip (PPAK preferred, fallback to sketch data). */
     public TinyMusicClip loadMusic(String path, boolean stream) {
-        String resolved = resolvePath(path);
-        File file = new File(resolved);
-        Logger.info("Audio", "loadMusic: resolved=" + resolved + " exists=" + file.exists());
-        if (!file.exists()) {
-            Logger.warn("Audio: music file not found: " + resolved);
-            return null;
+        String tempPath = null;
+        PPak ppak = PPak.getInstance();
+        if (ppak.isReady()) {
+            tempPath = ppak.audioFile(path);
         }
-        kuusisto.tinysound.Music music = TinySound.loadMusic(file, stream);
-        if (music == null) {
-            Logger.warn("Audio: failed to load music: " + resolved);
-            return null;
-        }
-        Logger.info("Audio", "loadMusic success: " + resolved);
-        TinyMusicClip clip = new TinyMusicClip(music);
-        clip.setGroupVolume(getGroup("bgm").getVolume());
-        activeMusics.add(clip);
-        return clip;
-    }
-
-    /** Load a music clip from a PPAK resource, fallback to sketch data. */
-    public TinyMusicClip loadMusicFromPPak(String path) {
-        return loadMusicFromPPak(path, true);
-    }
-
-    /** Load a music clip from a PPAK resource, fallback to sketch data. */
-    public TinyMusicClip loadMusicFromPPak(String path, boolean stream) {
-        String tempPath = PPak.getInstance().audioFile(path);
         if (tempPath == null) {
-            // Fallback to sketch path
-            String resolved = resolvePath(path);
-            File file = new File(resolved);
+            tempPath = resolvePath(path);
+            File file = new File(tempPath);
+            Logger.info("Audio", "loadMusic: resolved=" + tempPath + " exists=" + file.exists());
             if (!file.exists()) {
-                Logger.warn("Audio: music file not found: " + resolved);
+                Logger.warn("Audio: music file not found: " + tempPath);
                 return null;
             }
-            tempPath = resolved;
         }
         kuusisto.tinysound.Music music = TinySound.loadMusic(new File(tempPath), stream);
         if (music == null) {
             Logger.warn("Audio: failed to load music: " + tempPath);
             return null;
         }
+        Logger.info("Audio", "loadMusic success: " + tempPath);
         TinyMusicClip clip = new TinyMusicClip(music);
         clip.setGroupVolume(getGroup("bgm").getVolume());
         activeMusics.add(clip);
         return clip;
     }
 
-    /** Load a sound effect from the sketch's data/ folder. Cached per path. */
+    /** Alias for loadMusic (backward compatibility). */
+    public TinyMusicClip loadMusicFromPPak(String path) {
+        return loadMusic(path, true);
+    }
+
+    /** Alias for loadMusic (backward compatibility). */
+    public TinyMusicClip loadMusicFromPPak(String path, boolean stream) {
+        return loadMusic(path, stream);
+    }
+
+    /** Load a sound effect (PPAK preferred, fallback to sketch data). Cached per path. */
     public TinySfxClip loadSound(String path) {
         TinySfxClip cached = sfxCache.get(path);
         if (cached != null) return cached;
-        String resolved = resolvePath(path);
-        File file = new File(resolved);
-        Logger.info("Audio", "loadSound: resolved=" + resolved + " exists=" + file.exists());
-        if (!file.exists()) {
-            Logger.warn("Audio: sound file not found: " + resolved);
-            return null;
-        }
-        kuusisto.tinysound.Sound sound = TinySound.loadSound(file, false);
-        if (sound == null) {
-            Logger.warn("Audio: failed to load sound: " + resolved);
-            return null;
-        }
-        Logger.info("Audio", "loadSound success: " + resolved);
-        TinySfxClip clip = new TinySfxClip(sound);
-        clip.setGroupVolume(getGroup("sfx").getVolume());
-        sfxCache.put(path, clip);
-        return clip;
-    }
 
-    /** Load a sound effect from a PPAK resource, fallback to sketch data. Cached per path. */
-    public TinySfxClip loadSoundFromPPak(String path) {
-        TinySfxClip cached = sfxCache.get(path);
-        if (cached != null) return cached;
-        String tempPath = PPak.getInstance().audioFile(path);
+        String tempPath = null;
+        PPak ppak = PPak.getInstance();
+        if (ppak.isReady()) {
+            tempPath = ppak.audioFile(path);
+        }
         if (tempPath == null) {
-            // Fallback to sketch path
-            String resolved = resolvePath(path);
-            File file = new File(resolved);
+            tempPath = resolvePath(path);
+            File file = new File(tempPath);
+            Logger.info("Audio", "loadSound: resolved=" + tempPath + " exists=" + file.exists());
             if (!file.exists()) {
-                Logger.warn("Audio: sound file not found: " + resolved);
+                Logger.warn("Audio: sound file not found: " + tempPath);
                 return null;
             }
-            tempPath = resolved;
         }
         kuusisto.tinysound.Sound sound = TinySound.loadSound(new File(tempPath), false);
         if (sound == null) {
             Logger.warn("Audio: failed to load sound: " + tempPath);
             return null;
         }
+        Logger.info("Audio", "loadSound success: " + tempPath);
         TinySfxClip clip = new TinySfxClip(sound);
         clip.setGroupVolume(getGroup("sfx").getVolume());
         sfxCache.put(path, clip);
         return clip;
+    }
+
+    /** Alias for loadSound (backward compatibility). */
+    public TinySfxClip loadSoundFromPPak(String path) {
+        return loadSound(path);
     }
 
     // ===== Fire-and-forget shortcuts =====
@@ -183,14 +158,9 @@ public class AudioManager {
         }
     }
 
-    /** Play a one-shot sound effect from a PPAK resource. */
+    /** Alias for playOneShot (backward compatibility). */
     public void playOneShotFromPPak(String path, String groupName) {
-        TinySfxClip clip = loadSoundFromPPak(path);
-        if (clip != null) {
-            AudioGroup g = getGroup(groupName);
-            clip.setGroupVolume(g != null ? g.getVolume() : 1.0f);
-            clip.play();
-        }
+        playOneShot(path, groupName);
     }
 
     // ===== Volume / Groups =====

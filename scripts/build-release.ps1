@@ -206,24 +206,43 @@ Write-Host ""
 
 $ppakCreated = $false
 if ($UsePpak) {
-    Write-Step "Packing data into PPAK"
-    $dataDir = Join-Path $SketchDir "data"
-    if (-not (Test-Path $dataDir)) {
-        Write-Warn "No data/ folder found, skipping PPAK"
+    Write-Step "Packing resources into PPAK"
+    $ppakScript = Join-Path $RepoRoot "tools\ppak\ppak_pack.py"
+    if (-not (Test-Path $ppakScript)) {
+        throw "PPAK pack script not found: $ppakScript"
+    }
+
+    # Collect all resource directories at sketch root
+    $ppakDirs = @()
+    $ppakDirNames = @()
+    foreach ($dirName in @("data", "music", "sounds", "textures", "images", "fonts", "assets", "resources", "videos", "maps", "levels")) {
+        $dirPath = Join-Path $SketchDir $dirName
+        if (Test-Path $dirPath) {
+            $ppakDirs += $dirPath
+            $ppakDirNames += $dirName
+        }
+    }
+
+    if ($ppakDirs.Count -eq 0) {
+        Write-Warn "No resource folders found, skipping PPAK"
     } else {
-        $ppakScript = Join-Path $RepoRoot "tools\ppak\ppak_pack.py"
-        if (-not (Test-Path $ppakScript)) {
-            throw "PPAK pack script not found: $ppakScript"
+        # Ensure data/ directory exists so Processing CLI copies it
+        $dataDir = Join-Path $SketchDir "data"
+        if (-not (Test-Path $dataDir)) {
+            New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
         }
 
         $ppakOutput = Join-Path $dataDir "data.ppak"
-        Write-Info "Running: python $ppakScript $dataDir $ppakOutput"
-        & python $ppakScript $dataDir $ppakOutput
+        Write-Info "Packing directories: $($ppakDirNames -join ', ')"
+        Write-Info "Output: $ppakOutput"
+
+        $pythonArgs = @($ppakScript) + $ppakDirs + @("-o", $ppakOutput)
+        & python @pythonArgs
         if ($LASTEXITCODE -ne 0) {
             throw "PPAK packing failed"
         }
         $ppakCreated = $true
-        Write-Info "PPAK created: $ppakOutput"
+        Write-Info "PPAK created: $ppakOutput ($([math]::Round((Get-Item $ppakOutput).Length/1MB, 2)) MB)"
     }
     Write-Host ""
 }
@@ -271,7 +290,9 @@ $extraDirs = Get-ChildItem $SketchDir -Directory | Where-Object {
     ($commonResourceNames -contains $name) -and ($excludeDirs -notcontains $name)
 }
 
-if ($extraDirs.Count -eq 0) {
+if ($ppakCreated) {
+    Write-Info "PPAK mode: skipping copy of extra resource folders (already packed into data.ppak)"
+} elseif ($extraDirs.Count -eq 0) {
     Write-Info "No extra resource folders found"
 } else {
     foreach ($dir in $extraDirs) {
@@ -408,9 +429,7 @@ Write-Host "  Total Size : $(Format-Size $totalSize)" -ForegroundColor Green
 Write-Host ""
 
 if ($ppakCreated) {
-    Write-Warn "PPAK was created. Ensure the sketch calls PPak.init() in setup()!"
-    Write-Warn "  ppak = PPak.getInstance();"
-    Write-Warn "  ppak.init(this);"
+    Write-Info "PPAK mode: all resources loaded from data/data.ppak"
     Write-Host ""
 }
 

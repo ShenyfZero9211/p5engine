@@ -39,19 +39,40 @@ static final class TdSound {
     /** Scan music/ folder for Track*.ogg files (call once in setup). */
     static void initTracks(PApplet app) {
         if (gameTracks != null) return;
-        java.io.File dir = new java.io.File(app.sketchPath("music"));
         java.util.ArrayList<String> list = new java.util.ArrayList<>();
-        if (dir.exists() && dir.isDirectory()) {
-            java.io.File[] files = dir.listFiles();
-            if (files != null) {
-                for (java.io.File f : files) {
-                    String name = f.getName();
-                    if (name.startsWith("Track") && name.endsWith(".ogg")) {
-                        list.add("music/" + name);
+
+        // Try PPAK first
+        shenyf.p5engine.resource.ppak.PPak ppak = shenyf.p5engine.resource.ppak.PPak.getInstance();
+        if (ppak.isReady()) {
+            String[] all = ppak.list();
+            if (all != null) {
+                for (String entry : all) {
+                    if (entry.startsWith("music/") || entry.startsWith("music\\")) {
+                        String name = new java.io.File(entry).getName();
+                        if (name.startsWith("Track") && name.endsWith(".ogg")) {
+                            list.add("music/" + name);
+                        }
                     }
                 }
             }
         }
+
+        // Fallback to file system
+        if (list.isEmpty()) {
+            java.io.File dir = new java.io.File(app.sketchPath("music"));
+            if (dir.exists() && dir.isDirectory()) {
+                java.io.File[] files = dir.listFiles();
+                if (files != null) {
+                    for (java.io.File f : files) {
+                        String name = f.getName();
+                        if (name.startsWith("Track") && name.endsWith(".ogg")) {
+                            list.add("music/" + name);
+                        }
+                    }
+                }
+            }
+        }
+
         java.util.Collections.sort(list);
         gameTracks = list.toArray(new String[0]);
     }
@@ -115,7 +136,14 @@ static final class TdSound {
         new Thread(() -> {
             try {
                 TowerDefenseMin2 app = TowerDefenseMin2.inst;
-                String resolved = app.sketchPath(path);
+                String resolved = null;
+                shenyf.p5engine.resource.ppak.PPak ppak = shenyf.p5engine.resource.ppak.PPak.getInstance();
+                if (ppak.isReady()) {
+                    resolved = ppak.audioFile(path);
+                }
+                if (resolved == null) {
+                    resolved = app.sketchPath(path);
+                }
                 java.io.File file = new java.io.File(resolved);
                 Music music = TinySound.loadMusic(file, true);
                 if (music != null) {

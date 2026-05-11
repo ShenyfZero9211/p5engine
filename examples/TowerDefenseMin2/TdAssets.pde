@@ -48,26 +48,55 @@ static final class TdAssets {
 
     static void loadRuinsTextures(shenyf.p5engine.rendering.ImageManager images) {
         if (images == null) return;
-        java.io.File dir = new java.io.File(
-            P5Engine.getInstance().getApplet().sketchPath("textures"));
         java.util.List<shenyf.p5engine.rendering.Texture> list =
             new java.util.ArrayList<>();
-        if (dir.exists()) {
-            java.io.File[] files = dir.listFiles(new java.io.FilenameFilter() {
-                public boolean accept(java.io.File d, String name) {
-                    return name.startsWith("ruins_") && name.endsWith(".png");
+
+        // Try PPAK first
+        shenyf.p5engine.resource.ppak.PPak ppak = shenyf.p5engine.resource.ppak.PPak.getInstance();
+        if (ppak.isReady()) {
+            String[] all = ppak.list();
+            java.util.ArrayList<String> names = new java.util.ArrayList<>();
+            if (all != null) {
+                for (String entry : all) {
+                    String norm = entry.replace("\\", "/");
+                    if (norm.startsWith("textures/")) {
+                        String name = new java.io.File(entry).getName();
+                        if (name.startsWith("ruins_") && name.endsWith(".png")) {
+                            names.add(name);
+                        }
+                    }
                 }
-            });
-            if (files != null) {
-                java.util.Arrays.sort(files,
-                    (a, b) -> a.getName().compareTo(b.getName()));
-                for (java.io.File f : files) {
-                    shenyf.p5engine.rendering.Texture tex =
-                        images.load("textures/" + f.getName());
-                    if (tex != null) list.add(tex);
+            }
+            java.util.Collections.sort(names);
+            for (String name : names) {
+                shenyf.p5engine.rendering.Texture tex =
+                    images.load("textures/" + name);
+                if (tex != null) list.add(tex);
+            }
+        }
+
+        // Fallback to file system
+        if (list.isEmpty()) {
+            java.io.File dir = new java.io.File(
+                P5Engine.getInstance().getApplet().sketchPath("textures"));
+            if (dir.exists()) {
+                java.io.File[] files = dir.listFiles(new java.io.FilenameFilter() {
+                    public boolean accept(java.io.File d, String name) {
+                        return name.startsWith("ruins_") && name.endsWith(".png");
+                    }
+                });
+                if (files != null) {
+                    java.util.Arrays.sort(files,
+                        (a, b) -> a.getName().compareTo(b.getName()));
+                    for (java.io.File f : files) {
+                        shenyf.p5engine.rendering.Texture tex =
+                            images.load("textures/" + f.getName());
+                        if (tex != null) list.add(tex);
+                    }
                 }
             }
         }
+
         RUINS_TEXTURES = list.toArray(
             new shenyf.p5engine.rendering.Texture[0]);
         RUINS_TEXTURE_COUNT = RUINS_TEXTURES.length;

@@ -441,7 +441,8 @@ public class PPak {
         if (normalized.startsWith("data/")) {
             return normalized;
         }
-        return "data/" + normalized;
+        // Non-data paths (music/, sounds/, textures/, etc.) are at sketch root
+        return normalized;
     }
 
     private String toSketchDataPath(String path) {
@@ -451,7 +452,8 @@ public class PPak {
         if (normalized.startsWith("data/")) {
             return _sketchPath + File.separator + normalized;
         }
-        return _sketchPath + File.separator + "data" + File.separator + normalized;
+        // music/, sounds/, textures/ etc. live directly under sketch root
+        return _sketchPath + File.separator + normalized;
     }
 
     private String getExtension(String path) {
