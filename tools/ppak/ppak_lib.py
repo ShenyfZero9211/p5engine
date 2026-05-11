@@ -182,6 +182,9 @@ class PPAKWriter:
                 files = [f for f in files if not f.startswith(".")]
 
             for file in files:
+                # Skip existing .ppak files to avoid recursive packing
+                if file.lower().endswith(".ppak"):
+                    continue
                 file_path = Path(root) / file
                 rel_path = os.path.relpath(file_path, dir_path)
                 rel_path = rel_path.replace(os.sep, "/")

@@ -233,6 +233,13 @@ if ($UsePpak) {
         }
 
         $ppakOutput = Join-Path $dataDir "data.ppak"
+
+        # Remove existing data.ppak to avoid recursive packing
+        if (Test-Path $ppakOutput) {
+            Remove-Item $ppakOutput -Force
+            Write-Warn "Removed existing data.ppak to avoid recursive packing"
+        }
+
         Write-Info "Packing directories: $($ppakDirNames -join ', ')"
         Write-Info "Output: $ppakOutput"
 

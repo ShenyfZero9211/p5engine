@@ -1141,10 +1141,10 @@ static class TowerRenderer extends RendererComponent {
             return;
         }
 
-        // Tower shadow
-        g.noStroke();
-        g.fill(0xFF000000, (int)(60 * fade));
-        drawRoundRect(g, x - half + 3, y - half + 3, size, size, 4);
+        // Tower shadow (hidden)
+        // g.noStroke();
+        // g.fill(0xFF000000, (int)(60 * fade));
+        // drawRoundRect(g, x - half + 3, y - half + 3, size, size, 4);
 
         // Command tower: persistent buff aura (subtle pulsing glow)
         float cmdOffset = (tower.def.type == TowerType.COMMAND) ? half * 0.25f : 0f;

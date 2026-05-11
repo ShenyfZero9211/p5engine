@@ -3,7 +3,7 @@ nameKey: level.3.name
 subtitleKey: level.3.subtitle
 briefingKey: level.3.briefing
 levelType: DEFEND_BASE
-initialMoney: 350
+initialMoney: 420
 baseOrbs: 5
 enemyHpBase: 100
 

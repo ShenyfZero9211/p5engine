@@ -194,7 +194,7 @@ static final class TdFlow {
         btnQuit.setLabel(TdAssets.i18n("menu.quit"));
         btnQuit.setBounds(40, 230, 240, 52);
         btnQuit.setAlpha(0);
-        btnQuit.setAction(() -> app.exit());
+        btnQuit.setAction(() -> showExitSaveDialog(app, () -> app.exit()));
         panel.add(btnQuit);
         TdMenuBg.btnQuitRef = btnQuit;
 
@@ -729,8 +729,12 @@ static final class TdFlow {
         PGraphics pg = app.createGraphics((int)contentW, maxBufferH, JAVA2D);
         pg.beginDraw();
         pg.background(0, 0);
-        pg.textFont(app.createFont("Microsoft YaHei", TdAssets.getFontSizeBriefing(), true, TdAssets.collectBriefingChars()));
-        pg.textSize(TdAssets.getFontSizeBriefing());
+        if (briefingFont != null) {
+            pg.textFont(briefingFont);
+        } else {
+            pg.textFont(app.createFont("Microsoft YaHei", TdAssets.getFontSizeBriefing(), true, TdAssets.collectBriefingChars()));
+            pg.textSize(TdAssets.getFontSizeBriefing());
+        }
         pg.textAlign(PApplet.LEFT, PApplet.TOP);
         pg.fill(0xFFE0E6F0);
         pg.text(briefingText, 4, 4, contentW - 8, maxBufferH - 8);
@@ -839,8 +843,7 @@ static final class TdFlow {
         btnNext.setBounds(150, 60, 200, 44);
         btnNext.setAction(() -> {
             int next = TdGameWorld.level != null ? TdGameWorld.level.id + 1 : 1;
-            String diff = TdGameWorld.currentDifficultyKey;
-            if (next <= TdAssets.getLevelCount()) startLevel(app, next, diff);
+            if (next <= TdAssets.getLevelCount()) showDifficultySelect(app, next);
             else buildMainMenu(app);
         });
         btnNext.appear(0.1f);
@@ -1036,8 +1039,10 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(btnX, y, btnW, btnH);
         btnMenu.setAction(() -> {
-            hidePauseMenu(app);
-            buildMainMenu(app);
+            showExitSaveDialog(app, () -> {
+                hidePauseMenu(app);
+                buildMainMenu(app);
+            });
         });
         btnMenu.appear(0.22f);
         panel.add(btnMenu);
@@ -1126,6 +1131,60 @@ static final class TdFlow {
         panel.add(btnBack);
     }
 
+    static void showExitSaveDialog(TowerDefenseMin2 app, Runnable onExit) {
+        if (TdGameWorld.level == null || (app.state != TdState.PLAYING && app.state != TdState.PAUSED)) {
+            onExit.run();
+            return;
+        }
+
+        Panel root = app.ui.getRoot();
+        app.engine.getTweenManager().killAll();
+
+        Window win = new Window("exit_save_win");
+        win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
+        win.setBounds(0, 0, 440, 240);
+        win.setTitle(TdAssets.i18n("game.exitSaveTitle"));
+        win.hideTitleBar();
+        win.setMovable(false);
+        win.setResizable(false);
+        win.setZOrder(100);
+        win.fadeIn(0f);
+        root.add(win);
+
+        Panel panel = new Panel("exit_save_panel");
+        panel.setBounds(0, 0, 440, 240);
+        panel.setLayoutManager(new AbsoluteLayout());
+        win.add(panel);
+
+        Label lblHint = new Label("lbl_exit_save_hint");
+        lblHint.setText(TdAssets.i18n("game.exitSaveHint"));
+        lblHint.setBounds(20, 50, 400, 60);
+        lblHint.setTextAlign(PApplet.CENTER);
+        lblHint.setTextColor(0xFFCCCCCC);
+        panel.add(lblHint);
+
+        Button btnSaveExit = new Button("btn_save_exit");
+        btnSaveExit.setLabel(TdAssets.i18n("game.saveAndExit"));
+        btnSaveExit.setBounds(40, 130, 120, 40);
+        btnSaveExit.setAction(() -> {
+            TdSaveLoad.saveGame(app);
+            onExit.run();
+        });
+        panel.add(btnSaveExit);
+
+        Button btnExit = new Button("btn_exit_no_save");
+        btnExit.setLabel(TdAssets.i18n("game.exitWithoutSave"));
+        btnExit.setBounds(170, 130, 120, 40);
+        btnExit.setAction(() -> onExit.run());
+        panel.add(btnExit);
+
+        Button btnCancel = new Button("btn_exit_cancel");
+        btnCancel.setLabel(TdAssets.i18n("ui.cancel"));
+        btnCancel.setBounds(300, 130, 100, 40);
+        btnCancel.setAction(() -> root.remove(win));
+        panel.add(btnCancel);
+    }
+
     static void showLoadSuccessToast(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
         Label lbl = new Label("lbl_load_success");
@@ -1177,8 +1236,7 @@ static final class TdFlow {
         btnRetry.setBounds(150, 60, 200, 44);
         btnRetry.setAction(() -> {
             int id = TdGameWorld.level != null ? TdGameWorld.level.id : 1;
-            String diff = TdGameWorld.currentDifficultyKey;
-            startLevel(app, id, diff);
+            showDifficultySelect(app, id);
         });
         btnRetry.appear(0.1f);
         panel.add(btnRetry);

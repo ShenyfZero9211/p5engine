@@ -753,7 +753,39 @@ static final class TdAppUtils {
         app.sellMenuPanel.setAlpha(0);
         app.sellMenuPanel.appear(0f, 6f, 0.15f);
 
-        UpgradeButton btnUpgrade = new UpgradeButton("btn_upgrade", tower);
+        // Tooltip panel for upgrade details (child of sell_menu so it auto-removes with menu)
+        Panel tooltip = new Panel("upgrade_tooltip") {
+            @Override
+            protected void paintSelf(PApplet applet, Theme theme) {
+                float a = getEffectiveAlpha();
+                int bg = 0xE01A2035;
+                int r = (bg >> 16) & 0xFF;
+                int g = (bg >> 8) & 0xFF;
+                int b = bg & 0xFF;
+                int alpha = (int)(((bg >> 24) & 0xFF) * a);
+                applet.noStroke();
+                applet.fill(r, g, b, alpha);
+                applet.rect(getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight());
+                applet.stroke(0xFF555555, (int)(255 * a));
+                applet.strokeWeight(1);
+                applet.noFill();
+                applet.rect(getAbsoluteX() + 0.5f, getAbsoluteY() + 0.5f, getWidth() - 1, getHeight() - 1);
+            }
+        };
+        tooltip.setBounds(0, 0, 160, 80);
+        tooltip.setPaintBackground(true);
+        tooltip.setVisible(false);
+        tooltip.setZOrder(1000);
+        app.sellMenuPanel.add(tooltip);
+
+        Label lblTooltip = new Label("upgrade_tooltip_text");
+        lblTooltip.setBounds(6, 4, 148, 72);
+        lblTooltip.setTextColor(0xFFE0E6F0);
+        lblTooltip.setWrapWidth(148);
+        lblTooltip.setTextAlign(PApplet.LEFT);
+        tooltip.add(lblTooltip);
+
+        UpgradeButton btnUpgrade = new UpgradeButton("btn_upgrade", tower, app, tooltip);
         btnUpgrade.setBounds(4, 4, 92, 28);
         app.sellMenuPanel.add(btnUpgrade);
 
@@ -787,10 +819,14 @@ static final class TdAppUtils {
     static class UpgradeButton extends Button {
         Tower tower;
         int lastState = -1; // 0=maxLevel/upgrading, 1=notAllowed, 2=noMoney, 3=lv1Available, 4=lv2Available
+        Panel tooltip;
+        TowerDefenseMin2 appRef;
 
-        UpgradeButton(String id, Tower tower) {
+        UpgradeButton(String id, Tower tower, TowerDefenseMin2 app, Panel tooltip) {
             super(id);
             this.tower = tower;
+            this.appRef = app;
+            this.tooltip = tooltip;
         }
 
         @Override
@@ -806,7 +842,10 @@ static final class TdAppUtils {
             else if (tower.upgradeLevel == 0) state = 3;
             else state = 4;
 
-            if (state == lastState) return; // no change, skip UI ops
+            if (state == lastState) {
+                updateTooltip(state);
+                return;
+            }
             lastState = state;
 
             switch (state) {
@@ -848,6 +887,89 @@ static final class TdAppUtils {
                     });
                     break;
             }
+
+            updateTooltip(state);
+        }
+
+        void updateTooltip(int state) {
+            if (tooltip == null) return;
+            if (!hover || (state != 3 && state != 4)) {
+                tooltip.setVisible(false);
+                return;
+            }
+
+            TowerDef def = tower.def;
+            StringBuilder sb = new StringBuilder();
+            sb.append(TdAssets.i18n(def.nameKey)).append("\n");
+            if (tower.upgradeLevel == 0) {
+                sb.append(TdAssets.i18n("tower.upgrade")).append(" I\n");
+                if (def.upgradeDamageMult > 1f)
+                    sb.append("伤害 +").append(Math.round((def.upgradeDamageMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeRangeMult > 1f)
+                    sb.append("射程 +").append(Math.round((def.upgradeRangeMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeSpeedMult < 1f)
+                    sb.append("攻速 +").append(Math.round((1f / def.upgradeSpeedMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeAoeMult > 1f)
+                    sb.append("范围 +").append(Math.round((def.upgradeAoeMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeBulletSizeMult > 1f)
+                    sb.append("弹体 +").append(Math.round((def.upgradeBulletSizeMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeSlowMult < 1f)
+                    sb.append("减速 +").append(Math.round((1f / def.upgradeSlowMult - 1f) * 100f)).append("%\n");
+                if (def.upgradePoisonMult > 1f)
+                    sb.append("毒素 +").append(Math.round((def.upgradePoisonMult - 1f) * 100f)).append("%\n");
+                if (def.upgradeCommandMult > 1f)
+                    sb.append("指挥 +").append(Math.round((def.upgradeCommandMult - 1f) * 100f)).append("%\n");
+            } else if (tower.upgradeLevel == 1) {
+                sb.append(TdAssets.i18n("tower.upgrade")).append(" II\n");
+                switch (def.type) {
+                    case MG:
+                        sb.append("伤害翻倍\n");
+                        sb.append("双发连射");
+                        break;
+                    case MISSILE:
+                        sb.append("附加燃烧\n");
+                        sb.append("伤害提升");
+                        break;
+                    case LASER:
+                        sb.append("伤害 +60%");
+                        break;
+                    case SLOW:
+                        sb.append("减速持续 +50%");
+                        break;
+                    case POISON:
+                        sb.append("毒素 +30%\n");
+                        sb.append("角度 +50%");
+                        break;
+                    case COMMAND:
+                        sb.append("指挥加成提升");
+                        break;
+                }
+            }
+
+            Label lbl = (Label) tooltip.getChildren().get(0);
+            lbl.setText(sb.toString());
+
+            int lines = 1;
+            for (int i = 0; i < sb.length(); i++) {
+                if (sb.charAt(i) == '\n') lines++;
+            }
+            float lineH = 13f;
+            float th = Math.max(40f, lines * lineH + 10f);
+            tooltip.setBounds(tooltip.getX(), tooltip.getY(), 160f, th);
+            lbl.setBounds(6, 4, 148, th - 8f);
+
+            if (appRef != null) {
+                DisplayManager dm = appRef.engine.getDisplayManager();
+                float worldRight = dm.getActualWidth() / dm.getUniformScale() - TdConfig.RIGHT_W;
+                float menuRight = getAbsoluteX() + getWidth();
+                if (menuRight + 160f + 4f > worldRight) {
+                    tooltip.setPosition(-164f, 0);
+                } else {
+                    tooltip.setPosition(getWidth() + 4f, 0);
+                }
+            }
+
+            tooltip.setVisible(true);
         }
     }
 

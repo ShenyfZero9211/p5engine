@@ -60,6 +60,12 @@ static final class TdSaveLoad {
         JSONObject json = app.loadJSONObject(path);
         if (json == null) return false;
 
+        int version = json.getInt("version", 0);
+        if (version != 1) {
+            System.err.println("[TdSaveLoad] Save version mismatch: expected 1, got " + version);
+            return false;
+        }
+
         String diffKey = json.hasKey("difficultyKey") ? json.getString("difficultyKey") : "normal";
         boolean ok = TdGameWorld.startLevel(app, levelId, diffKey);
         if (!ok) return false;

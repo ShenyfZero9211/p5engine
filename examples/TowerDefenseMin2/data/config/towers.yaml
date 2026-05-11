@@ -16,6 +16,9 @@ towers:
       buildTime: 2.0        # 升级所需时间（秒）
       damageMult: 1.3       # 升级后伤害倍率
       bulletSizeMult: 1.3   # 升级后子弹/弹道渲染尺寸倍率
+    upgrade2:               # 伤害翻倍，双发连射
+      cost: 50
+      buildTime: 2.0
     sfx:
       fire: sounds/synthetic-spike.wav
       place: sounds/keytyping4.wav

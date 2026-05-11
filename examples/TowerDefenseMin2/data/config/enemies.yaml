@@ -5,7 +5,7 @@ enemies:
     hpMultiplier: 1.0
     orbCapacity: 1
     radius: 12
-    killReward: 2
+    killReward: 6
     sfxDeath: sounds/resonant-reverb.wav
 
   level2:
@@ -14,7 +14,7 @@ enemies:
     hpMultiplier: 1.5
     orbCapacity: 1
     radius: 14
-    killReward: 3
+    killReward: 10
     sfxDeath: sounds/resonant-reverb.wav
 
   level3:
@@ -23,7 +23,7 @@ enemies:
     hpMultiplier: 2.0
     orbCapacity: 1
     radius: 16
-    killReward: 6
+    killReward: 17
     sfxDeath: sounds/synthetic-spike.wav
 
   level4:
@@ -32,5 +32,5 @@ enemies:
     hpMultiplier: 25
     orbCapacity: 3
     radius: 20
-    killReward: 10
+    killReward: 25
     sfxDeath: sounds/percussive-gong.wav

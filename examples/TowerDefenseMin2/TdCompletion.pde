@@ -11,9 +11,16 @@ static final class TdCompletion {
         filePath = app.sketchPath("data/completion.json");
         java.io.File f = new java.io.File(filePath);
         if (f.exists()) {
-            data = app.loadJSONObject(filePath);
+            try {
+                data = app.loadJSONObject(filePath);
+            } catch (Exception e) {
+                System.err.println("[TdCompletion] Failed to load " + filePath + ", initializing fresh: " + e.getMessage());
+                data = new JSONObject();
+                save(app);
+            }
         } else {
             data = new JSONObject();
+            save(app);
         }
     }
 

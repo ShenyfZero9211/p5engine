@@ -2,7 +2,7 @@
 gameSettings:
   # DEFEND_BASE 模式下基地每秒自动产钱
   # SURVIVAL 模式下此值无效
-  baseIncomeRate: 0.25
+  baseIncomeRate: 0.50
   # 指挥塔击杀 tier-2+ 敌人的额外奖金随机范围
   commandKillBonusMin: 1
   commandKillBonusMax: 3
@@ -46,7 +46,7 @@ gameSettings:
 difficulties:
   easy:
     nameKey: "difficulty.easy"
-    enemyHpMultiplier: 0.7
+    enemyHpMultiplier: 0.8
     killRewardMultiplier: 1.2
   normal:
     nameKey: "difficulty.normal"
