@@ -124,7 +124,11 @@ E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Theme.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\UIComponent.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\UIEvent.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\UIManager.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\TutorialOverlay.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\Window.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\EventInterceptor.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\tutorial\TutorialStep.java
+E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\tutorial\TutorialSequence.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\ui\WorldViewport.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\Logger.java
 E:\projects\kilo\p5engine\src\main\java\shenyf\p5engine\util\ScreenshotTool.java

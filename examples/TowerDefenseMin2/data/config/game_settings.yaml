@@ -32,22 +32,31 @@ gameSettings:
   introDelay: 2.0
   # 片头动画结束后的黑屏延迟（秒）
   introPostDelay: 1.0
+  # 是否启用新手引导（true = 启用，按存档记录判断是否触发；false = 完全禁用）
+  enableTutorial: true
+  # 调试：强制永远显示引导（true = 忽略存档记录，每次进入都触发；false = 正常按存档判断）
+  debugTutorialAlwaysOn: true
+  # 字体预加载大小（createFont 的 size 参数，调大可改善高分辨率下文字清晰度）
+  fontSizeSmall: 32
+  fontSizeLarge: 128
+  # 任务简报字体大小
+  fontSizeBriefing: 14
 
 # 游戏难度参数
 difficulties:
   easy:
     nameKey: "difficulty.easy"
     enemyHpMultiplier: 0.7
-    killRewardMultiplier: 1.3
+    killRewardMultiplier: 1.2
   normal:
     nameKey: "difficulty.normal"
     enemyHpMultiplier: 1.0
     killRewardMultiplier: 1.0
   hard:
     nameKey: "difficulty.hard"
-    enemyHpMultiplier: 1.2
+    enemyHpMultiplier: 1.1
     killRewardMultiplier: 1.0
   challenge:
     nameKey: "difficulty.challenge"
-    enemyHpMultiplier: 1.5
-    killRewardMultiplier: 0.8
+    enemyHpMultiplier: 1.2
+    killRewardMultiplier: 0.9

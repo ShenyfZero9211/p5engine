@@ -94,6 +94,9 @@ public final class UIManager {
     // When true, navigation keys are reserved for game input (camera scroll etc.)
     private boolean gameInputActive = false;
 
+    // Event interceptor for tutorial system (click locking)
+    private EventInterceptor eventInterceptor;
+
     public UIManager(PApplet applet) {
         this.applet = applet;
         this.root = new Panel("ui_root");
@@ -254,6 +257,19 @@ public final class UIManager {
      */
     public void setGameInputActive(boolean active) {
         this.gameInputActive = active;
+    }
+
+    /**
+     * Sets an event interceptor that can block mouse events before they reach UI components.
+     * Used by the tutorial system to enforce click-locking. Pass null to remove.
+     */
+    public void setEventInterceptor(EventInterceptor interceptor) {
+        this.eventInterceptor = interceptor;
+    }
+
+    /** Returns the current event interceptor, or null if none is set. */
+    public EventInterceptor getEventInterceptor() {
+        return eventInterceptor;
     }
 
     /**
@@ -496,6 +512,16 @@ public final class UIManager {
         UIComponent hit = root.hitTest(mx, my);
         mouseOverComponent = hit;
         mouseOverWindow = findWindowInHierarchy(hit);
+
+        // Event interception (e.g. tutorial click-locking)
+        if (eventInterceptor != null && act != MouseEvent.MOVE) {
+            if (eventInterceptor.interceptMouseEvent(e, hit)) {
+                if (act == MouseEvent.PRESS) {
+                    pressedTarget = null;
+                }
+                return;
+            }
+        }
 
         if (act == MouseEvent.WHEEL) {
             float delta = e.getCount();

@@ -32,6 +32,8 @@ static final class TdSaveData {
             cfg.set("display", "fullscreen", false);
             cfg.save();
         }
+
+        TdCompletion.load(app);
     }
 
     static void save() {
@@ -78,7 +80,21 @@ static final class TdSaveData {
     // ── Progress ──
 
     static int getMaxLevelReached() {
-        return cfg.getInt("progress", "maxLevelReached", 1);
+        int iniMax = cfg.getInt("progress", "maxLevelReached", 1);
+        int completionMax = 1;
+        if (TdCompletion.data != null) {
+            for (Object keyObj : TdCompletion.data.keys()) {
+                try {
+                    int levelId = Integer.parseInt((String) keyObj);
+                    if (TdCompletion.hasAnyCompletion(levelId)) {
+                        completionMax = Math.max(completionMax, levelId + 1);
+                    }
+                } catch (NumberFormatException e) {
+                    // ignore non-numeric keys
+                }
+            }
+        }
+        return Math.max(iniMax, completionMax);
     }
 
     static void setMaxLevelReached(int level) {

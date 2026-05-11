@@ -128,6 +128,9 @@ static final class TdGameWorld {
             waveTimer -= dt;
             if (waveTimer <= 0) {
                 currentWave++;
+                if (currentWave == 2) {
+                    TdTutorial.triggerEvent("wave_2_start");
+                }
                 waveSpawnIndex = 0;
                 waveSpawnCount = 0;
                 waveInProgress = true;
@@ -232,6 +235,7 @@ static final class TdGameWorld {
                     money += reward;
                 }
                 TdSaveData.incEnemiesKilled();
+                TdTutorial.onEnemyKilled();
                 // Death animation effect
                 float dir = 0;
                 if (e.gameObject != null) {

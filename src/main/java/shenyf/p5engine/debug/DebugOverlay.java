@@ -1,6 +1,7 @@
 package shenyf.p5engine.debug;
 
 import processing.core.PApplet;
+import processing.core.PFont;
 import shenyf.p5engine.collision.Collider;
 import shenyf.p5engine.core.P5Engine;
 import shenyf.p5engine.scene.Component;
@@ -40,6 +41,10 @@ public class DebugOverlay {
 
     // Scrolling state
     private float treeScrollY;
+
+    // Dedicated PFonts for isolated texture cache
+    private PFont font10;
+    private PFont font12;
 
     public void toggle() {
         enabled = !enabled;
@@ -111,6 +116,7 @@ public class DebugOverlay {
             return;
         }
 
+        ensureFonts(g);
         g.pushStyle();
         try {
             if (showHud) renderHud(g, engine, scene);
@@ -118,6 +124,15 @@ public class DebugOverlay {
             if (showTree) renderTree(g, scene);
         } finally {
             g.popStyle();
+        }
+    }
+
+    private void ensureFonts(PApplet g) {
+        if (font10 == null) {
+            font10 = g.createFont("Monospaced", 10);
+        }
+        if (font12 == null) {
+            font12 = g.createFont("Monospaced", 12);
         }
     }
 
@@ -137,7 +152,7 @@ public class DebugOverlay {
 
         g.fill(200, 255, 200);
         g.textAlign(PApplet.LEFT, PApplet.TOP);
-        g.textSize(12);
+        g.textFont(font12);
         float ty = y + 8;
         int fps = Math.round(engine.getGameTime().getFrameRate());
         g.text("FPS: " + fps, x + 10, ty);
@@ -190,7 +205,7 @@ public class DebugOverlay {
             // Radius text
             g.fill(0, 255, 120, 220);
             g.textAlign(PApplet.CENTER, PApplet.BOTTOM);
-            g.textSize(10);
+            g.textFont(font10);
             g.text(String.format(java.util.Locale.US, "r=%.1f", r), cx, cy - r - 2);
         }
     }
@@ -237,7 +252,7 @@ public class DebugOverlay {
         g.rect(x, y, w, TREE_TITLE_H);
         g.fill(200, 255, 200);
         g.textAlign(PApplet.LEFT, PApplet.CENTER);
-        g.textSize(12);
+        g.textFont(font12);
         g.text("Scene Tree (" + scene.getObjectCount() + ")", x + 8, y + TREE_TITLE_H * 0.5f);
 
         // Content clip area
@@ -293,7 +308,7 @@ public class DebugOverlay {
             g.fill(150);
         }
         g.textAlign(PApplet.LEFT, PApplet.TOP);
-        g.textSize(11);
+        g.textFont(font12);
 
         StringBuilder compNames = new StringBuilder();
         List<Component> comps = go.getComponents();

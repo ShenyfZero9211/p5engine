@@ -6,9 +6,18 @@ public class TdTheme implements Theme {
 
     private float currentAlpha = 1f;
     private processing.core.PFont font;
+    private processing.core.PFont briefingFont;
 
     public void setFont(processing.core.PFont font) {
         this.font = font;
+    }
+
+    public void setBriefingFont(processing.core.PFont font) {
+        this.briefingFont = font;
+    }
+
+    public processing.core.PFont getBriefingFont() {
+        return briefingFont;
     }
 
     private void applyFont(PApplet g, float size) {

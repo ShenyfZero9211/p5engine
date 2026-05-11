@@ -3,61 +3,82 @@ nameKey: level.1.name
 subtitleKey: level.1.subtitle
 briefingKey: level.1.briefing
 levelType: DEFEND_BASE
-initialMoney: 200
+initialMoney: 135
 baseOrbs: 5
 enemyHpBase: 80
 
-worldWidth: 700
-worldHeight: 400
+worldWidth: 1470
+worldHeight: 840
 
-basePos: { x: 320, y: 170 }
-exitPos: { x: 580, y: 300 }
-spawnPos: { x: 80, y: 70 }
+basePos: { x: 660, y: 620 }
+exitPos: { x: 1380, y: 790 }
+spawnPos: { x: 180, y: 140 }
 
 pathPoints:
-  - { x: 80, y: 70 }
-  - { x: 130, y: 80 }
-  - { x: 220, y: 110 }
-  - { x: 320, y: 170 }
-  - { x: 380, y: 220 }
-  - { x: 480, y: 260 }
-  - { x: 580, y: 300 }
+  - { x: 180, y: 140 }
+  - { x: 320, y: 200 }
+  - { x: 510, y: 400 }
+  - { x: 550, y: 560 }
+  - { x: 660, y: 620 }
+  - { x: 880, y: 560 }
+  - { x: 1080, y: 680 }
+  - { x: 1260, y: 760 }
+  - { x: 1380, y: 790 }
 
 platforms:
-  # P1: 出生平台（左上，蓝色边缘）
+  # P_base: 基地附近主平台（青色边缘，核心防御区，不规则六边形）
   - points:
-      - { x: 30, y: 30 }
-      - { x: 180, y: 30 }
-      - { x: 190, y: 130 }
-      - { x: 90, y: 140 }
-      - { x: 30, y: 100 }
-    edgeColor: [74, 158, 255]
-    fillColor: [26, 31, 43]
+      - { x: 560, y: 540 }
+      - { x: 760, y: 520 }
+      - { x: 820, y: 680 }
+      - { x: 680, y: 780 }
+      - { x: 520, y: 720 }
+      - { x: 480, y: 620 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
 
-  # P2: 基地平台（中央，绿色边缘）
-  - points:
-      - { x: 260, y: 120 }
-      - { x: 400, y: 120 }
-      - { x: 420, y: 260 }
-      - { x: 280, y: 270 }
-      - { x: 260, y: 230 }
-    edgeColor: [40, 199, 111]
-    fillColor: [22, 35, 30]
 
-  # P3: 出口平台（右下，橙色边缘）
+  # P_left: 路径中上段右侧不规则小平台（红框区域，不与路径接壤）
   - points:
-      - { x: 520, y: 260 }
-      - { x: 650, y: 260 }
-      - { x: 670, y: 370 }
-      - { x: 540, y: 370 }
+      - { x: 380, y: 140 }
+      - { x: 520, y: 120 }
+      - { x: 580, y: 220 }
+      - { x: 480, y: 300 }
+      - { x: 340, y: 260 }
+    edgeColor: [100, 110, 130]
+    fillColor: [26, 28, 36]
+
+  # P_right: 路径右段附近不规则小平台（右上方，不与路径接壤）
+  - points:
+      - { x: 960, y: 420 }
+      - { x: 1160, y: 440 }
+      - { x: 1260, y: 560 }
+      - { x: 1120, y: 640 }
+      - { x: 920, y: 540 }
+    edgeColor: [100, 110, 130]
+    fillColor: [26, 28, 36]
+
+  # P_exit: 出口附近不规则平台（右下，橙色边缘）
+  - points:
+      - { x: 1220, y: 740 }
+      - { x: 1400, y: 720 }
+      - { x: 1440, y: 820 }
+      - { x: 1280, y: 835 }
+      - { x: 1180, y: 800 }
     edgeColor: [255, 140, 66]
     fillColor: [35, 28, 22]
 
 blockedZones:
   - type: circle
-    cx: 240
-    cy: 70
-    radius: 30
+    cx: 600
+    cy: 300
+    radius: 55
+    visual: asteroid
+
+  - type: circle
+    cx: 900
+    cy: 400
+    radius: 40
     visual: asteroid
 
 allowedTowers:
@@ -81,40 +102,73 @@ waves:
         interval: 1.0
 
 # 难度 wave 覆盖（可选，未定义的难度使用默认 waves）
+# 若定义了 normal，则默认 waves 被 normal 覆盖；否则默认 waves 即为 normal 难度
 difficulties:
   easy:
     waves:
-      - delay: 25.0
-        spawns:
-          - type: level1
-            count: 15
-            interval: 2.0
       - delay: 20.0
         spawns:
           - type: level1
-            count: 18
-            interval: 1.8
+            count: 12
+            interval: 1.6
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 15
+            interval: 1.4
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 14
+            interval: 1.2
+  normal:
+    waves:
+      - delay: 20.0
+        spawns:
+          - type: level1
+            count: 12
+            interval: 1.5
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 15
+            interval: 1.4
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 14
+            interval: 1.1
   hard:
     waves:
+      - delay: 20.0
+        spawns:
+          - type: level1
+            count: 12
+            interval: 1.5
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 20
+            interval: 1.4
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 30
+            interval: 1.1
+  challenge:
+    waves:
+      - delay: 20.0
+        spawns:
+          - type: level1
+            count: 16
+            interval: 1.4
+      - delay: 15.0
+        spawns:
+          - type: level1
+            count: 20
+            interval: 1.3
       - delay: 15.0
         spawns:
           - type: level1
             count: 30
             interval: 1.0
-      - delay: 12.0
-        spawns:
-          - type: level1
-            count: 40
-            interval: 0.8
-  challenge:
-    waves:
-      - delay: 10.0
-        spawns:
-          - type: level1
-            count: 40
-            interval: 0.6
-      - delay: 8.0
-        spawns:
-          - type: level1
-            count: 60
-            interval: 0.4

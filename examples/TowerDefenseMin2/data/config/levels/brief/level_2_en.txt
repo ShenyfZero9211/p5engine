@@ -1,8 +1,47 @@
-The enemy offensive has become more complex.
+Stellar Perimeter -- Mission Briefing
 
-This battlefield features a twisted path that requires careful planning of tower coverage. Make good use of the upgrade system to strengthen firepower at key positions.
+================================
 
-Mission Objectives:
-- Cover all path corners
-- Learn to upgrade defense towers
-- Prevent all enemies from escaping
+[Background: Crisis in the Deep Decks]
+
+The surface defenses of Outpost KX-7 have been temporarily stabilized under your command. But deep-scan readings from the Resonance Locator show that the Swarm has not retreated — they are penetrating deeper into the station's lower structures.
+
+The outpost's underlevels consist of a tangled network of multi-layered maintenance corridors and conduits, originally designed for engineering drones. The Swarm seems to possess an innate awareness of these metallic labyrinths, flowing along the winding hallways and bypassing all deployed firepoints like black liquid metal surging through veins.
+
+More troubling still, samples recovered from the front line reveal that some individuals have undergone "hardening" after repeated passage through spatial rifts — their surfaces have condensed into a dense crystalline armor layer, reducing the effectiveness of conventional machine gun rounds by nearly forty percent. This is not natural evolution; this is the Swarm learning and adapting in real time on the battlefield.
+
+================================
+
+[New Equipment: Concussion Missile Tower]
+
+To counter the hardened Swarm, Engineering has urgently requisitioned a new automated defense unit from the starport: the Concussion Missile Tower.
+
+Unlike the Machine Gun Tower's high-velocity armor-piercing rounds, the Missile Tower fires compact shaped-charge warheads. Upon impact, the warhead's metastable energy core releases instantaneously, generating a directed high-temperature plasma jet. This jet can strip away the Swarm's crystalline armor in milliseconds, exposing the liquid metal interior to a storm of high-energy particles.
+
+However, the Missile Tower has a longer reload cycle and limited tracking capability against fast-moving targets. It cannot replace the Machine Gun Tower — it can only complement it, just as a scalpel cannot replace a tourniquet.
+
+================================
+
+[Tactical Upgrade Protocol]
+
+In addition to new equipment, Engineering has declassified a technology rated "Level-Two Military Secret" by the Federation: the Tower Nano-Upgrade Protocol.
+
+The principle is straightforward: inject additional nano-alloy materials and energy capacitors into an existing defense tower, allowing nanobots to reconstruct the fire array's acceleration tracks and power distribution networks internally. Upgraded Machine Gun Towers gain increased rate of fire and extended range; upgraded Missile Towers carry larger warhead payloads and wider blast radii.
+
+Resources are limited. You must judge which positions merit the extra alloy and energy — upgrading the wrong location is just as fatal as failing to upgrade the right one.
+
+================================
+
+[Mission Objectives: KX-7 Deep Maintenance Corridors]
+
+- Deploy mixed arrays of Machine Gun and Missile Towers along the winding alloy corridors
+- Use the upgrade system to reinforce firepower density at critical corners
+- Protect all 5 remaining Stellar Core Orbs
+- If all orbs are lost, the lower reactor will melt down and the outpost will fall permanently
+
+[Tip]
+Click the "Missile Tower" button on the right panel to deploy. Right-click a built tower to open the upgrade menu. Prioritize Missile Tower placement at Swarm chokepoints to maximize shaped-charge kill efficiency.
+
+================================
+
+The sound at the end of the corridor is not wind. It is metal being torn apart.

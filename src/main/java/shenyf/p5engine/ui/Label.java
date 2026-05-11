@@ -12,6 +12,8 @@ public class Label extends UIComponent {
     private Runnable localeListener;
     private float wrapWidth = 0;
     private float textSize = -1;
+    private processing.core.PFont font;
+    private int textMode = -1; // -1 = default (MODEL), otherwise PApplet.MODEL or PApplet.SHAPE
 
     public Label(String id) {
         super(id);
@@ -91,6 +93,22 @@ public class Label extends UIComponent {
         return textSize;
     }
 
+    public void setFont(processing.core.PFont font) {
+        this.font = font;
+    }
+
+    public processing.core.PFont getFont() {
+        return font;
+    }
+
+    public void setTextMode(int mode) {
+        this.textMode = mode;
+    }
+
+    public int getTextMode() {
+        return textMode;
+    }
+
     @Override
     public void measure(PApplet applet) {
         applet.pushStyle();
@@ -141,6 +159,12 @@ public class Label extends UIComponent {
             }
             applet.fill(c);
             applet.noStroke();
+            if (font != null) {
+                applet.textFont(font);
+            }
+            if (textMode != -1) {
+                applet.textMode(textMode);
+            }
             float ts = textSize > 0 ? textSize : Math.min(14, getHeight() * 0.5f);
             applet.textSize(ts);
             float tx;
@@ -158,6 +182,9 @@ public class Label extends UIComponent {
                 applet.textAlign(textAlign, PApplet.BASELINE);
                 float ty = getAbsoluteY() + getHeight() * 0.5f + (applet.textAscent() - applet.textDescent()) * 0.5f;
                 applet.text(text != null ? text : "", tx, ty);
+            }
+            if (textMode != -1) {
+                applet.textMode(PApplet.MODEL);
             }
         } else {
             theme.setCurrentAlpha(getEffectiveAlpha());

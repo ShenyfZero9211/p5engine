@@ -1,10 +1,10 @@
-id: 8
-nameKey: level.8.name
-subtitleKey: level.8.subtitle
+id: 4
+nameKey: level.4.name
+subtitleKey: level.4.subtitle
 levelType: DEFEND_BASE
-initialMoney: 40000
-baseOrbs: 5000
-enemyHpBase: 1000
+initialMoney: 12000
+baseOrbs: 50
+enemyHpBase: 100
 
 worldWidth: 2000
 worldHeight: 1400
@@ -221,64 +221,44 @@ blockedZones:
     visual: ruins
 
 waves:
-  - delay: 18.0
+  - delay: 16.0
     spawns:
-      - type: level3
+      - type: level1
         count: 30
-        interval: 1.4
-  - delay: 18.0
-    spawns:
-      - type: level4
-        count: 200
         interval: 1.2
-      - type: level3
-        count: 120
-        interval: 1.6
-  - delay: 18.0
+  - delay: 14.0
     spawns:
-      - type: level4
-        count: 25
-        interval: 1.2
-      - type: level3
-        count: 150
-        interval: 1.0
-        hpMulti: 1.5
-  - delay: 18.0
-    spawns:
-      - type: level3
-        count: 18
-        interval: 1.1
-      - type: level4
-        count: 180
-        interval: 1.2
-  - delay: 18.0
-    spawns:
-      - type: level3
-        count: 25
-        interval: 1.0
       - type: level2
-        count: 250
+        count: 20
+        interval: 1.2
+      - type: level2
+        count: 12
         interval: 1.1
-        hpMulti: 2.0
-  - delay: 20.0
+        attach:
+          - type: level1
+            delay: 0.5
+  - delay: 12.0
     spawns:
-      - type: level4
+      - type: level3
         count: 18
-        interval: 1.0
+        interval: 1.1
+
+
+  - delay: 12.0
+    spawns:
       - type: level3
-        count: 25
-        interval: 0.9
-  - delay: 20.0
+        count: 15
+        interval: 1.1
+        attach:
+          - type: level1
+            delay: 0.5
+
+            
+  - delay: 12.0
     spawns:
       - type: level4
-        count: 300
-        interval: 0.9
-      - type: level3
-        count: 250
-        interval: 0.8
-        hpMulti: 2.0
-  - delay: 22.0
-    spawns:
-      - type: level4
-        count: 40
-        interval: 0.8
+        count: 12
+        interval: 1.2
+        attach:
+          - type: level3
+            delay: 0.5

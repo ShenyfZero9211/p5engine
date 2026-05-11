@@ -551,6 +551,8 @@ static class TdTopBar extends Panel {
     Label lblSpeed;
     Label lblNextWave;
     Button btnRange;
+    Button btnPause;
+    Button btnMenu;
 
     TdTopBar(String id) {
         super(id);
@@ -564,18 +566,28 @@ static class TdTopBar extends Panel {
         lblStatus.setTextAlign(PApplet.LEFT);
         add(lblStatus);
 
+        // Center-aligned layout: Speed | Time | NextWave
+        float barW = getWidth();
+        int timeW = 120;
+        int speedW = 70;
+        int nextW = 180;
+        int gap = 16;
+        int timeX = (int)(barW - timeW) / 2;
+        int speedX = timeX - gap - speedW;
+        int nextX = timeX + timeW + gap;
+
         lblTime = new Label("lbl_time");
-        lblTime.setBounds(460, 0, 120, TdConfig.TOP_HUD);
+        lblTime.setBounds(timeX, 0, timeW, TdConfig.TOP_HUD);
         lblTime.setTextAlign(PApplet.CENTER);
         add(lblTime);
 
         lblSpeed = new Label("lbl_speed");
-        lblSpeed.setBounds(600, 0, 70, TdConfig.TOP_HUD);
+        lblSpeed.setBounds(speedX, 0, speedW, TdConfig.TOP_HUD);
         lblSpeed.setTextAlign(PApplet.CENTER);
         add(lblSpeed);
 
         lblNextWave = new Label("lbl_nextwave");
-        lblNextWave.setBounds(690, 0, 180, TdConfig.TOP_HUD);
+        lblNextWave.setBounds(nextX, 0, nextW, TdConfig.TOP_HUD);
         lblNextWave.setTextAlign(PApplet.CENTER);
         add(lblNextWave);
 
@@ -587,7 +599,7 @@ static class TdTopBar extends Panel {
         });
         add(btnRange);
 
-        Button btnPause = new Button("btn_pause");
+        btnPause = new Button("btn_pause");
         btnPause.setLabel(TdAssets.i18n("game.pause"));
         btnPause.setBounds(getWidth() - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnPause.setAction(() -> {
@@ -600,7 +612,7 @@ static class TdTopBar extends Panel {
         });
         add(btnPause);
 
-        Button btnMenu = new Button("btn_menu");
+        btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.menu"));
         btnMenu.setBounds(getWidth() - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnMenu.setAction(() -> {
@@ -617,6 +629,23 @@ static class TdTopBar extends Panel {
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
+
+        // Recompute center-aligned layout when bar width changes (resolution / fullscreen)
+        float barW = getWidth();
+        int timeW = 120;
+        int speedW = 70;
+        int nextW = 180;
+        int gap = 16;
+        int timeX = (int)(barW - timeW) / 2;
+        int speedX = timeX - gap - speedW;
+        int nextX = timeX + timeW + gap;
+        lblTime.setPosition(timeX, 0);
+        lblSpeed.setPosition(speedX, 0);
+        lblNextWave.setPosition(nextX, 0);
+        btnRange.setPosition(barW - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f);
+        btnPause.setPosition(barW - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f);
+        btnMenu.setPosition(barW - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f);
+
         String statusText;
         if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
             statusText = TdAssets.i18n("game.money") + " $" + TdGameWorld.money

@@ -263,9 +263,11 @@ static final class TdAssets {
         java.util.Map lvl = (java.util.Map) yaml.load(levelIs);
         LevelDef level = parseLevel(lvl);
 
-        // Apply difficulty wave override if present
-        if (difficultyKey != null && level.difficultyWaves != null) {
-            WaveDef[] override = level.difficultyWaves.get(difficultyKey);
+        // Apply difficulty wave override if present.
+        // If difficultyKey is null (normal difficulty), also check for "normal" override.
+        if (level.difficultyWaves != null) {
+            String key = (difficultyKey != null) ? difficultyKey : "normal";
+            WaveDef[] override = level.difficultyWaves.get(key);
             if (override != null) {
                 level.waves = override;
             }
@@ -448,6 +450,51 @@ static final class TdAssets {
         return 1.0f;
     }
 
+    static boolean isTutorialEnabled() {
+        if (gameSettingsYamlRoot == null) return true;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return true;
+        Object v = gs.get("enableTutorial");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return true;
+    }
+
+    static boolean isDebugTutorialAlwaysOn() {
+        if (gameSettingsYamlRoot == null) return false;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return false;
+        Object v = gs.get("debugTutorialAlwaysOn");
+        if (v instanceof Boolean) return ((Boolean) v).booleanValue();
+        return false;
+    }
+
+    static int getFontSizeSmall() {
+        if (gameSettingsYamlRoot == null) return 16;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 16;
+        Object v = gs.get("fontSizeSmall");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 16;
+    }
+
+    static int getFontSizeLarge() {
+        if (gameSettingsYamlRoot == null) return 128;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 128;
+        Object v = gs.get("fontSizeLarge");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 128;
+    }
+
+    static int getFontSizeBriefing() {
+        if (gameSettingsYamlRoot == null) return 20;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 20;
+        Object v = gs.get("fontSizeBriefing");
+        if (v instanceof Number) return ((Number) v).intValue();
+        return 20;
+    }
+
     static int getLevelCount() {
         return levelYamlList != null ? levelYamlList.size() : 0;
     }
@@ -469,6 +516,44 @@ static final class TdAssets {
         } catch (Exception e) {
             return "\u8bfb\u53d6\u5931\u8d25";
         }
+    }
+
+    /**
+     * Collect all unique characters used across all briefing text files.
+     * Used to create a limited-char-set PFont for briefing text, avoiding
+     * OpenGL font texture overflow when using large font sizes (e.g. 48pt).
+     */
+    static char[] collectBriefingChars() {
+        java.util.Set<Character> chars = new java.util.HashSet<>();
+        // Common ASCII printable chars as safety margin
+        for (char c = ' '; c <= '~'; c++) {
+            chars.add(c);
+        }
+        // Common CJK punctuation
+        char[] cjkPunct = {'\u3002', '\u3001', '\uff0c', '\uff01', '\uff1f', '\uff1a', '\uff1b',
+                           '\u201c', '\u201d', '\u2018', '\u2019', '\uff08', '\uff09', '\u2014',
+                           '\u2026', '\u00b7', '\u300a', '\u300b'};
+        for (char c : cjkPunct) chars.add(c);
+
+        int levelCount = getLevelCount();
+        String[] locales = {"zh", "en"};
+        for (int levelId = 1; levelId <= levelCount; levelId++) {
+            for (String locale : locales) {
+                String text = loadBriefingText(levelId, locale);
+                if (text != null && !text.isEmpty() && !text.equals("\u8bfb\u53d6\u5931\u8d25")) {
+                    for (char c : text.toCharArray()) {
+                        chars.add(c);
+                    }
+                }
+            }
+        }
+
+        char[] result = new char[chars.size()];
+        int i = 0;
+        for (Character c : chars) {
+            result[i++] = c;
+        }
+        return result;
     }
 
     static EnemyDef loadEnemyDef(String typeKey) {

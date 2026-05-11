@@ -36,13 +36,24 @@ final class TdAppSetup {
         ui.attach();
         ui.setImeHwnd(engine.getImeHwnd());
         sketchUi = new SketchUiCoordinator(TowerDefenseMin2.this, ui);
+
+        // Load configs early so font sizes from game_settings.yaml are available
+        TdAssets.loadAll(TowerDefenseMin2.this);
+
         TdTheme theme = new TdTheme();
-        PFont cnFontSmall = createFont("Microsoft YaHei", 16);
-        PFont cnFontLarge = createFont("Microsoft YaHei", 128);
+        int fontSizeSmall = TdAssets.getFontSizeSmall();
+        int fontSizeLarge = TdAssets.getFontSizeLarge();
+        PFont cnFontSmall = createFont("Microsoft YaHei", fontSizeSmall);
+        PFont cnFontLarge = createFont("Microsoft YaHei", fontSizeLarge);
+        int fontSizeBriefing = TdAssets.getFontSizeBriefing();
+        char[] briefingChars = TdAssets.collectBriefingChars();
+        PFont cnFontBriefing = createFont("Microsoft YaHei", fontSizeBriefing, true, briefingChars);
         theme.setFont(cnFontSmall);
+        theme.setBriefingFont(cnFontBriefing);
         TdMenuBg.setFont(cnFontSmall);
         TdMenuBg.setTitleFont(cnFontLarge);
         ui.setTheme(theme);
+        TdTutorial.init(ui);
 
         gameScene = engine.getSceneManager().getActiveScene();
         setupCamera();
@@ -85,6 +96,13 @@ final class TdAppSetup {
         gameScene.addLayerGroup(2, 2, 0.45f, 0.45f);
         gameScene.addLayerGroup(3, 99, 1.0f, 1.0f);
 
+        // Tutorial grid highlight renderer (layer 96) — draws above platforms, below effects
+        GameObject tutorialGo = GameObject.create("tutorial_grid");
+        tutorialGo.addComponent(new TutorialGridRenderer());
+        tutorialGo.setRenderLayer(96);
+        tutorialGo.setCullEnabled(false);
+        gameScene.addGameObject(tutorialGo);
+
         // Visual effects renderer — tracers, explosions, lasers, slow waves (layer 95)
         GameObject fxGo = GameObject.create("effects");
         fxGo.addComponent(new EffectRenderer());
@@ -119,7 +137,6 @@ final class TdAppSetup {
         lighting = new TdLightingSystem(TowerDefenseMin2.this);
 
         TdAssets.loadRuinsTextures(engine.getImages());
-        TdAssets.loadAll(TowerDefenseMin2.this);
         TdSound.initTracks(TowerDefenseMin2.this);
         // Restore persisted audio & language settings
         TdAssets.setMasterVolume(TdSaveData.getMasterVolume());
@@ -286,6 +303,9 @@ static final class TdAppLoop {
         TdAppInput.handleMouseInput(app, im);
         TowerButton.postUpdateTooltipTimer(dtReal);
 
+        // Tutorial system update
+        TdTutorial.update(dt);
+
         // Tower hover detection (keep highlight when sell menu is open)
         if (app.state == TdState.PLAYING && app.sellMenuPanel == null && !TdAppUtils.isMouseOverHud(app)) {
             app.hoveredTower = TdAppUtils.getTowerAtMouse(app, im);
@@ -390,6 +410,8 @@ static final class TdAppLoop {
 static final class TdAppInput {
 
     static void keyPressed(TowerDefenseMin2 app) {
+        // ESC is a system-level shortcut: always handle pause/menu first,
+        // then let the tutorial skip itself if active.
         if (app.key == PApplet.ESC) {
             app.key = 0; // Block Processing default quit behavior
             if (app.sellMenuPanel != null) {
@@ -403,8 +425,32 @@ static final class TdAppInput {
                 TdFlow.showPauseMenu(app);
             } else if (app.state == TdState.PAUSED) {
                 TdFlow.hidePauseMenu(app);
+            } else if (app.state == TdState.SETTINGS) {
+                TdFlow.buildMainMenu(app);
+            } else if (app.state == TdState.LEVEL_SELECT) {
+                if (TdFlow.difficultySelectLevelId >= 0) {
+                    int lid = TdFlow.difficultySelectLevelId;
+                    if (TdSaveLoad.hasSave(app, lid)) {
+                        TdFlow.showLevelResumeDialog(app, lid);
+                    } else {
+                        TdFlow.showLevelSelect(app);
+                    }
+                } else {
+                    TdFlow.buildMainMenu(app);
+                }
+            }
+            // If tutorial is active, ESC also skips it
+            if (TdTutorial.isActive()) {
+                TdTutorial.onKeyPressed(app.keyCode);
             }
             return;
+        }
+
+        // Non-ESC keys: tutorial has first dibs
+        if (TdTutorial.isActive()) {
+            if (TdTutorial.onKeyPressed(app.keyCode)) {
+                return;
+            }
         }
 
         // Dev mode toggle: press D while debug overlay is open
@@ -475,7 +521,7 @@ static final class TdAppInput {
 
         // Build hotkeys (Q/W/E/R/T) — check money before entering build mode (skip in dev mode)
         boolean isQ = im.isKeyDown(java.awt.event.KeyEvent.VK_Q);
-        if (isQ && !app.wasKeyQ && TdAppUtils.isTowerAllowed(app, TdBuildMode.MG)) {
+        if (isQ && !app.wasKeyQ && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.MG)) {
             TowerDef defQ = TdAssets.loadTowerDef(TowerType.MG);
             if (defQ != null && (app.devMode || TdGameWorld.money >= defQ.cost)) {
                 app.buildMode = TdBuildMode.MG;
@@ -486,7 +532,7 @@ static final class TdAppInput {
         app.wasKeyQ = isQ;
 
         boolean isW = im.isKeyDown(java.awt.event.KeyEvent.VK_W);
-        if (isW && !app.wasKeyW && TdAppUtils.isTowerAllowed(app, TdBuildMode.MISSILE)) {
+        if (isW && !app.wasKeyW && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.MISSILE)) {
             TowerDef defW = TdAssets.loadTowerDef(TowerType.MISSILE);
             if (defW != null && (app.devMode || TdGameWorld.money >= defW.cost)) {
                 app.buildMode = TdBuildMode.MISSILE;
@@ -497,7 +543,7 @@ static final class TdAppInput {
         app.wasKeyW = isW;
 
         boolean isE = im.isKeyDown(java.awt.event.KeyEvent.VK_E);
-        if (isE && !app.wasKeyE && TdAppUtils.isTowerAllowed(app, TdBuildMode.LASER)) {
+        if (isE && !app.wasKeyE && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.LASER)) {
             TowerDef defE = TdAssets.loadTowerDef(TowerType.LASER);
             if (defE != null && (app.devMode || TdGameWorld.money >= defE.cost)) {
                 app.buildMode = TdBuildMode.LASER;
@@ -508,7 +554,7 @@ static final class TdAppInput {
         app.wasKeyE = isE;
 
         boolean isR2 = im.isKeyDown(java.awt.event.KeyEvent.VK_R);
-        if (isR2 && !app.wasKeyR && TdAppUtils.isTowerAllowed(app, TdBuildMode.SLOW)) {
+        if (isR2 && !app.wasKeyR && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.SLOW)) {
             TowerDef defR = TdAssets.loadTowerDef(TowerType.SLOW);
             if (defR != null && (app.devMode || TdGameWorld.money >= defR.cost)) {
                 app.buildMode = TdBuildMode.SLOW;
@@ -519,7 +565,7 @@ static final class TdAppInput {
         app.wasKeyR = isR2;
 
         boolean isT = im.isKeyDown(java.awt.event.KeyEvent.VK_T);
-        if (isT && !app.wasKeyT && TdAppUtils.isTowerAllowed(app, TdBuildMode.POISON)) {
+        if (isT && !app.wasKeyT && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.POISON)) {
             TowerDef defT = TdAssets.loadTowerDef(TowerType.POISON);
             if (defT != null && (app.devMode || TdGameWorld.money >= defT.cost)) {
                 app.buildMode = TdBuildMode.POISON;
@@ -530,7 +576,7 @@ static final class TdAppInput {
         app.wasKeyT = isT;
 
         boolean isY = im.isKeyDown(java.awt.event.KeyEvent.VK_Y);
-        if (isY && !app.wasKeyY && TdAppUtils.isTowerAllowed(app, TdBuildMode.COMMAND)) {
+        if (isY && !app.wasKeyY && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.COMMAND)) {
             TowerDef defY = TdAssets.loadTowerDef(TowerType.COMMAND);
             if (defY != null && (app.devMode || TdGameWorld.money >= defY.cost)) {
                 app.buildMode = TdBuildMode.COMMAND;

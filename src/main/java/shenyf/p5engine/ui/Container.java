@@ -209,6 +209,22 @@ public class Container extends UIComponent {
         return this;
     }
 
+    /**
+     * Recursively searches for a child component by its ID.
+     * @return the component if found, null otherwise
+     */
+    public UIComponent findChildById(String id) {
+        if (id == null || id.isEmpty()) return null;
+        for (UIComponent c : children) {
+            if (id.equals(c.getId())) return c;
+            if (c instanceof Container) {
+                UIComponent found = ((Container) c).findChildById(id);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
     @Override
     public boolean onEvent(UIEvent event, float absMouseX, float absMouseY) {
         return false;

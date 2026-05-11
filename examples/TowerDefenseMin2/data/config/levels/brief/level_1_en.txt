@@ -1,35 +1,61 @@
-Welcome to Mini Tower Defense.
+Stellar Perimeter -- Mission Briefing
 
-Your base is facing its first enemy assault. Place machine gun towers along this winding path to prevent enemies from reaching the base.
+================================
 
-Mission Objectives:
-- Build machine gun towers to defend the path
-- Prevent all enemies from escaping
-- Protect the base energy core
+[Background: Stellar Era 2847]
 
-Welcome to Mini Tower Defense.
+In the year 2847, the United Federation's territory has expanded across dozens of star systems. Frontier outposts, like scattered fireflies in the deep void, maintain the Federation's control and resource extraction in the far reaches of space. Behind this seemingly peaceful frontier, a silent catastrophe has been brewing.
 
-Your base is facing its first enemy assault. Place machine gun towers along this winding path to prevent enemies from reaching the base.
+It all began at the edge of a star system designated KX-7.
 
-Mission Objectives:
-- Build machine gun towers to defend the path
-- Prevent all enemies from escaping
-- Protect the base energy core
+First, communications went dark. Then supply ships stopped reporting. Finally, a fully-equipped deep-space survey fleet, after jumping to the system, transmitted only an 11-second video clip -- in the darkness, entities of twisted metal and organic matter were pouring out from a torn spatial rift. They possessed no fixed form, yet harbored an instinct to devour all metallic structures.
 
-Welcome to Mini Tower Defense.
+Federation archives named this unknown threat the "Void Swarm".
 
-Your base is facing its first enemy assault. Place machine gun towers along this winding path to prevent enemies from reaching the base.
+================================
 
-Mission Objectives:
-- Build machine gun towers to defend the path
-- Prevent all enemies from escaping
-- Protect the base energy core
+[Swarm Characteristics]
 
-Welcome to Mini Tower Defense.
+The Swarm are not biological entities in the traditional sense. They are essentially projections of higher-dimensional consciousness cast into lower dimensions -- each "individual" flows like black liquid metal, constantly recombining, fragmenting, and regrouping as it moves. The naked eye cannot capture their true outline; one moment a twisted worm-like aggregate, the next scattering into hundreds of violet-glowing droplets.
 
-Your base is facing its first enemy assault. Place machine gun towers along this winding path to prevent enemies from reaching the base.
+Yet the Swarm are not entirely unobservable. When passing through spatial rifts, they emit an extremely faint subspace harmonic wave. Federation scientists urgently retrofitted deep-space mineral prospecting equipment -- the "Resonance Locator" -- cranking its sensitivity up by three orders of magnitude, allowing them to precisely capture Swarm signals on star charts and mark their movement trajectories and clustering hotspots as red arrows.
 
-Mission Objectives:
-- Build machine gun towers to defend the path
-- Prevent all enemies from escaping
-- Protect the base energy core
+The arrow-marked enemy targets you see on your tactical viewport are not the Swarm's true forms, but tactical symbols translated from invisible threats by the Resonance Locator into human-readable data.
+
+================================
+
+[The Core Conflict: Stellar Core Orbs]
+
+The Swarm's sole purpose in swarming human outposts is to seize a condensed energy source known as the "Stellar Core Orb".
+
+Stellar Core Orbs are ultra-high-density energy carriers extracted and compressed from galactic cores by the outposts -- a fist-sized orb contains enough energy to power an entire city for a decade. To the Swarm, these orbs are not merely sustenance, but "fuel" for tearing open space and expanding the rifts. Every orb seized means the rift grows wider, allowing more Swarm to pour in from the void depths.
+
+Defense systems, communications arrays, life support -- every system on the outpost depends on Stellar Core Orbs. Lose the orbs, and you lose everything.
+
+However, the Swarm's hunger for orbs is also their weakness. Building on the Resonance Locator, Federation scientists developed the "Harmonic Trajectory Array." As the Swarm pass through rifts and move toward energy cores, they leave behind extremely faint subspace harmonic residuals. The Array captures these residual signals to not only mark the Swarm's real-time positions on the star chart, but also reverse-engineer their optimal travel routes -- the white path lines you see in the world viewport.
+
+These path lines are a mathematical manifestation of the Swarm's "instinct": they always choose the shortest route to the nearest energy source. And we can use that against them, building killing grounds along their inevitable path.
+
+================================
+
+[Your Mission]
+
+You have been appointed as an emergency Federation Defense Engineer, dispatched to outpost platforms across multiple star systems to deploy automated defense arrays on limited alloy decks, holding back the Swarm's spread.
+
+Your first assignment is the fallen Outpost KX-7. Its automated defenses have been destroyed, leaving only a few alloy platforms and surviving energy cores. Swarm advance forces are closing in.
+
+================================
+
+[Mission Objectives: Outpost KX-7]
+
+- Deploy Machine Gun tower arrays on the outpost's glowing-grid alloy decks
+- Use Resonance Locators to track Swarm movement and destroy them before they reach the base core
+- Protect all 5 remaining Stellar Core Orbs
+- If all orbs are lost, the outpost will lose power and fall permanently
+
+[Tip]
+Click the "MG Tower" button on the right panel, then click an appropriate glowing grid cell on the map to deploy. Machine Gun towers will automatically attack Swarm units that enter their range.
+
+================================
+
+This starfield is beautiful. But beautiful things are often the most dangerous.

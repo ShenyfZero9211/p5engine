@@ -1,8 +1,47 @@
-Multiple enemy types are attacking together; single-firepower is no longer sufficient.
+Stellar Perimeter -- Mission Briefing
 
-Combine machine gun towers and missile towers, leveraging their respective range and damage characteristics to build a crossfire network.
+================================
 
-Mission Objectives:
-- Cover the first half of the path with machine gun towers
-- Use missile towers against clustered enemies
-- Prevent all enemies from escaping
+[Background: The Starport Causeway]
+
+The crisis at Outpost KX-7 is far from over, but the Resonance Locator has detected an even more troubling signal at the edge of the system — the Swarm is moving toward an abandoned starport.
+
+The starport, designated "Skyhook-7," was an early Federation deep-space transfer hub connecting the outpost's main structure to an asteroid mining zone. A sixteen-hundred-meter alloy causeway stretches between the two massive installations, suspended above an endless void scattered with drifting rock fragments. The view is open, yet the deployable alloy decks are scattered like a chain dangling over an abyss.
+
+Engineering initially assumed the Swarm would have no interest in derelict facilities. They were wrong. The Harmonic Trajectory Array shows that the Swarm's true target is not the starport itself, but the emergency energy relay station at the far end of the causeway — where three reserve Stellar Core Orbs are sealed. If the Swarm breaks through, they will simultaneously sever the energy supply lines to both the outpost and the mining zone.
+
+================================
+
+[New Threat: The Striker]
+
+During the causeway engagement, the Resonance Locator captured an entirely new Swarm signal pattern for the first time.
+
+This new variant was tentatively designated "Striker" by frontline observers. Unlike the slow, worm-like aggregates of the advance forces, Strikers manifest as unsettling liquid-streamlined structures that appear purpose-built for speed. Harmonic data indicates that Strikers travel nearly twice as fast as standard Swarm units, and excel at exploiting curved path segments for high-velocity切入 maneuvers that bypass frontal fire coverage.
+
+More alarming still are intelligence analysis results: the Swarm has begun employing "mixed formation" tactics. Hardened units form an armored vanguard in the front, drawing and consuming defensive fire; Strikers then flank at high speed, targeting weak nodes in the fire coverage network. This is not instinct. This is tactics — a word that should not apply to non-sentient organisms.
+
+================================
+
+[Crossfire Network Doctrine]
+
+Facing the threat of mixed formations, Federation Science Command proposed the "Crossfire Network" doctrine.
+
+The core concept is not complex: leverage the Machine Gun Tower's mid-to-close range high-rate-of-fire interception capability to build a dense wall of projectiles along the front half of the path, slowing and weakening the Swarm vanguard; simultaneously deploy Missile Towers along the mid-to-rear sections, using their long-range precision strikes to surgically eliminate clustered targets that penetrate the projectile wall. The overlapping range zones of both tower types create a "kill band" — any Swarm entering this zone faces both armor-piercing round shredding and plasma jet incineration.
+
+The key lies in timing and positioning. Deploy Missile Towers too early, and resources are wasted on sparse advance scouts; too late, and the Strikers have already crossed the intersection. You have one chance to turn this chain over the abyss into a garrote.
+
+================================
+
+[Mission Objectives: Skyhook-7 Starport Causeway]
+
+- Deploy Machine Gun and Missile Towers along the narrow alloy causeway to build a crossfire network
+- Machine Gun Towers handle mid-to-close range interception; Missile Towers handle mid-to-long range precision strikes
+- Protect the 5 Stellar Core Orbs at the emergency energy relay station
+- If all orbs are lost, both the outpost and the mining zone will lose power simultaneously
+
+[Tip]
+Machine Gun Towers are best placed ahead of path curves, maximizing hits during the brief slowdown as Swarm units turn; Missile Towers are best placed along straight mid-sections, giving warheads adequate time to lock onto clustered targets.
+
+================================
+
+The abyss does not actively devour anyone — unless you stand at the edge of the bridge with your back turned.

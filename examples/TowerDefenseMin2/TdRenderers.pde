@@ -1573,6 +1573,55 @@ static class EffectRenderer extends RendererComponent {
     }
 }
 
+/**
+ * Renders tutorial grid highlights in world space (follows camera naturally).
+ * Controlled by TdTutorial via static fields.
+ */
+static class TutorialGridRenderer extends RendererComponent {
+    static boolean enabled = false;
+    static java.util.List<int[]> cells = new java.util.ArrayList<>();
+    static shenyf.p5engine.ui.tutorial.TutorialStep.BorderEffect borderEffect =
+            shenyf.p5engine.ui.tutorial.TutorialStep.BorderEffect.PULSE;
+    static int borderColor = 0xFF00E5FF; // cyan
+    static float strokeW = 2f;
+
+    private float pulseTime = 0;
+
+    @Override
+    public void update(float dt) {
+        pulseTime += dt;
+    }
+
+    @Override
+    protected void renderShape(PGraphics g) {
+        if (!enabled || cells.isEmpty()) return;
+        float grid = TdConfig.GRID;
+        g.noFill();
+
+        if (borderEffect == shenyf.p5engine.ui.tutorial.TutorialStep.BorderEffect.FLASH) {
+            float pulse = 0.5f + 0.5f * PApplet.sin(pulseTime * 4f);
+            int alpha = (int)(100 + 155 * pulse);
+            g.strokeWeight(strokeW);
+            g.stroke((borderColor >> 16) & 0xFF, (borderColor >> 8) & 0xFF, borderColor & 0xFF, alpha);
+        } else if (borderEffect == shenyf.p5engine.ui.tutorial.TutorialStep.BorderEffect.PULSE) {
+            float pulse = 0.5f + 0.5f * PApplet.sin(pulseTime * 4f);
+            int alpha = (int)(100 + 155 * pulse);
+            float sw = strokeW + 1.5f * pulse;
+            g.strokeWeight(sw);
+            g.stroke((borderColor >> 16) & 0xFF, (borderColor >> 8) & 0xFF, borderColor & 0xFF, alpha);
+        } else {
+            g.strokeWeight(strokeW);
+            g.stroke(borderColor);
+        }
+
+        for (int[] c : cells) {
+            float x = c[0] * grid;
+            float y = c[1] * grid;
+            g.rect(x, y, grid, grid);
+        }
+    }
+}
+
 /** Lightweight round-rect drawn with beginShape (avoids P2D rect() radius overhead). */
 static void drawRoundRect(PGraphics g, float x, float y, float w, float h, float r) {
     if (r <= 0.5f) {

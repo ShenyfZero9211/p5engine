@@ -1,0 +1,190 @@
+{
+  "playing_level_1_tutorial": {
+    "levelId": 1,
+    "steps": [
+      {
+        "step": 0,
+        "targetType": "global",
+        "textKey": "tutorial.welcome.ui",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.0,
+        "borderEffect": "none",
+        "bubbleAnchor": "top_center"
+      },
+      {
+        "step": 1,
+        "targetType": "ui",
+        "targetId": "lbl_status",
+        "textKey": "tutorial.hud.status",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.5,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 2,
+        "targetType": "ui",
+        "targetId": "lbl_time",
+        "textKey": "tutorial.hud.time",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.5,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 3,
+        "targetType": "ui",
+        "targetId": "lbl_speed",
+        "textKey": "tutorial.hud.speed",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 5.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 4,
+        "targetType": "ui",
+        "targetId": "hud_build",
+        "textKey": "tutorial.hud.rightPanel",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.5,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 5,
+        "targetType": "ui",
+        "targetId": "hud_build",
+        "textKey": "tutorial.hud.buildButtons",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.5,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 6,
+        "targetType": "ui",
+        "targetId": "hud_minimap",
+        "textKey": "tutorial.hud.minimap",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 3.5,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 7,
+        "targetType": "screen_rect",
+        "targetX": 0,
+        "targetY": 48,
+        "targetW": 1040,
+        "targetH": 672,
+        "textKey": "tutorial.hud.viewport",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 5.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 8,
+        "targetType": "global",
+        "textKey": "tutorial.mission.objective",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 5.0,
+        "borderEffect": "none",
+        "bubbleAnchor": "top_center"
+      },
+      {
+        "step": 9,
+        "targetType": "ui",
+        "targetId": "btn_mg",
+        "textKey": "tutorial.build.mg",
+        "advance": "click",
+        "delay": 1.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 10,
+        "targetType": "full_screen_no_mask",
+        "textKey": "tutorial.place.tower",
+        "advance": "action",
+        "delay": 1.0,
+        "borderEffect": "flash",
+        "bubbleAnchor": "top_right",
+        "allowSkip": false
+      },
+      {
+        "step": 11,
+        "targetType": "ui",
+        "targetId": "lbl_nextwave",
+        "textKey": "tutorial.hud.nextwave",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 4.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 12,
+        "targetType": "world_rect",
+        "targetX": 180,
+        "targetY": 140,
+        "targetW": 60,
+        "targetH": 60,
+        "textKey": "tutorial.world.spawn",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 4.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 13,
+        "targetType": "global",
+        "textKey": "tutorial.reward.kill",
+        "advance": "auto",
+        "delay": 999,
+        "autoDuration": 4.0,
+        "borderEffect": "none",
+        "bubbleAnchor": "top_center",
+        "triggerEvent": "first_enemy_killed"
+      },
+      {
+        "step": 14,
+        "targetType": "global",
+        "textKey": "tutorial.hud.towerMenu",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 4.0,
+        "borderEffect": "none",
+        "bubbleAnchor": "top_center"
+      },
+      {
+        "step": 15,
+        "targetType": "world_rect",
+        "targetX": 660,
+        "targetY": 620,
+        "targetW": 80,
+        "targetH": 80,
+        "textKey": "tutorial.world.base",
+        "advance": "auto",
+        "delay": 999,
+        "autoDuration": 4.0,
+        "borderEffect": "pulse",
+        "triggerEvent": "orb_stolen,wave_2_start"
+      },
+      {
+        "step": 16,
+        "targetType": "world_rect",
+        "targetX": 1380,
+        "targetY": 790,
+        "targetW": 60,
+        "targetH": 60,
+        "textKey": "tutorial.world.exit",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 4.0,
+        "borderEffect": "pulse"
+      }
+    ]
+  }
+}

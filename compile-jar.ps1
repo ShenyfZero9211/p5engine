@@ -1,13 +1,10 @@
-# Compile p5engine sources with JDK 17, pack library\p5engine.jar, then replace the
-# Processing-installed library jar (so sketches pick up the new build).
+# Compile p5engine sources with JDK 17, pack library\p5engine.jar.
 #
-# Default: after a successful build, overwrites:
-#   E:\projects\processing_env\libraries\p5engine\library\p5engine.jar
-# with the newly built jar (same as repo library\p5engine.jar).
-# To skip that copy (only keep repo library\p5engine.jar): .\compile-jar.ps1 -NoCopy
+# Default: only produces repo library\p5engine.jar, NEVER auto-copies outside repo.
+# To also copy into Processing libraries dir: .\compile-jar.ps1 -CopyToProcessing
 #
-# 默认：编译成功后，用新生成的 jar 覆盖 Processing 库目录下的 p5engine.jar（路径见上）。
-# 若本次不覆盖 Processing 库：加上 -NoCopy
+# 默认：仅生成仓库内的 library\p5engine.jar，不会自动复制到外部路径。
+# 如需同时覆盖 Processing 库目录：加上 -CopyToProcessing
 #
 # Usage: .\compile-jar.ps1   (from repo root, or pass -RepoRoot)
 
@@ -15,7 +12,7 @@ param(
     [string]$RepoRoot = "E:\projects\kilo\p5engine",
     [string]$JdkPath = "D:\java\jdk-17.0.10+7",
     [string]$ProcessingLibDest = "E:\projects\processing_env\libraries\p5engine\library",
-    [switch]$NoCopy
+    [switch]$CopyToProcessing
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,7 +75,7 @@ try {
     Pop-Location
 }
 
-if (-not $NoCopy) {
+if ($CopyToProcessing) {
     if (-not (Test-Path $ProcessingLibDest)) {
         New-Item -ItemType Directory -Path $ProcessingLibDest -Force | Out-Null
     }
@@ -93,7 +90,7 @@ if (-not $NoCopy) {
         Write-Host "[compile-jar] copied library.properties -> $(Join-Path $libRoot 'library.properties')" -ForegroundColor Green
     }
 } else {
-    Write-Host "[compile-jar] skipped Processing library replace (-NoCopy); repo jar only: $outJar" -ForegroundColor Yellow
+    Write-Host "[compile-jar] skipped Processing library replace (default); repo jar only: $outJar" -ForegroundColor Yellow
 }
 
 Write-Host "[compile-jar] done: $outJar" -ForegroundColor Green

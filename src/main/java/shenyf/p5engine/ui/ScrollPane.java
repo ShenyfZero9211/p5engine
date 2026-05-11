@@ -144,7 +144,15 @@ public class ScrollPane extends Container {
         float ih = getContentHeight();
         float barW = (showVerticalBar && viewport.getHeight() > ih + 0.5f) ? 12f : 0f;
         float clipW = Math.max(1, iw - barW);
-        applet.clip(ix, iy, clipW, ih);
+        // Clip in screen-pixel coordinates to match rect() under FIT scaling
+        float sx1 = applet.screenX(ix, iy);
+        float sy1 = applet.screenY(ix, iy);
+        float sx2 = applet.screenX(ix + clipW, iy + ih);
+        float sy2 = applet.screenY(ix + clipW, iy + ih);
+        applet.pushMatrix();
+        applet.resetMatrix();
+        applet.clip(sx1, sy1, sx2 - sx1, sy2 - sy1);
+        applet.popMatrix();
         viewport.paint(applet, theme);
         applet.noClip();
         if (barW > 0) {
@@ -190,7 +198,7 @@ public class ScrollPane extends Container {
         if (event.getType() == UIEvent.Type.MOUSE_WHEEL && containsPoint(absMouseX, absMouseY)) {
             float viewH = getContentHeight();
             float max = maxScrollY(viewH);
-            setScrollY(scrollY - event.getScrollDelta() * 28f);
+            setScrollY(scrollY + event.getScrollDelta() * 28f);
             if (scrollY > max) {
                 scrollY = max;
             }

@@ -109,6 +109,7 @@ static final class TdFlow {
 
     static WinLoseTextAnimator winLoseAnimator = null;
     static int briefingLevelId = -1;
+    static int difficultySelectLevelId = -1;
 
     static void buildMainMenu(TowerDefenseMin2 app) {
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
@@ -215,6 +216,7 @@ static final class TdFlow {
     }
 
     static void showLevelSelect(TowerDefenseMin2 app) {
+        difficultySelectLevelId = -1;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -252,22 +254,30 @@ static final class TdFlow {
         win.add(panel);
 
         int count = TdAssets.getLevelCount();
+        int maxReached = TdSaveData.getMaxLevelReached();
         for (int i = 1; i <= count; i++) {
             final int lid = i;
             int col = (i - 1) % cols;
             int row = (i - 1) / cols;
             int bx = startX + col * (btnW + hgap);
             int by = startY + row * (btnH + vgap);
-            Button btn = new Button("btn_level_" + i);
+            LevelButton btn = new LevelButton("btn_level_" + i);
             btn.setBounds(bx, by, btnW, btnH);
             btn.setLabel(TdAssets.i18n("levelSelect.level", i));
-            btn.setAction(() -> {
-                if (TdSaveLoad.hasSave(app, lid)) {
-                    TdFlow.showLevelResumeDialog(app, lid);
-                } else {
-                    TdFlow.showDifficultySelect(app, lid);
-                }
-            });
+            boolean unlocked = lid <= maxReached;
+            btn.locked = !unlocked;
+            btn.cleared = unlocked && TdCompletion.hasAnyCompletion(lid);
+            if (unlocked) {
+                btn.setAction(() -> {
+                    if (TdSaveLoad.hasSave(app, lid)) {
+                        TdFlow.showLevelResumeDialog(app, lid);
+                    } else {
+                        TdFlow.showDifficultySelect(app, lid);
+                    }
+                });
+            } else {
+                btn.setEnabled(false);
+            }
             btn.appear(0.05f * i, 16f, 0.4f);
             panel.add(btn);
         }
@@ -575,6 +585,7 @@ static final class TdFlow {
     }
 
     static void showDifficultySelect(TowerDefenseMin2 app, int levelId) {
+        difficultySelectLevelId = levelId;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -614,9 +625,10 @@ static final class TdFlow {
             final String dKey = diffKeys[i];
             DifficultyDef diff = TdAssets.getDifficulty(dKey);
             String label = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : dKey;
-            Button btn = new Button("btn_diff_" + dKey);
+            BadgeButton btn = new BadgeButton("btn_diff_" + dKey);
             btn.setBounds((400 - btnW) / 2, startY + i * (btnH + gap), btnW, btnH);
             btn.setLabel(label);
+            btn.setShowBadge(TdCompletion.isCompleted(levelId, dKey));
             btn.setAction(() -> showBriefing(app, levelId, dKey));
             btn.appear(0.05f * (i + 1), 16f, 0.4f);
             panel.add(btn);
@@ -646,13 +658,26 @@ static final class TdFlow {
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
-        float designW = app.engine.getDisplayManager().getDesignWidth();
-        float designH = app.engine.getDisplayManager().getDesignHeight();
+        // Get briefing font from theme
+        processing.core.PFont briefingFont = null;
+        Theme theme = app.ui.getTheme();
+        if (theme instanceof TdTheme) {
+            briefingFont = ((TdTheme) theme).getBriefingFont();
+        }
+
+        shenyf.p5engine.rendering.DisplayManager dm = app.engine.getDisplayManager();
+        float designW = dm.getDesignWidth();
+        float designH = dm.getDesignHeight();
+        float scale = dm.getUniformScale();
+        float fullW = dm.getActualWidth() / scale;
+        float fullH = dm.getActualHeight() / scale;
 
         int winW = 840;
-        int winH = 480;
-        int winX = (int)(designW - winW) / 2;
-        int winY = (int)(designH - winH) / 2;
+        int winH = 520;
+        // Use fullW/fullH instead of designW/designH so the window is centered
+        // relative to the actual window area (accounting for root's -ox/-oy offset).
+        int winX = (int)(fullW - winW) / 2;
+        int winY = (int)(fullH - winH) / 2;
 
         Window win = new Window("briefing_win");
         win.setBounds(winX, winY, winW, winH);
@@ -673,8 +698,9 @@ static final class TdFlow {
         String levelName = TdAssets.i18n("level." + levelId + ".name");
         Label lblTitle = new Label("lbl_briefing_title");
         lblTitle.setText(levelName);
-        lblTitle.setBounds(0, 20, winW, 44);
+        lblTitle.setBounds(0, 4, winW, 32);
         lblTitle.setTextAlign(PApplet.CENTER);
+        if (briefingFont != null) lblTitle.setFont(briefingFont);
         panel.add(lblTitle);
 
         // Difficulty label
@@ -682,32 +708,54 @@ static final class TdFlow {
         String diffLabel = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : difficultyKey;
         Label lblDiff = new Label("lbl_briefing_diff");
         lblDiff.setText(diffLabel);
-        lblDiff.setBounds(0, 68, winW, 30);
+        lblDiff.setBounds(0, 36, winW, 24);
         lblDiff.setTextAlign(PApplet.CENTER);
+        if (briefingFont != null) lblDiff.setFont(briefingFont);
         panel.add(lblDiff);
 
         // Briefing text: load from locale-specific txt file
         String locale = P5Engine.getInstance().getI18n().getLocale();
         String briefingText = TdAssets.loadBriefingText(levelId, locale);
 
-        float contentW = 700;
-        float contentH = 720; // generous height for text() to layout all lines
+        float contentW = 740;
 
         ScrollPane sp = new ScrollPane("briefing_scroll");
-        sp.setBounds(60, 108, 720, 360);
+        sp.setBounds(30, 60, 780, 450);
         sp.setShowVerticalBar(true);
         sp.setBackgroundColor(0x801A2035);
 
-        Label lblBriefing = new Label("lbl_briefing_text");
-        lblBriefing.setText(briefingText);
-        lblBriefing.setWrapWidth(contentW);
-        lblBriefing.setTextAlign(PApplet.LEFT);
-        lblBriefing.setTextColor(0xFFE0E6F0);
-        lblBriefing.setTextSize(18);
-        lblBriefing.setBounds(0, 0, (int)contentW, (int)contentH);
+        // Pre-render briefing text with JAVA2D to bypass P2D font texture limits
+        int maxBufferH = 2000;
+        PGraphics pg = app.createGraphics((int)contentW, maxBufferH, JAVA2D);
+        pg.beginDraw();
+        pg.background(0, 0);
+        pg.textFont(app.createFont("Microsoft YaHei", TdAssets.getFontSizeBriefing(), true, TdAssets.collectBriefingChars()));
+        pg.textSize(TdAssets.getFontSizeBriefing());
+        pg.textAlign(PApplet.LEFT, PApplet.TOP);
+        pg.fill(0xFFE0E6F0);
+        pg.text(briefingText, 4, 4, contentW - 8, maxBufferH - 8);
+        pg.endDraw();
+
+        PImage fullImg = pg.get();
+        int actualH = maxBufferH;
+        outer:
+        for (int y = maxBufferH - 1; y >= 0; y--) {
+            for (int x = 0; x < (int)contentW; x++) {
+                if ((fullImg.get(x, y) & 0xFF000000) != 0) {
+                    actualH = y + 1;
+                    break outer;
+                }
+            }
+        }
+        int cropH = Math.min(actualH + 4, maxBufferH);
+        PImage img = (cropH < maxBufferH) ? fullImg.get(0, 0, (int)contentW, cropH) : fullImg;
+
+        Image lblBriefing = new Image("lbl_briefing_text");
+        lblBriefing.setImage(img);
+        lblBriefing.setBounds(0, 0, img.width, img.height);
 
         sp.getViewport().setPaintBackground(false);
-        sp.getViewport().setSize((int)contentW, (int)contentH);
+        sp.getViewport().setSize(img.width, img.height);
         sp.getViewport().add(lblBriefing);
         panel.add(sp);
 
@@ -757,6 +805,10 @@ static final class TdFlow {
         app.setupWorldViewport();
         app.setupHud();
         TdSound.playBgmGame();
+        String tutorialKey = TdTutorial.getTutorialKeyForLevel(levelId);
+        if (tutorialKey != null) {
+            TdTutorial.start(tutorialKey);
+        }
     }
 
     static void buildWinMenu(TowerDefenseMin2 app) {
@@ -805,12 +857,18 @@ static final class TdFlow {
     }
 
     static void showWin(TowerDefenseMin2 app) {
+        TdTutorial.stop();
         TdSaveData.saveSettings();
         // Update max level reached
         int currentMax = TdSaveData.getMaxLevelReached();
         if (TdGameWorld.level != null && TdGameWorld.level.id >= currentMax) {
             TdSaveData.setMaxLevelReached(TdGameWorld.level.id + 1);
             TdSaveData.saveSettings();
+        }
+        // Record completion for this level & difficulty
+        if (TdGameWorld.level != null && TdGameWorld.currentDifficultyKey != null) {
+            TdCompletion.setCompleted(TdGameWorld.level.id, TdGameWorld.currentDifficultyKey);
+            TdCompletion.save(app);
         }
         app.state = TdState.WIN;
         app.engine.getTweenManager().killAll();
@@ -1136,6 +1194,7 @@ static final class TdFlow {
     }
 
     static void showLose(TowerDefenseMin2 app) {
+        TdTutorial.stop();
         TdSaveData.incGamesLost();
         TdSaveData.saveSettings();
         app.state = TdState.LOSE;
