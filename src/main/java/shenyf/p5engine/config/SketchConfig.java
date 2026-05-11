@@ -56,9 +56,11 @@ public class SketchConfig {
     }
 
     private String getBasePath() {
-        String sketchPath = applet.sketchPath();
-        if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
-            return sketchPath;
+        if (applet != null) {
+            String sketchPath = applet.sketchPath();
+            if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
+                return sketchPath;
+            }
         }
         return System.getProperty("user.dir");
     }
@@ -77,12 +79,14 @@ public class SketchConfig {
     }
 
     private String getDefaultSketchName() {
-        String sketchPath = applet.sketchPath();
-        if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
-            Path path = Paths.get(sketchPath);
-            String fileName = path.getFileName().toString();
-            int dotIndex = fileName.lastIndexOf('.');
-            return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+        if (applet != null) {
+            String sketchPath = applet.sketchPath();
+            if (sketchPath != null && Files.exists(Paths.get(sketchPath))) {
+                Path path = Paths.get(sketchPath);
+                String fileName = path.getFileName().toString();
+                int dotIndex = fileName.lastIndexOf('.');
+                return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+            }
         }
 
         String userDir = System.getProperty("user.dir");

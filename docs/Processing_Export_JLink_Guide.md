@@ -209,39 +209,48 @@ Start-Process "E:\...\output\ExampleExportDemo.exe" -PassThru
 
 ---
 
-## 自动化脚本（已实现）
+## 统一打包脚本（推荐）
+
+`scripts/build-release.ps1` 是 p5engine 的统一打包脚本，整合了引擎编译、PPAK 资源打包、Processing CLI 导出、JLink JRE 精简四步流程。
 
 ### 已创建文件
 
 | 文件 | 说明 |
 |---|---|
-| `build.ps1` | 主构建脚本（155行） |
-| `run_export_example.ps1` | 示例调用脚本 |
+| `scripts/build-release.ps1` | **统一打包脚本（推荐）** |
+| `scripts/export_game.ps1` | PPAK-only 导出脚本 |
+| `build.ps1` | 旧版构建脚本（保留参考） |
+| `compile-jar.ps1` | 引擎编译脚本 |
 | `Processing_Export_JLink_Guide.md` | 本文档 |
 
 ### 使用方式
 
 ```powershell
-# 完整参数
-.\build.ps1 `
-    -SketchPath "E:\projects\kilo\p5engine\examples\ExampleExportDemo" `
-    -OutputPath "E:\projects\kilo\p5engine\examples\ExampleExportDemo\output" `
+# 基础用法：导出指定 sketch（自动 JLink 精简）
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 `
+    -SketchPath "E:\projects\kilo\p5engine\examples\TowerDefenseMin2" `
+    -Force
+
+# 完整用法：先编译引擎，再导出
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 `
+    -SketchPath "E:\projects\kilo\p5engine\examples\TowerDefenseMin2" `
+    -BuildEngine `
+    -UsePpak `
     -UseJlink $true `
     -JdkPath "D:\java\jdk-17.0.10+7" `
     -ProcessingPath "D:\Processing\Processing.exe" `
     -Force
-
-# 使用默认参数（推荐）
-powershell -ExecutionPolicy Bypass -File .\build.ps1 -Force
 ```
 
 ### 脚本参数
 
 | 参数 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `-SketchPath` | string | 必填 | PDE 草图文件夹路径 |
-| `-OutputPath` | string | 必填 | 导出输出目录 |
-| `-UseJlink` | bool | `$true` | 是否使用 JLink 精简 |
+| `-SketchPath` | string | **必填** | PDE 草图文件夹路径 |
+| `-OutputPath` | string | `<SketchPath>\output` | 导出输出目录 |
+| `-BuildEngine` | switch | `$false` | 是否先编译 p5engine.jar |
+| `-UsePpak` | switch | `$false` | 是否将 data/ 打包为 PPAK |
+| `-UseJlink` | bool | `$true` | 是否使用 JLink 精简 JRE |
 | `-JdkPath` | string | `D:\java\jdk-17.0.10+7` | JDK 路径 |
 | `-ProcessingPath` | string | `D:\Processing\Processing.exe` | Processing 路径 |
 | `-Force` | switch | - | 强制覆盖输出目录 |
@@ -249,70 +258,100 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 -Force
 ### 脚本流程
 
 ```
-1. [STEP] Validating input parameters
-   - 检查 PDE 文件是否存在
-   - 检查 Processing.exe 是否存在
-   - 检查 jdeps.exe 是否存在
-   - 检查 jlink.exe 是否存在（如果 UseJlink=true）
+1. [STEP] Compile Engine (optional, -BuildEngine)
+   - 调用 compile-jar.ps1 编译引擎
+   - 将 library/p5engine.jar 复制到 sketch/code/
 
-2. [STEP] Preparing output directory
-   - 如果目录已存在且有 -Force：直接删除重建
-   - 如果目录已存在无 -Force：询问用户确认
+2. [STEP] Validating environment
+   - 检查 .pde 文件、Processing.exe、jdeps.exe、jlink.exe
 
-3. [STEP] Exporting sketch with Processing CLI
-   - 使用 Start-Process 调用 Processing CLI
-   - 参数: --force --sketch=<path> --output=<path> --export --variant=windows-amd64
-   - 自动检测 .exe 是否生成
+3. [STEP] Preparing output directory
+   - 清理旧输出（-Force）
 
-4. [STEP] Analyzing jar dependencies with jdeps (仅 UseJlink=true)
-   - 自动识别主 jar（优先 core-*.jar 或 *Example*.jar）
-   - 拼接完整 classpath
-   - 运行 jdeps --print-module-deps --ignore-missing-deps
-   - 提取 java.* 模块列表
+4. [STEP] Optional PPAK packing (-UsePpak)
+   - 调用 python tools/ppak/ppak_pack.py 打包 data/ 目录
 
-5. [STEP] Creating custom JRE with JLink (仅 UseJlink=true)
-   - 运行 jlink --module-path --add-modules --output --compress=2 --strip-debug
-   - 替换原 java 目录为自定义 JRE
+5. [STEP] Exporting sketch with Processing CLI
+   - processing cli --force --sketch=<path> --output=<path> --export --variant=windows-amd64
 
-6. [STEP] Build Summary
-   - 输出 EXE 路径和大小
-   - 输出自定义 JRE 大小（如果使用）
-   - 输出总包大小
+6. [STEP] Copying extra resource folders
+   - 自动复制 sketch 根目录下的 music/、sounds/、textures/ 等资源文件夹
+   - Processing CLI 仅复制 data/，其他资源目录需手动补充
+
+7. [STEP] Creating custom JRE with JLink (optional, -UseJlink)
+   - jdeps 分析 lib/ 下所有 jar 的模块依赖
+   - 合并推荐模块集（8 模块）与 jdeps 结果
+   - jlink 生成精简 JRE
+   - 替换原 java/ 目录
+
+8. [STEP] Build Summary
+   - 输出 EXE 路径、JRE 大小、总包大小
 ```
 
-### 实际运行结果
+### TowerDefenseMin2 导出实例
 
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 `
+    -SketchPath "E:\projects\kilo\p5engine\examples\TowerDefenseMin2" `
+    -Force
+```
+
+**输出结果**：
 ```
 ========================================
-Processing Export Build Script
+ p5engine Build Release Script
 ========================================
 
-[STEP] Validating input parameters
-[INFO] Sketch: E:\projects\kilo\p5engine\examples\ExampleExportDemo
-[INFO] Output: E:\projects\kilo\p5engine\examples\ExampleExportDemo\output
-[INFO] Use JLink: True
+[INFO] Sketch    : E:\projects\kilo\p5engine\examples\TowerDefenseMin2
+[INFO] Output    : E:\projects\kilo\p5engine\examples\TowerDefenseMin2\output
+[INFO] BuildEngine: False
+[INFO] UsePpak   : False
+[INFO] UseJlink  : True
+
+[STEP] Validating environment
+[INFO] Environment OK
 
 [STEP] Preparing output directory
-[WARN] Removing existing output directory (Force mode)
 [INFO] Output directory ready
 
 [STEP] Exporting sketch with Processing CLI
-[INFO] Export completed successfully
+[INFO] Export completed: TowerDefenseMin2.exe
 
-[STEP] Analyzing jar dependencies with jdeps
-[INFO] Using modules: java.base,java.desktop,java.management,java.sql
+[STEP] Copying extra resource folders
+[INFO] Copied music -> 24.67 MB
+[INFO] Copied sounds -> 1.91 MB
+[INFO] Copied textures -> 2.77 MB
 
 [STEP] Creating custom JRE with JLink
-[INFO] Custom JRE created: 41.95 MB
+[INFO] Analyzing: TowerDefenseMin2.jar
+[INFO] jdeps output: java.base,java.desktop,java.management,java.sql
+[INFO] Using modules: java.base,java.desktop,java.management,java.sql,java.xml,java.naming,java.net.http,java.logging
+[INFO] Custom JRE created: 42.85 MB
 [INFO] Replaced original JRE with custom version
 
 [STEP] Build Summary
-  Executable : E:\...\output\ExampleExportDemo.exe
-  Size       : 70 KB
-  Custom JRE : 41.95 MB
-  Total size : 51.36 MB
+  Executable : E:\...\output\TowerDefenseMin2.exe
+  EXE Size   : 70.00 KB
+  JRE Size   : 42.85 MB
+  Total Size : 87.44 MB
 
-Build completed successfully!
+========================================
+ Build completed successfully!
+========================================
+```
+
+**关键修复**：
+- `SketchConfig.getDefaultSketchName()` 在 `applet == null` 时触发 NPE，导致导出的 EXE 启动崩溃。已在 `src/main/java/shenyf/p5engine/config/SketchConfig.java` 中添加 null 检查。
+
+---
+
+## 旧版脚本（参考）
+
+`build.ps1` 为早期版本，功能与 `build-release.ps1` 类似，但**硬编码了 ExampleExportDemo 路径**，不适用于其他 sketch。建议迁移至 `build-release.ps1`。
+
+```powershell
+# 旧版用法（仅支持 ExampleExportDemo）
+powershell -ExecutionPolicy Bypass -File .\build.ps1 -Force
 ```
 
 ### PowerShell 5.1 兼容性处理
@@ -352,6 +391,7 @@ Build completed successfully!
 - 仅支持 Windows 平台 (PowerShell)
 - Variant 硬编码为 `windows-amd64`，如需其他平台需修改脚本
 - jdeps 分析结果偏保守（仅 4 模块），实际使用 8 模块通用集
+- Processing CLI 仅自动复制 `data/` 文件夹；sketch 根目录下的 `music/`、`sounds/`、`textures/` 等额外资源目录需要 `build-release.ps1` 手动补充复制
 
 ---
 
