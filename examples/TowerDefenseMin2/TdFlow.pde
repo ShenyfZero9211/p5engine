@@ -110,6 +110,7 @@ static final class TdFlow {
     static WinLoseTextAnimator winLoseAnimator = null;
     static int briefingLevelId = -1;
     static int difficultySelectLevelId = -1;
+    static int resumeDialogLevelId = -1;
 
     static void buildMainMenu(TowerDefenseMin2 app) {
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
@@ -179,6 +180,7 @@ static final class TdFlow {
         btnStart.setBounds(40, 90, 240, 52);
         btnStart.setAlpha(0);
         btnStart.setAction(() -> TdFlow.showLevelSelect(app));
+        btnStart.setSfxPath(TdSound.SFX_CLICK);
         panel.add(btnStart);
         TdMenuBg.btnStartRef = btnStart;
 
@@ -187,6 +189,7 @@ static final class TdFlow {
         btnSettings.setBounds(40, 160, 240, 52);
         btnSettings.setAlpha(0);
         btnSettings.setAction(() -> TdFlow.showSettings(app, true));
+        btnSettings.setSfxPath(TdSound.SFX_CLICK);
         panel.add(btnSettings);
         TdMenuBg.btnSettingsRef = btnSettings;
 
@@ -195,6 +198,7 @@ static final class TdFlow {
         btnQuit.setBounds(40, 230, 240, 52);
         btnQuit.setAlpha(0);
         btnQuit.setAction(() -> showExitSaveDialog(app, () -> app.exit()));
+        btnQuit.setSfxPath(TdSound.SFX_CLICK);
         panel.add(btnQuit);
         TdMenuBg.btnQuitRef = btnQuit;
 
@@ -217,6 +221,7 @@ static final class TdFlow {
 
     static void showLevelSelect(TowerDefenseMin2 app) {
         difficultySelectLevelId = -1;
+        resumeDialogLevelId = -1;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -268,6 +273,7 @@ static final class TdFlow {
             btn.locked = !unlocked;
             btn.cleared = unlocked && TdCompletion.hasAnyCompletion(lid);
             if (unlocked) {
+                btn.setSfxPath(TdSound.SFX_CLICK);
                 btn.setAction(() -> {
                     if (TdSaveLoad.hasSave(app, lid)) {
                         TdFlow.showLevelResumeDialog(app, lid);
@@ -287,6 +293,7 @@ static final class TdFlow {
         btnBack.setLabel(TdAssets.i18n("menu.back"));
         btnBack.setBounds((640 - 200) / 2, 340, 200, 44);
         btnBack.setAction(() -> TdFlow.buildMainMenu(app));
+        btnBack.setSfxPath(TdSound.SFX_CLICK);
         btnBack.appear(0.05f * (count + 1), 16f, 0.4f);
         win.add(btnBack);
     }
@@ -486,6 +493,7 @@ static final class TdFlow {
 
         // Link fullscreen button action to resolution dropdown state
         btnFullscreenToggle.setAction(() -> {
+        btnFullscreenToggle.setSfxPath(TdSound.SFX_CLICK);
             boolean next = !TdSaveData.isFullscreen();
             TdSaveData.setFullscreen(next);
             btnFullscreenToggle.setLabel(next ? "ON" : "OFF");
@@ -533,6 +541,7 @@ static final class TdFlow {
         btnZh.setLabel(TdAssets.i18n("settings.lang.zh"));
         btnZh.setBounds(ctrlX, y, 80, rowH);
         btnZh.setAction(() -> {
+        btnZh.setSfxPath(TdSound.SFX_CLICK);
             app.engine.getI18n().setLocale("zh");
             TdSaveData.setLanguage("zh");
             TdFlow.showSettings(app, false);
@@ -544,6 +553,7 @@ static final class TdFlow {
         btnEn.setLabel(TdAssets.i18n("settings.lang.en"));
         btnEn.setBounds(ctrlX + 90, y, 80, rowH);
         btnEn.setAction(() -> {
+        btnEn.setSfxPath(TdSound.SFX_CLICK);
             app.engine.getI18n().setLocale("en");
             TdSaveData.setLanguage("en");
             TdFlow.showSettings(app, false);
@@ -564,6 +574,7 @@ static final class TdFlow {
         btnZoomToggle.setLabel(TdSaveData.isZoomAtMouse() ? "ON" : "OFF");
         btnZoomToggle.setBounds(ctrlX, y, 80, rowH);
         btnZoomToggle.setAction(() -> {
+        btnZoomToggle.setSfxPath(TdSound.SFX_CLICK);
             boolean next = !TdSaveData.isZoomAtMouse();
             TdSaveData.setZoomAtMouse(next);
             btnZoomToggle.setLabel(next ? "ON" : "OFF");
@@ -578,6 +589,7 @@ static final class TdFlow {
         btnBack.setLabel(TdAssets.i18n("settings.back"));
         btnBack.setBounds(200, y, 200, 44);
         btnBack.setAction(() -> {
+        btnBack.setSfxPath(TdSound.SFX_CLICK);
             TdSaveData.saveSettings();
             TdFlow.buildMainMenu(app);
         });
@@ -586,6 +598,7 @@ static final class TdFlow {
 
     static void showDifficultySelect(TowerDefenseMin2 app, int levelId) {
         difficultySelectLevelId = levelId;
+        resumeDialogLevelId = -1;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -630,6 +643,7 @@ static final class TdFlow {
             btn.setLabel(label);
             btn.setShowBadge(TdCompletion.isCompleted(levelId, dKey));
             btn.setAction(() -> showBriefing(app, levelId, dKey));
+            btn.setSfxPath(TdSound.SFX_CLICK);
             btn.appear(0.05f * (i + 1), 16f, 0.4f);
             panel.add(btn);
         }
@@ -640,6 +654,7 @@ static final class TdFlow {
         btnBack.setLabel(TdAssets.i18n("menu.back"));
         btnBack.setBounds((400 - btnW) / 2, backY, btnW, btnH);
         btnBack.setAction(() -> {
+        btnBack.setSfxPath(TdSound.SFX_CLICK);
             if (TdSaveLoad.hasSave(app, levelId)) {
                 showLevelResumeDialog(app, levelId);
             } else {
@@ -748,6 +763,7 @@ static final class TdFlow {
         btnBack.setLabel(TdAssets.i18n("briefing.back"));
         btnBack.setBounds(btnBaseX, btnY, btnW, btnH);
         btnBack.setAction(() -> showDifficultySelect(app, levelId));
+        btnBack.setSfxPath(TdSound.SFX_CLICK);
         btnBack.setZOrder(11);
         btnBack.appear(0.15f, 16f, 0.4f);
         root.add(btnBack);
@@ -756,6 +772,7 @@ static final class TdFlow {
         btnStart.setLabel(TdAssets.i18n("briefing.start"));
         btnStart.setBounds(btnBaseX + btnW + btnGap, btnY, btnW, btnH);
         btnStart.setAction(() -> startLevel(app, levelId, difficultyKey));
+        btnStart.setSfxPath(TdSound.SFX_CLICK);
         btnStart.setZOrder(11);
         btnStart.appear(0.25f, 16f, 0.4f);
         root.add(btnStart);
@@ -816,6 +833,7 @@ static final class TdFlow {
         btnNext.setLabel(TdAssets.i18n("game.nextLevel"));
         btnNext.setBounds(150, 60, 200, 44);
         btnNext.setAction(() -> {
+        btnNext.setSfxPath(TdSound.SFX_CLICK);
             int next = TdGameWorld.level != null ? TdGameWorld.level.id + 1 : 1;
             if (next <= TdAssets.getLevelCount()) showDifficultySelect(app, next);
             else buildMainMenu(app);
@@ -827,6 +845,7 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
+        btnMenu.setSfxPath(TdSound.SFX_CLICK);
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);
@@ -945,6 +964,7 @@ static final class TdFlow {
         btnResume.setLabel(TdAssets.i18n("game.resume"));
         btnResume.setBounds(btnX, y, btnW, btnH);
         btnResume.setAction(() -> hidePauseMenu(app));
+        btnResume.setSfxPath(TdSound.SFX_CLICK);
         btnResume.appear(0.1f);
         panel.add(btnResume);
         y += btnH + gap;
@@ -964,6 +984,7 @@ static final class TdFlow {
         btnSave.setLabel(TdAssets.i18n("game.saveProgress"));
         btnSave.setBounds(btnX, y, btnW, btnH);
         btnSave.setAction(() -> {
+        btnSave.setSfxPath(TdSound.SFX_CLICK);
             boolean ok = TdSaveLoad.saveGame(app);
             if (ok) {
                 lblSaveHint.setText(TdAssets.i18n("game.saved"));
@@ -983,6 +1004,7 @@ static final class TdFlow {
         btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
         btnLoad.setBounds(btnX, y, btnW, btnH);
         btnLoad.setAction(() -> {
+        btnLoad.setSfxPath(TdSound.SFX_CLICK);
             if (TdGameWorld.level != null) {
                 boolean ok = TdSaveLoad.loadGame(app, TdGameWorld.level.id);
                 if (ok) {
@@ -999,6 +1021,7 @@ static final class TdFlow {
         btnRetry.setLabel(TdAssets.i18n("game.retry"));
         btnRetry.setBounds(btnX, y, btnW, btnH);
         btnRetry.setAction(() -> {
+        btnRetry.setSfxPath(TdSound.SFX_CLICK);
             hidePauseMenu(app);
             if (TdGameWorld.level != null) {
                 TdGameWorld.startLevel(app, TdGameWorld.level.id, TdGameWorld.currentDifficultyKey);
@@ -1013,8 +1036,9 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(btnX, y, btnW, btnH);
         btnMenu.setAction(() -> {
+        btnMenu.setSfxPath(TdSound.SFX_CLICK);
+            hidePauseMenu(app);
             showExitSaveDialog(app, () -> {
-                hidePauseMenu(app);
                 buildMainMenu(app);
             });
         });
@@ -1040,6 +1064,8 @@ static final class TdFlow {
 
     static void showLevelResumeDialog(TowerDefenseMin2 app, int levelId) {
         app.state = TdState.LEVEL_SELECT;
+        difficultySelectLevelId = -1;
+        resumeDialogLevelId = levelId;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
@@ -1077,6 +1103,7 @@ static final class TdFlow {
         btnRestart.setLabel(TdAssets.i18n("game.restart"));
         btnRestart.setBounds(60, 96, 280, 44);
         btnRestart.setAction(() -> showDifficultySelect(app, levelId));
+        btnRestart.setSfxPath(TdSound.SFX_CLICK);
         btnRestart.appear(0.1f);
         panel.add(btnRestart);
 
@@ -1084,6 +1111,7 @@ static final class TdFlow {
         btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
         btnLoad.setBounds(60, 148, 280, 44);
         btnLoad.setAction(() -> {
+        btnLoad.setSfxPath(TdSound.SFX_CLICK);
             boolean ok = TdSaveLoad.loadGame(app, levelId);
             if (ok) {
                 app.ui.getRoot().removeAllChildren();
@@ -1101,6 +1129,7 @@ static final class TdFlow {
         btnBack.setLabel(TdAssets.i18n("menu.back"));
         btnBack.setBounds(60, 200, 280, 44);
         btnBack.setAction(() -> showLevelSelect(app));
+        btnBack.setSfxPath(TdSound.SFX_CLICK);
         btnBack.appear(0.2f);
         panel.add(btnBack);
     }
@@ -1141,6 +1170,7 @@ static final class TdFlow {
         btnSaveExit.setLabel(TdAssets.i18n("game.saveAndExit"));
         btnSaveExit.setBounds(40, 130, 120, 40);
         btnSaveExit.setAction(() -> {
+        btnSaveExit.setSfxPath(TdSound.SFX_CLICK);
             TdSaveLoad.saveGame(app);
             onExit.run();
         });
@@ -1150,12 +1180,17 @@ static final class TdFlow {
         btnExit.setLabel(TdAssets.i18n("game.exitWithoutSave"));
         btnExit.setBounds(170, 130, 120, 40);
         btnExit.setAction(() -> onExit.run());
+        btnExit.setSfxPath(TdSound.SFX_CLICK);
         panel.add(btnExit);
 
         Button btnCancel = new Button("btn_exit_cancel");
         btnCancel.setLabel(TdAssets.i18n("ui.cancel"));
         btnCancel.setBounds(300, 130, 100, 40);
-        btnCancel.setAction(() -> root.remove(win));
+        btnCancel.setAction(() -> {
+            root.remove(win);
+            showPauseMenu(app);
+        });
+        btnCancel.setSfxPath(TdSound.SFX_CLICK);
         panel.add(btnCancel);
     }
 
@@ -1209,6 +1244,7 @@ static final class TdFlow {
         btnRetry.setLabel(TdAssets.i18n("game.retry"));
         btnRetry.setBounds(150, 60, 200, 44);
         btnRetry.setAction(() -> {
+        btnRetry.setSfxPath(TdSound.SFX_CLICK);
             int id = TdGameWorld.level != null ? TdGameWorld.level.id : 1;
             showDifficultySelect(app, id);
         });
@@ -1219,6 +1255,7 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(150, 120, 200, 44);
         btnMenu.setAction(() -> {
+        btnMenu.setSfxPath(TdSound.SFX_CLICK);
             TdFlow.buildMainMenu(app);
         });
         btnMenu.appear(0.2f);

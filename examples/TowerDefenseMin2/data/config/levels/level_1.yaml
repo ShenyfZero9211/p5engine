@@ -3,6 +3,7 @@ nameKey: level.1.name
 subtitleKey: level.1.subtitle
 briefingKey: level.1.briefing
 levelType: DEFEND_BASE
+mapTheme: STARFIELD
 initialMoney: 125
 baseOrbs: 5
 enemyHpBase: 80

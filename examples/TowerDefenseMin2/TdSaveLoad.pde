@@ -40,6 +40,7 @@ static final class TdSaveLoad {
         json.setBoolean("firstTowerPlaced", TdGameWorld.firstTowerPlaced);
         json.setFloat("baseIncomeAccumulator", TdGameWorld.baseIncomeAccumulator);
         json.setFloat("levelStartTotalTime", TdGameWorld.levelStartTotalTime);
+        json.setFloat("levelPlayTime", TdGameWorld.levelPlayTime);
         json.setJSONArray("towers", serializeTowers());
         json.setJSONArray("enemies", serializeEnemies());
         json.setJSONArray("orbs", serializeOrbs());
@@ -83,6 +84,7 @@ static final class TdSaveLoad {
         TdGameWorld.firstTowerPlaced = json.getBoolean("firstTowerPlaced", TdGameWorld.firstTowerPlaced);
         TdGameWorld.baseIncomeAccumulator = json.getFloat("baseIncomeAccumulator", TdGameWorld.baseIncomeAccumulator);
         TdGameWorld.levelStartTotalTime = json.getFloat("levelStartTotalTime", TdGameWorld.levelStartTotalTime);
+        TdGameWorld.levelPlayTime = json.getFloat("levelPlayTime", TdGameWorld.levelPlayTime);
 
         // Clear transient entities
         TdGameWorld.bullets.clear();

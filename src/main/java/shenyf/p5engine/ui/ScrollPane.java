@@ -75,6 +75,21 @@ public class ScrollPane extends Container {
         return new ThumbMetrics(t0, thumbLen);
     }
 
+    private boolean isOverBar(float absMouseX, float absMouseY) {
+        float viewH = getContentHeight();
+        if (!showVerticalBar || viewport.getHeight() <= viewH + 0.5f) {
+            return false;
+        }
+        float ax = getAbsoluteX() + getInsets().left;
+        float ay = getAbsoluteY() + getInsets().top;
+        float iw = getContentWidth();
+        float ih = viewH;
+        float barW = 12f;
+        float clipW = Math.max(1, iw - barW);
+        return absMouseX >= ax + clipW && absMouseX < ax + iw
+                && absMouseY >= ay && absMouseY < ay + ih;
+    }
+
     private boolean isOverThumb(float absMouseX, float absMouseY) {
         float viewH = getContentHeight();
         if (!showVerticalBar || viewport.getHeight() <= viewH + 0.5f) {
@@ -207,6 +222,24 @@ public class ScrollPane extends Container {
                 draggingBar = true;
                 dragStartMouseY = absMouseY;
                 dragStartScrollY = scrollY;
+                return true;
+            }
+            // Click on scroll-bar track (not thumb) → jump to that position
+            if (isOverBar(absMouseX, absMouseY)) {
+                float viewH = getContentHeight();
+                ThumbMetrics thumb = calcThumbMetrics(viewH);
+                float trackLen = viewH - thumb.length;
+                if (trackLen > 0.5f) {
+                    float ay = getAbsoluteY() + getInsets().top;
+                    float relY = absMouseY - ay;
+                    float targetStart = relY - thumb.length / 2f;
+                    if (targetStart < 0) targetStart = 0;
+                    if (targetStart > trackLen) targetStart = trackLen;
+                    float ratio = targetStart / trackLen;
+                    float maxS = Math.max(1, viewport.getHeight() - viewH);
+                    float newScrollY = ratio * maxS;
+                    setScrollY(newScrollY);
+                }
                 return true;
             }
         }

@@ -102,6 +102,7 @@
   "tutorial.hud.viewport": "这是主战场视口\n可以使用鼠标拖拽或方向键移动屏幕，滚轮缩放视口\n设置界面中还可以开启跟随鼠标位置缩放",
   "tutorial.mission.objective": "你的任务是保护基地中的星核能量球\n虚空虫群没有固定形态，但谐振定位仪已标记出它们的行进轨迹\n在虫群抵达基地前消灭它们，赶紧部署防御塔吧",
   "tutorial.hud.nextwave": "准备就绪后，这里会显示下一波敌人的倒计时",
+  "tutorial.hud.rangeButton": "点击这里显示/隐藏所有塔的攻击范围\n(快捷键F键)可看所有塔的范围",
   "tutorial.reward.kill": "消灭虫群可以得到额外金钱奖励",
   "tutorial.hud.towerMenu": "右键已建造的塔，可以调出菜单，执行【出售】或【升级】命令",
   "tutorial.world.spawn": "虫群从空间裂隙中涌出，沿着路线向基地前进",

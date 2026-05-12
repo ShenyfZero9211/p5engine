@@ -100,6 +100,7 @@
   "tutorial.hud.viewport": "This is the main battlefield viewport\nDrag with mouse or use arrow keys to pan, scroll wheel to zoom\nSettings also allow mouse-follow zoom",
   "tutorial.mission.objective": "Your mission is to protect the base Stellar Core Orbs\nThe Void Swarm has no fixed form, but Resonance Locators have marked their paths\nDestroy them before they reach the base, deploy your defenses now",
   "tutorial.hud.nextwave": "When ready, the next wave countdown will appear here",
+  "tutorial.hud.rangeButton": "Click here to show/hide all tower attack ranges\n(Press F key to toggle all tower ranges)",
   "tutorial.reward.kill": "Eliminating the Swarm grants extra money rewards",
   "tutorial.hud.towerMenu": "Right-click on a built tower to open its menu for [Sell] or [Upgrade]",
   "tutorial.world.spawn": "The Swarm emerges from spatial rifts and advances toward the base",

@@ -54,6 +54,12 @@ final class TdAppSetup {
         ui.setTheme(theme);
         TdTutorial.init(ui);
 
+        // Load custom cursor
+        PImage cursorImg = loadImage("cur/cursor_optimized.png");
+        if (cursorImg != null) {
+            ui.setCustomCursor(cursorImg);
+        }
+
         gameScene = engine.getSceneManager().getActiveScene();
         setupCamera();
 
@@ -182,21 +188,26 @@ final class TdAppSetup {
         }
 
         // Setup intro sequence
-        IntroSequence intro = new IntroSequence();
-        float introDelay = TdAssets.getIntroDelay();
-        float introPostDelay = TdAssets.getIntroPostDelay();
-        intro.add(new FadeTextSegment(
-            new String[]{"SharpEye  Presents", "Achieved With P5Engine"},
-            0.6f, 0.2f, 1.5f, 0.8f, introDelay, introPostDelay,
-            0xFFFFFFFF, 0xFF000000, 72f, 0f
-        ));
-        intro.onComplete(() -> {
+        if (TdSaveData.isPlayIntro()) {
+            IntroSequence intro = new IntroSequence();
+            float introDelay = TdAssets.getIntroDelay();
+            float introPostDelay = TdAssets.getIntroPostDelay();
+            intro.add(new FadeTextSegment(
+                new String[]{"SharpEye  Presents", "Achieved With P5Engine"},
+                0.6f, 0.2f, 1.5f, 0.8f, introDelay, introPostDelay,
+                0xFFFFFFFF, 0xFF000000, 72f, 0f
+            ));
+            intro.onComplete(() -> {
+                TowerDefenseMin2.this.state = TdState.MENU;
+                TdFlow.buildMainMenu(TowerDefenseMin2.this);
+            });
+            engine.setIntroSequence(intro);
+            TowerDefenseMin2.this.state = TdState.INTRO;
+            intro.start();
+        } else {
             TowerDefenseMin2.this.state = TdState.MENU;
             TdFlow.buildMainMenu(TowerDefenseMin2.this);
-        });
-        engine.setIntroSequence(intro);
-        TowerDefenseMin2.this.state = TdState.INTRO;
-        intro.start();
+        }
     }
 
     void setupCamera() {
@@ -413,7 +424,22 @@ static final class TdAppInput {
         // then let the tutorial skip itself if active.
         if (app.key == PApplet.ESC) {
             app.key = 0; // Block Processing default quit behavior
-            if (app.sellMenuPanel != null) {
+            // Check if exit-save dialog is open — close it first
+            boolean hasExitDialog = false;
+            for (UIComponent c : app.ui.getRoot().getChildren()) {
+                if ("exit_save_win".equals(c.getId())) {
+                    hasExitDialog = true;
+                    break;
+                }
+            }
+            if (hasExitDialog) {
+                for (UIComponent c : new java.util.ArrayList<>(app.ui.getRoot().getChildren())) {
+                    if ("exit_save_win".equals(c.getId())) {
+                        app.ui.getRoot().remove(c);
+                    }
+                }
+                TdFlow.showPauseMenu(app);
+            } else if (app.sellMenuPanel != null) {
                 TdAppUtils.closeSellMenu(app);
                 if (app.state == TdState.PLAYING) {
                     TdFlow.showPauseMenu(app);
@@ -427,7 +453,10 @@ static final class TdAppInput {
             } else if (app.state == TdState.SETTINGS) {
                 TdFlow.buildMainMenu(app);
             } else if (app.state == TdState.LEVEL_SELECT) {
-                if (TdFlow.difficultySelectLevelId >= 0) {
+                if (TdFlow.resumeDialogLevelId >= 0) {
+                    // In level-resume dialog → back to level select
+                    TdFlow.showLevelSelect(app);
+                } else if (TdFlow.difficultySelectLevelId >= 0) {
                     int lid = TdFlow.difficultySelectLevelId;
                     if (TdSaveLoad.hasSave(app, lid)) {
                         TdFlow.showLevelResumeDialog(app, lid);
@@ -791,6 +820,7 @@ static final class TdAppUtils {
         Button btnSell = new Button("btn_sell");
         btnSell.setLabel(TdAssets.i18n("ui.sell"));
         btnSell.setBounds(4, 36, 92, 28);
+        btnSell.setSfxPath(TdSound.SFX_CLICK);
         btnSell.setAction(() -> {
             TdGameWorld.sellTower(tower.gridX, tower.gridY);
             closeSellMenu(app);
@@ -800,6 +830,7 @@ static final class TdAppUtils {
         Button btnCancel = new Button("btn_cancel_sell");
         btnCancel.setLabel(TdAssets.i18n("ui.cancel"));
         btnCancel.setBounds(4, 68, 92, 28);
+        btnCancel.setSfxPath(TdSound.SFX_CLICK);
         btnCancel.setAction(() -> closeSellMenu(app));
         app.sellMenuPanel.add(btnCancel);
 
@@ -826,6 +857,7 @@ static final class TdAppUtils {
             this.tower = tower;
             this.appRef = app;
             this.tooltip = tooltip;
+            setSfxPath(TdSound.SFX_CLICK);
         }
 
         @Override
@@ -918,16 +950,26 @@ static final class TdAppUtils {
                     sb.append("毒素 +").append(Math.round((def.upgradePoisonMult - 1f) * 100f)).append("%\n");
                 if (def.upgradeCommandMult > 1f)
                     sb.append("指挥 +").append(Math.round((def.upgradeCommandMult - 1f) * 100f)).append("%\n");
+                if (def.type == TowerType.COMMAND) {
+                    sb.append("攻击力 x").append(String.format("%.1f", def.upgradeCommandMult)).append("\n");
+                    int bmin = def.commandKillBonusMin[1];
+                    int bmax = def.commandKillBonusMax[1];
+                    if (bmax > 0) sb.append("击杀奖金 ").append(bmin).append("~").append(bmax).append("金币");
+                }
+                if (def.type == TowerType.POISON) {
+                    float effDps = def.poisonDamage * ((tower.upgradeLevel >= 1) ? def.upgradePoisonMult : 1f);
+                    sb.append("毒素 ").append(Math.round(effDps)).append("/秒，").append(Math.round(def.poisonDuration)).append("秒");
+                }
             } else if (tower.upgradeLevel == 1) {
                 sb.append(TdAssets.i18n("tower.upgrade")).append(" II\n");
                 switch (def.type) {
                     case MG:
-                        sb.append("伤害翻倍\n");
+                        sb.append("伤害 +100%\n");
                         sb.append("双发连射");
                         break;
                     case MISSILE:
-                        sb.append("附加燃烧\n");
-                        sb.append("伤害提升");
+                        sb.append("伤害再+20%\n");
+                        sb.append("附加燃烧（").append(Math.round(def.burnDamage)).append("/秒，").append(Math.round(def.burnDuration)).append("秒）");
                         break;
                     case LASER:
                         sb.append("伤害 +60%");
@@ -936,11 +978,15 @@ static final class TdAppUtils {
                         sb.append("减速持续 +50%");
                         break;
                     case POISON:
-                        sb.append("毒素 +30%\n");
+                        float effDps2 = def.poisonDamage * def.upgradePoisonMult * 1.3f;
+                        sb.append("毒素再+30%（").append(Math.round(effDps2)).append("/秒，").append(Math.round(def.poisonDuration)).append("秒）\n");
                         sb.append("角度 +50%");
                         break;
                     case COMMAND:
-                        sb.append("指挥加成提升");
+                        sb.append("攻击力 x").append(String.format("%.1f", def.upgrade2CommandMult)).append("\n");
+                        int bmin2 = def.commandKillBonusMin[2];
+                        int bmax2 = def.commandKillBonusMax[2];
+                        if (bmax2 > 0) sb.append("击杀奖金 ").append(bmin2).append("~").append(bmax2).append("金币");
                         break;
                 }
             }

@@ -94,6 +94,14 @@ enum LevelType {
 }
 
 /**
+ * Map visual theme.
+ */
+enum MapTheme {
+    STARFIELD,     // 默认：星星+星云视差背景
+    DEBUG_GRID     // 调试：纯色+网格线，无星星装饰
+}
+
+/**
  * Route type for multi-path levels.
  */
 enum RouteType {
@@ -253,6 +261,11 @@ static final class TowerDef {
     final float upgradeCommandMult;
     final int upgrade2Cost;
     final float upgrade2BuildTime;
+    final float upgrade2CommandMult;
+    final int[] commandKillBonusMin;
+    final int[] commandKillBonusMax;
+    final float burnDamage;
+    final float burnDuration;
 
     TowerDef(TowerType type, String nameKey, String descKey, int cost, float range,
              float firePeriod, float damage, float aoeRadius, float laserBonus,
@@ -263,7 +276,9 @@ static final class TowerDef {
              float upgradeSlowMult, float upgradePoisonMult, float upgradeAoeMult, float upgradeBulletSizeMult,
              float poisonDamage, float poisonDuration, float poisonFanAngle,
              float commandBonus, float upgradeCommandMult,
-             int upgrade2Cost, float upgrade2BuildTime) {
+             int upgrade2Cost, float upgrade2BuildTime,
+             float upgrade2CommandMult, int[] commandKillBonusMin, int[] commandKillBonusMax,
+             float burnDamage, float burnDuration) {
         this.type = type;
         this.nameKey = nameKey;
         this.descKey = descKey;
@@ -297,6 +312,11 @@ static final class TowerDef {
         this.upgradeCommandMult = upgradeCommandMult;
         this.upgrade2Cost = upgrade2Cost;
         this.upgrade2BuildTime = upgrade2BuildTime;
+        this.upgrade2CommandMult = upgrade2CommandMult;
+        this.commandKillBonusMin = commandKillBonusMin;
+        this.commandKillBonusMax = commandKillBonusMax;
+        this.burnDamage = burnDamage;
+        this.burnDuration = burnDuration;
     }
 
 }
@@ -366,12 +386,14 @@ static final class DifficultyDef {
     final String nameKey;
     final float enemyHpMultiplier;
     final float killRewardMultiplier;
+    final float startingMoneyMultiplier;
 
-    DifficultyDef(String key, String nameKey, float enemyHpMultiplier, float killRewardMultiplier) {
+    DifficultyDef(String key, String nameKey, float enemyHpMultiplier, float killRewardMultiplier, float startingMoneyMultiplier) {
         this.key = key;
         this.nameKey = nameKey;
         this.enemyHpMultiplier = enemyHpMultiplier;
         this.killRewardMultiplier = killRewardMultiplier;
+        this.startingMoneyMultiplier = startingMoneyMultiplier;
     }
 }
 
@@ -402,6 +424,7 @@ static final class LevelDef {
     boolean devMode;           // default false
     BlockedZone[] blockedZones; // optional no-build zones
     PlatformZone[] platforms;   // optional buildable platforms (null = whole world buildable)
+    MapTheme mapTheme = MapTheme.STARFIELD; // 地图视觉主题，默认星星背景
 }
 
 enum TdState { INTRO, MENU, LEVEL_SELECT, SETTINGS, BRIEFING, PLAYING, PAUSED, WIN, LOSE }

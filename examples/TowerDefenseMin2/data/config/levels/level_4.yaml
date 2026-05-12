@@ -262,3 +262,12 @@ waves:
         attach:
           - type: level3
             delay: 0.5
+            attach:
+              - type: level3
+                delay: 0.5
+                attach:
+                  - type: level3
+                    delay: 0.5
+                    attach:
+                      - type: level3
+                        delay: 0.5

@@ -17,6 +17,7 @@ static final class TdGameWorld {
     static boolean waveInProgress;
     static boolean firstTowerPlaced;
     static float levelStartTotalTime = 0;
+    static float levelPlayTime = 0;
     static int waveSpawnIndex;        // current spawn group within wave
     static int waveSpawnCount;        // how many spawned in current group
     static java.util.Random pathRng = new java.util.Random();
@@ -71,7 +72,7 @@ static final class TdGameWorld {
         ZONE_DRIFT_CACHE.clear();
         ASTEROID_ROCK_CACHE.clear();
         app.devMode = level.devMode;
-        money = level.initialMoney;
+        money = (int)(level.initialMoney * (diff != null ? diff.startingMoneyMultiplier : 1.0f));
         if (level.levelType == LevelType.DEFEND_BASE) {
             orbits = level.baseOrbs;
         } else {
@@ -80,6 +81,7 @@ static final class TdGameWorld {
         escapedEnemies = 0;
         baseIncomeAccumulator = 0;
         levelStartTotalTime = app.engine.getGameTime().getTotalTime();
+        levelPlayTime = 0;
         currentWave = 0;
         waveSpawnIndex = 0;
         waveSpawnCount = 0;
@@ -111,6 +113,7 @@ static final class TdGameWorld {
 
     static void update(float dt) {
         if (level == null) return;
+        levelPlayTime += dt;
         int totalWaves = (level.waves != null) ? level.waves.length : 0;
 
         // Base income (DEFEND_BASE mode only)
@@ -223,9 +226,12 @@ static final class TdGameWorld {
                             if (t.def.type == TowerType.COMMAND && t.built && !t.isSelling) {
                                 float d = e.pos.distance(new Vector2(t.worldX, t.worldY));
                                 if (d <= t.getEffectiveRange()) {
-                                    int bonusMin = TdAssets.getCommandKillBonusMin();
-                                    int bonusMax = TdAssets.getCommandKillBonusMax();
-                                    reward += bonusMin + pathRng.nextInt(bonusMax - bonusMin + 1);
+                                    int lvl = t.upgradeLevel;
+                                    int bmin = t.def.commandKillBonusMin[lvl];
+                                    int bmax = t.def.commandKillBonusMax[lvl];
+                                    if (bmax > 0) {
+                                        reward += bmin + pathRng.nextInt(bmax - bmin + 1);
+                                    }
                                     break; // 不叠加
                                 }
                             }
@@ -490,9 +496,11 @@ static final class TdGameWorld {
         int maxGY = (int)(level.worldH / TdConfig.GRID) + 1;
 
         boolean hasPlatforms = level.platforms != null && level.platforms.length > 0;
+        boolean isDebugGrid = level.mapTheme == MapTheme.DEBUG_GRID;
 
         // Step 1: if platforms defined, default ALL grids to blocked (deep space)
-        if (hasPlatforms) {
+        // DEBUG_GRID skips platform restrictions — entire grid is buildable except near path
+        if (hasPlatforms && !isDebugGrid) {
             for (int gx = 0; gx <= maxGX; gx++) {
                 for (int gy = 0; gy <= maxGY; gy++) {
                     blockedGrids.add(gx + "," + gy);
@@ -543,7 +551,8 @@ static final class TdGameWorld {
 
         // Step 4: blockedZones in layer 3 (Platform) → blocked
         // Only platform-layer blockedZones affect building; Far/Mid/Near layers are decorative only
-        if (level.blockedZones != null) {
+        // DEBUG_GRID skips blockedZones — entire grid is buildable except near path
+        if (level.blockedZones != null && !isDebugGrid) {
             int[] zoneLayers = getZoneLayers(level);
             for (int i = 0; i < level.blockedZones.length; i++) {
                 if (zoneLayers[i] != 3) continue; // skip non-platform layers (decorative)

@@ -1,6 +1,5 @@
-{
-  "1": {
-    "easy": true,
-    "normal": true
-  }
-}
+{"1": {
+  "normal": true,
+  "hard": true,
+  "easy": true
+}}

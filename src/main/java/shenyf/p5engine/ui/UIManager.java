@@ -54,6 +54,10 @@ public final class UIManager {
     private final FocusManager focusManager = new FocusManager();
     private final DragManager dragManager = new DragManager();
     private boolean focusRingVisible = false;
+    private processing.core.PImage customCursor;
+    /** Cursor-state deduplication: avoids redundant native cursor() calls. */
+    private int currentCursorType = -1;
+    private processing.core.PImage currentCursorImage;
 
     // Key-repeat state
     private int heldKeyCode = -1;
@@ -259,6 +263,10 @@ public final class UIManager {
         this.gameInputActive = active;
     }
 
+    public void setCustomCursor(processing.core.PImage cursor) {
+        this.customCursor = cursor;
+    }
+
     /**
      * Sets an event interceptor that can block mouse events before they reach UI components.
      * Used by the tutorial system to enforce click-locking. Pass null to remove.
@@ -432,6 +440,12 @@ public final class UIManager {
         }
         root.update(applet, dt);
 
+        // Clear focus if the focused component is no longer in the UI hierarchy
+        UIComponent curFocused = focusManager.getFocused();
+        if (curFocused != null && !isInHierarchy(curFocused, root)) {
+            focusManager.clearFocus();
+        }
+
         // Key-repeat: after initial delay, fire repeated KEY_PRESSED events
         if (heldKeyCode >= 0) {
             heldTime += dt;
@@ -446,14 +460,14 @@ public final class UIManager {
 
         // IME toggle on TextInput focus change
         if (imeHwnd != 0) {
-            UIComponent focused = focusManager.getFocused();
-            if (focused != lastFocusedForIme) {
-                if (focused instanceof TextInput) {
+            UIComponent imeFocused = focusManager.getFocused();
+            if (imeFocused != lastFocusedForIme) {
+                if (imeFocused instanceof TextInput) {
                     ImeHelper.restoreIme(imeHwnd);
                 } else if (lastFocusedForIme instanceof TextInput) {
                     ImeHelper.disableIme(imeHwnd);
                 }
-                lastFocusedForIme = focused;
+                lastFocusedForIme = imeFocused;
             }
         }
 
@@ -673,23 +687,38 @@ public final class UIManager {
 
     /** Update mouse cursor based on hover/resize state. */
     private void updateCursor(float mx, float my, UIComponent hit) {
+        int targetType = PApplet.ARROW;
+        processing.core.PImage targetImg = null;
+
         if (resizeWindow != null) {
-            applet.cursor(PApplet.CROSS);
-            return;
-        }
-        Window w = findWindowInHierarchy(hit);
-        if (w != null) {
-            Window.ResizeEdge edge = w.getResizeEdge(mx, my);
-            if (edge != Window.ResizeEdge.NONE) {
-                applet.cursor(PApplet.CROSS);
-                return;
+            targetType = PApplet.CROSS;
+        } else {
+            Window w = findWindowInHierarchy(hit);
+            if (w != null) {
+                Window.ResizeEdge edge = w.getResizeEdge(mx, my);
+                if (edge != Window.ResizeEdge.NONE) {
+                    targetType = PApplet.CROSS;
+                } else if (w.isMovable() && w.isTitleBarHit(mx, my)) {
+                    targetType = PApplet.MOVE;
+                }
             }
-            if (w.isMovable() && w.isTitleBarHit(mx, my)) {
-                applet.cursor(PApplet.MOVE);
-                return;
+            if (targetType == PApplet.ARROW && customCursor != null) {
+                targetImg = customCursor;
             }
         }
-        applet.cursor(PApplet.ARROW);
+
+        // Only call cursor() when state actually changes (avoids P2D overhead)
+        if (targetImg != null) {
+            if (targetImg != currentCursorImage) {
+                currentCursorImage = targetImg;
+                currentCursorType = -2; // sentinel for custom image
+                applet.cursor(targetImg, 0, 0);
+            }
+        } else if (targetType != currentCursorType) {
+            currentCursorType = targetType;
+            currentCursorImage = null;
+            applet.cursor(targetType);
+        }
     }
 
     public void keyEvent(KeyEvent e) {
@@ -782,5 +811,15 @@ public final class UIManager {
             }
             c = c.getParent();
         }
+    }
+
+    private boolean isInHierarchy(UIComponent c, Container root) {
+        while (c != null) {
+            if (c == root) return true;
+            Container parent = c.getParent();
+            if (parent == null) return false;
+            c = parent;
+        }
+        return false;
     }
 }

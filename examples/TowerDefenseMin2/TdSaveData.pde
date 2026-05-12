@@ -30,6 +30,7 @@ static final class TdSaveData {
             cfg.set("ui", "language", "zh");
             cfg.set("camera", "zoomAtMouse", false);
             cfg.set("display", "fullscreen", false);
+            cfg.set("display", "playIntro", true);
             cfg.save();
         }
 
@@ -76,6 +77,9 @@ static final class TdSaveData {
 
     static boolean isFullscreen() { return cfg.getBoolean("display", "fullscreen", false); }
     static void setFullscreen(boolean v) { cfg.set("display", "fullscreen", v); }
+
+    static boolean isPlayIntro() { return cfg.getBoolean("display", "playIntro", true); }
+    static void setPlayIntro(boolean v) { cfg.set("display", "playIntro", v); }
 
     // ── Progress ──
 

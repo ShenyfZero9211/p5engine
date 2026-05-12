@@ -126,6 +126,16 @@
       },
       {
         "step": 12,
+        "targetType": "ui",
+        "targetId": "btn_range",
+        "textKey": "tutorial.hud.rangeButton",
+        "advance": "auto",
+        "delay": 1.0,
+        "autoDuration": 4.0,
+        "borderEffect": "pulse"
+      },
+      {
+        "step": 13,
         "targetType": "world_rect",
         "targetX": 180,
         "targetY": 140,
@@ -138,7 +148,7 @@
         "borderEffect": "pulse"
       },
       {
-        "step": 13,
+        "step": 14,
         "targetType": "global",
         "textKey": "tutorial.reward.kill",
         "advance": "auto",
@@ -149,7 +159,7 @@
         "triggerEvent": "first_enemy_killed"
       },
       {
-        "step": 14,
+        "step": 15,
         "targetType": "global",
         "textKey": "tutorial.hud.towerMenu",
         "advance": "auto",
@@ -159,7 +169,7 @@
         "bubbleAnchor": "top_center"
       },
       {
-        "step": 15,
+        "step": 16,
         "targetType": "world_rect",
         "targetX": 660,
         "targetY": 620,
@@ -173,7 +183,7 @@
         "triggerEvent": "orb_stolen,wave_2_start"
       },
       {
-        "step": 16,
+        "step": 17,
         "targetType": "world_rect",
         "targetX": 1380,
         "targetY": 790,

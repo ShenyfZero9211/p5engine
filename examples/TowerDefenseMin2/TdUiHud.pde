@@ -594,6 +594,7 @@ static class TdTopBar extends Panel {
         btnRange = new Button("btn_range");
         btnRange.setBounds(getWidth() - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 80, 28);
         btnRange.setAction(() -> {
+btnRange.setSfxPath(TdSound.SFX_CLICK);
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             app.showTowerRanges = !app.showTowerRanges;
         });
@@ -603,6 +604,7 @@ static class TdTopBar extends Panel {
         btnPause.setLabel(TdAssets.i18n("game.pause"));
         btnPause.setBounds(getWidth() - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnPause.setAction(() -> {
+btnPause.setSfxPath(TdSound.SFX_CLICK);
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             if (app.state == TdState.PLAYING) {
                 app.state = TdState.PAUSED;
@@ -616,6 +618,7 @@ static class TdTopBar extends Panel {
         btnMenu.setLabel(TdAssets.i18n("game.menu"));
         btnMenu.setBounds(getWidth() - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f, 72, 28);
         btnMenu.setAction(() -> {
+btnMenu.setSfxPath(TdSound.SFX_CLICK);
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             if (app.state == TdState.PLAYING) {
                 TdFlow.showPauseMenu(app);
@@ -658,14 +661,14 @@ static class TdTopBar extends Panel {
         }
         lblStatus.setText(statusText);
 
-        // Game time
-        TowerDefenseMin2 app = TowerDefenseMin2.inst;
-        float total = app.engine.getGameTime().getTotalTime() - TdGameWorld.levelStartTotalTime;
+        // Game time (only counts when game is running, not paused)
+        float total = TdGameWorld.levelPlayTime;
         int minutes = (int)(total / 60);
         int seconds = (int)(total % 60);
         lblTime.setText(String.format("%02d:%02d", minutes, seconds));
 
         // Game speed
+        TowerDefenseMin2 app = TowerDefenseMin2.inst;
         float ts = app.engine.getGameTime().getTimeScale();
         lblSpeed.setText(String.format("%.1fx", ts));
 
@@ -684,7 +687,7 @@ static class TdTopBar extends Panel {
 
         boolean active = app.showTowerRanges || app.buildMode != TdBuildMode.NONE;
         String rangeLabel = TdAssets.i18n(active ? "game.rangeOn" : "game.rangeOff");
-        btnRange.setLabel("[T] " + rangeLabel);
+        btnRange.setLabel("[F] " + rangeLabel);
 
         // Re-position right-aligned buttons when width changes (anchor stretch)
         float w = getWidth();

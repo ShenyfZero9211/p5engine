@@ -204,7 +204,8 @@ static final class TdAssets {
             String nameKey = (String) d.get("nameKey");
             float hpMulti = d.containsKey("enemyHpMultiplier") ? ((Number) d.get("enemyHpMultiplier")).floatValue() : 1.0f;
             float rewardMulti = d.containsKey("killRewardMultiplier") ? ((Number) d.get("killRewardMultiplier")).floatValue() : 1.0f;
-            difficulties.put(key, new DifficultyDef(key, nameKey, hpMulti, rewardMulti));
+            float moneyMulti = d.containsKey("startingMoneyMultiplier") ? ((Number) d.get("startingMoneyMultiplier")).floatValue() : 1.0f;
+            difficulties.put(key, new DifficultyDef(key, nameKey, hpMulti, rewardMulti, moneyMulti));
         }
     }
 
@@ -262,8 +263,23 @@ static final class TdAssets {
             t.containsKey("commandBonus") ? ((Number) t.get("commandBonus")).floatValue() : 1f,
             u != null && u.containsKey("commandMult") ? ((Number) u.get("commandMult")).floatValue() : 1f,
             u2 != null && u2.containsKey("cost") ? ((Number) u2.get("cost")).intValue() : baseCost,
-            u2 != null && u2.containsKey("buildTime") ? ((Number) u2.get("buildTime")).floatValue() : ((Number) t.get("buildTime")).floatValue()
+            u2 != null && u2.containsKey("buildTime") ? ((Number) u2.get("buildTime")).floatValue() : ((Number) t.get("buildTime")).floatValue(),
+            u2 != null && u2.containsKey("commandMult") ? ((Number) u2.get("commandMult")).floatValue() : 1f,
+            parseKillBonus(t, "killBonusMin"),
+            parseKillBonus(t, "killBonusMax"),
+            t.containsKey("burnDamage") ? ((Number) t.get("burnDamage")).floatValue() : 0f,
+            t.containsKey("burnDuration") ? ((Number) t.get("burnDuration")).floatValue() : 0f
         );
+    }
+
+    private static int[] parseKillBonus(java.util.Map t, String key) {
+        java.util.Map u = (java.util.Map) t.get("upgrade");
+        java.util.Map u2 = (java.util.Map) t.get("upgrade2");
+        int[] arr = new int[3];
+        arr[0] = t.containsKey(key) ? ((Number) t.get(key)).intValue() : 0;
+        arr[1] = u != null && u.containsKey(key) ? ((Number) u.get(key)).intValue() : 0;
+        arr[2] = u2 != null && u2.containsKey(key) ? ((Number) u2.get(key)).intValue() : 0;
+        return arr;
     }
 
     static LevelDef loadLevel(int levelId) {
@@ -646,6 +662,10 @@ static final class TdAssets {
         ld.worldW = ((Number) lvl.get("worldWidth")).intValue();
         ld.worldH = ((Number) lvl.get("worldHeight")).intValue();
         ld.enemyHpBase = ((Number) lvl.get("enemyHpBase")).floatValue();
+
+        // Map theme (optional, default STARFIELD)
+        String mt = (String) lvl.get("mapTheme");
+        ld.mapTheme = "DEBUG_GRID".equals(mt) ? MapTheme.DEBUG_GRID : MapTheme.STARFIELD;
 
         // Positions
         java.util.Map base = (java.util.Map) lvl.get("basePos");

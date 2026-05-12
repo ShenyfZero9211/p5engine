@@ -8,7 +8,7 @@ import kuusisto.tinysound.TinySound;
 
 static final class TdSound {
 
-    static final String SFX_CLICK = "sounds/synthetic-select.wav";
+    static final String SFX_CLICK = "sounds/keytyping2.wav";
     static final String SFX_SHOT  = "sounds/synthetic-spike.wav";
     static final String SFX_LASER = "sounds/resonant-twang.wav";
     static final String SFX_PLACE = "sounds/percussive-knock.wav";

@@ -646,6 +646,9 @@ static class WorldBgRenderer extends RendererComponent {
         g.noStroke();
         g.fill(0xFF080A14);
         g.rect(-lv.worldW, -lv.worldH, lv.worldW * 3, lv.worldH * 3);
+        if (lv.mapTheme == MapTheme.DEBUG_GRID) {
+            return;
+        }
         if (lodActive) {
             // LOD: still draw blocked zones even when stars are skipped
             drawBlockedZonesForLayer(g, lv, time, 0);
@@ -676,6 +679,9 @@ static class WorldBgRenderer extends RendererComponent {
     }
 
     void drawMidLayer(PGraphics g, LevelDef lv, float time) {
+        if (lv.mapTheme == MapTheme.DEBUG_GRID) {
+            return;
+        }
         // Mid stars — medium density (precomputed + viewport-culled)
         if (TdAssets.isRenderStars()) {
             StarData[] stars = MID_STARS.get(lv.id);
@@ -717,6 +723,9 @@ static class WorldBgRenderer extends RendererComponent {
     }
 
     void drawNearLayer(PGraphics g, LevelDef lv, float time) {
+        if (lv.mapTheme == MapTheme.DEBUG_GRID) {
+            return;
+        }
         // Bright focal stars with glow (precomputed + viewport-culled)
         GlowStarData[] stars = NEAR_STARS.get(lv.id);
         if (stars == null) {
@@ -756,7 +765,7 @@ static class WorldBgRenderer extends RendererComponent {
 
     void drawPlatformLayer(PGraphics g, LevelDef lv, float time) {
         // Platform base & terrain
-        if (TdAssets.isRenderPlatformLayer()) {
+        if (TdAssets.isRenderPlatformLayer() && lv.mapTheme != MapTheme.DEBUG_GRID) {
             // Platform base (only if no platforms defined)
             if (lv.platforms == null || lv.platforms.length == 0) {
                 g.noStroke();
@@ -793,11 +802,13 @@ static class WorldBgRenderer extends RendererComponent {
             }
         }
 
-        // Blocked zones assigned to platform layer
-        drawBlockedZonesForLayer(g, lv, time, 3);
+        // Blocked zones assigned to platform layer (skip in DEBUG_GRID)
+        if (lv.mapTheme != MapTheme.DEBUG_GRID) {
+            drawBlockedZonesForLayer(g, lv, time, 3);
+        }
 
-        // Grid lines (toggleable, default hidden)
-        if (SHOW_GRID_LINES) {
+        // Grid lines (toggleable, default hidden) — force ON in DEBUG_GRID
+        if (SHOW_GRID_LINES || lv.mapTheme == MapTheme.DEBUG_GRID) {
             g.stroke(0xFF354A6B);
             g.strokeWeight(1);
             g.noFill();

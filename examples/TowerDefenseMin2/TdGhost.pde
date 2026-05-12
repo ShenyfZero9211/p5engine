@@ -66,51 +66,52 @@ static class GhostRenderer extends RendererComponent {
         LevelDef lv = TdGameWorld.level;
         if (lv == null) return;
 
-        // === Buildable area overlay: green grid ===
-        int maxGX = (int)(lv.worldW / TdConfig.GRID) + 1;
-        int maxGY = (int)(lv.worldH / TdConfig.GRID) + 1;
-        for (int gx = 0; gx <= maxGX; gx++) {
-            for (int gy = 0; gy <= maxGY; gy++) {
-                if (TdGameWorld.blockedGrids.contains(gx + "," + gy)) continue;
-                float bx = gx * TdConfig.GRID;
-                float by = gy * TdConfig.GRID;
-                // Green fill
-                g.noStroke();
-                g.fill(0x1A33CC33);
-                g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
-                // Green grid line
-                g.noFill();
-                g.stroke(0x4422AA22);
-                g.strokeWeight(1);
-                g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+        if (lv.mapTheme == MapTheme.DEBUG_GRID) {
+            // DEBUG_GRID: red overlay on blocked grids + green overlay on buildable grids
+            int maxGX = (int)(lv.worldW / TdConfig.GRID) + 1;
+            int maxGY = (int)(lv.worldH / TdConfig.GRID) + 1;
+            for (int gx = 0; gx <= maxGX; gx++) {
+                for (int gy = 0; gy <= maxGY; gy++) {
+                    float bx = gx * TdConfig.GRID;
+                    float by = gy * TdConfig.GRID;
+                    if (TdGameWorld.blockedGrids.contains(gx + "," + gy)) {
+                        // Red: blocked
+                        g.noStroke();
+                        g.fill(0x55FF4444);
+                        g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                    } else {
+                        // Green: buildable
+                        g.noStroke();
+                        g.fill(0x1A33CC33);
+                        g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                        g.noFill();
+                        g.stroke(0x4422AA22);
+                        g.strokeWeight(1);
+                        g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                    }
+                }
+            }
+        } else {
+            // STARFIELD: green overlay on buildable grids
+            int maxGX = (int)(lv.worldW / TdConfig.GRID) + 1;
+            int maxGY = (int)(lv.worldH / TdConfig.GRID) + 1;
+            for (int gx = 0; gx <= maxGX; gx++) {
+                for (int gy = 0; gy <= maxGY; gy++) {
+                    if (TdGameWorld.blockedGrids.contains(gx + "," + gy)) continue;
+                    float bx = gx * TdConfig.GRID;
+                    float by = gy * TdConfig.GRID;
+                    // Green fill
+                    g.noStroke();
+                    g.fill(0x1A33CC33);
+                    g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                    // Green grid line
+                    g.noFill();
+                    g.stroke(0x4422AA22);
+                    g.strokeWeight(1);
+                    g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
+                }
             }
         }
-
-        /*
-        // === Blocked grid overlay (legacy: red/orange) — kept for future use ===
-        g.noStroke();
-        // Zone-blocked (environment hazards)
-        g.fill(0x55FF8844);
-        for (String key : TdGameWorld.zoneBlockedGrids) {
-            String[] parts = key.split(",");
-            int bgx = Integer.parseInt(parts[0]);
-            int bgy = Integer.parseInt(parts[1]);
-            float bx = bgx * TdConfig.GRID;
-            float by = bgy * TdConfig.GRID;
-            g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
-        }
-        // Path-blocked (route proximity)
-        g.fill(0x55FF4444);
-        for (String key : TdGameWorld.blockedGrids) {
-            if (TdGameWorld.zoneBlockedGrids.contains(key)) continue;
-            String[] parts = key.split(",");
-            int bgx = Integer.parseInt(parts[0]);
-            int bgy = Integer.parseInt(parts[1]);
-            float bx = bgx * TdConfig.GRID;
-            float by = bgy * TdConfig.GRID;
-            g.rect(bx, by, TdConfig.GRID, TdConfig.GRID);
-        }
-        */
 
         if (!TdGhost.isValid) return;
 

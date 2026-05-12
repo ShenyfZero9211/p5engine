@@ -16,6 +16,8 @@ static class Bullet {
     TowerType towerType;
     float sizeMult;
     boolean hasBurn = false;
+    float burnDps = 0f;
+    float burnDuration = 0f;
 
     void reset(float x, float y, float vx, float vy, float dmg, float aoe, float laser, float slow, float slowDur) {
         reset(x, y, vx, vy, dmg, aoe, laser, slow, slowDur, 1f);
@@ -35,6 +37,8 @@ static class Bullet {
         lastSmokeY = y;
         this.sizeMult = sizeMult;
         hasBurn = false;
+        burnDps = 0f;
+        burnDuration = 0f;
     }
 
     void update(float dt) {
@@ -99,8 +103,8 @@ static class Bullet {
         // Hit mark on primary target
         e.statusEffects.add(new MissileHitMark());
         // Burn effect from level-2 missile tower
-        if (hasBurn) {
-            e.statusEffects.add(new BurnStatusEffect(5f, 3.0f));
+        if (hasBurn && burnDps > 0) {
+            e.statusEffects.add(new BurnStatusEffect(burnDps, burnDuration));
         }
     }
 

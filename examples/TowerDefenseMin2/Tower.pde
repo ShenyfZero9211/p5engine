@@ -178,7 +178,10 @@ static class Tower {
             if (t.def.type == TowerType.COMMAND && t.built && !t.isSelling) {
                 float d = new Vector2(worldX, worldY).distance(new Vector2(t.worldX, t.worldY));
                 if (d <= t.getEffectiveRange()) {
-                    float cmdMult = (t.upgradeLevel >= 2) ? 1.3f : t.def.upgradeCommandMult;
+                    float cmdMult;
+                    if (t.upgradeLevel >= 2) cmdMult = t.def.upgrade2CommandMult;
+                    else if (t.upgradeLevel >= 1) cmdMult = t.def.upgradeCommandMult;
+                    else cmdMult = t.def.commandBonus;
                     mult = Math.max(mult, cmdMult);
                 }
             }
@@ -216,6 +219,7 @@ static class Tower {
         renderer.bullet = b;
         Vector2 dir = calcInterceptDir(target);
         float dmgMult = (upgradeLevel >= 1) ? def.upgradeDamageMult : 1f;
+        if (upgradeLevel >= 2) dmgMult *= 1.2f;
         float aoeMult = (upgradeLevel >= 1) ? def.upgradeAoeMult : 1f;
         float bulletMult = (upgradeLevel >= 1) ? def.upgradeBulletSizeMult : 1f;
         float dmg = def.damage * dmgMult * getCommandDamageMult();
@@ -223,6 +227,8 @@ static class Tower {
         b.reset(worldX, worldY, dir.x, dir.y, dmg, aoe, def.laserBonus, def.slowFactor, def.slowDuration, bulletMult);
         b.towerType = def.type;
         b.hasBurn = (upgradeLevel >= 2);
+        b.burnDps = def.burnDamage;
+        b.burnDuration = def.burnDuration;
         b.gameObject = bGo;
         bGo.getTransform().setPosition(b.pos.x, b.pos.y);
         TdGameWorld.bullets.add(b);
