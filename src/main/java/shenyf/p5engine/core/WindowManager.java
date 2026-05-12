@@ -255,13 +255,17 @@ public class WindowManager {
                 if (screen != null) {
                     int screenW = (Integer) screen.getClass().getMethod("getWidth").invoke(screen);
                     int screenH = (Integer) screen.getClass().getMethod("getHeight").invoke(screen);
-                    int winW = applet.width > 0 ? applet.width : config.getWidth();
-                    int winH = applet.height > 0 ? applet.height : config.getHeight();
+                    // Use GLWindow's own physical size instead of applet.width (logical)
+                    // so the calculation matches screen coordinates in HiDPI scenarios.
+                    java.lang.reflect.Method getWinW = nativeSurface.getClass().getMethod("getWidth");
+                    java.lang.reflect.Method getWinH = nativeSurface.getClass().getMethod("getHeight");
+                    int winW = (Integer) getWinW.invoke(nativeSurface);
+                    int winH = (Integer) getWinH.invoke(nativeSurface);
                     int x = (screenW - winW) / 2;
                     int y = (screenH - winH) / 2;
                     java.lang.reflect.Method setPosition = nativeSurface.getClass().getMethod("setPosition", int.class, int.class);
                     setPosition.invoke(nativeSurface, x, y);
-                    Logger.info("WindowManager: centered window at " + x + "," + y);
+                    Logger.info("WindowManager: centered window at " + x + "," + y + " (screen=" + screenW + "x" + screenH + ", win=" + winW + "x" + winH + ")");
                 }
             } catch (Exception e) {
                 Logger.debug("WindowManager: centerWindow failed: " + e.getMessage());

@@ -18,6 +18,10 @@ public abstract class UIComponent {
     private Object layoutConstraint;
     private boolean layoutDirty = true;
 
+    // ── Clip bounds for manual visibility culling (replaces glScissor) ──
+    protected float clipTop = Float.NEGATIVE_INFINITY;
+    protected float clipBottom = Float.POSITIVE_INFINITY;
+
     // ── Keyboard navigation ──
     private int tabIndex = 0;
     private UIComponent neighborUp;
@@ -215,6 +219,16 @@ public abstract class UIComponent {
 
     public void setAlpha(float alpha) {
         this.alpha = Math.max(0f, Math.min(1f, alpha));
+    }
+
+    public void setClipBounds(float top, float bottom) {
+        this.clipTop = top;
+        this.clipBottom = bottom;
+    }
+
+    public void clearClipBounds() {
+        this.clipTop = Float.NEGATIVE_INFINITY;
+        this.clipBottom = Float.POSITIVE_INFINITY;
     }
 
     // ── Fade-in animation ──

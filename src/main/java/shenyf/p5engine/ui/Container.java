@@ -190,7 +190,9 @@ public class Container extends UIComponent {
         sorted.sort(Comparator.comparingInt(UIComponent::getZOrder));
         for (UIComponent c : sorted) {
             if (c.isVisible()) {
+                c.setClipBounds(clipTop, clipBottom);
                 c.paint(applet, theme);
+                c.clearClipBounds();
             }
         }
     }

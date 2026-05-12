@@ -46,8 +46,7 @@ final class TdAppSetup {
         PFont cnFontSmall = createFont("Microsoft YaHei", fontSizeSmall);
         PFont cnFontLarge = createFont("Microsoft YaHei", fontSizeLarge);
         int fontSizeBriefing = TdAssets.getFontSizeBriefing();
-        char[] briefingChars = TdAssets.collectBriefingChars();
-        PFont cnFontBriefing = createFont("Microsoft YaHei", fontSizeBriefing, true, briefingChars);
+        PFont cnFontBriefing = createFont("Microsoft YaHei", fontSizeBriefing, true);
         theme.setFont(cnFontSmall);
         theme.setBriefingFont(cnFontBriefing);
         TdMenuBg.setFont(cnFontSmall);

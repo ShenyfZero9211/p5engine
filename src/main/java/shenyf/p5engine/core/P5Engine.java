@@ -153,6 +153,19 @@ public class P5Engine {
      *
      * @param minDensity ignored when greater than {@code displayDensity()}; otherwise same as single-arg
      */
+    public static float getSystemDpiScale() {
+        try {
+            java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
+            java.awt.GraphicsDevice device = ge.getDefaultScreenDevice();
+            java.awt.GraphicsConfiguration gc = device.getDefaultConfiguration();
+            java.awt.geom.AffineTransform transform = gc.getDefaultTransform();
+            float scale = (float) transform.getScaleX();
+            return scale > 0.5f ? scale : 1f;
+        } catch (Exception e) {
+            return 1f;
+        }
+    }
+
     public static void applyRecommendedPixelDensity(PApplet applet, int minDensity) {
         if (applet == null) {
             return;
@@ -386,9 +399,13 @@ public class P5Engine {
         this.windowManager = new WindowManager(applet, config);
 
         // Sync DisplayManager with actual window size (applet.width/height may differ from config defaults)
+        float dpiScale = getSystemDpiScale();
+        displayManager.setDpiScaleOverride(dpiScale);
+        Logger.info("System DPI scale detected: " + dpiScale);
+
         if (applet.width > 0 && applet.height > 0) {
             displayManager.onWindowResize(applet.width, applet.height);
-            Logger.info("DisplayManager synced to actual window: " + applet.width + "x" + applet.height);
+            Logger.info("DisplayManager synced to actual window: " + applet.width + "x" + applet.height + " (logical=" + displayManager.getActualWidth() + "x" + displayManager.getActualHeight() + ")");
         }
 
         Logger.info("P5Engine initialized successfully");
@@ -477,8 +494,13 @@ public class P5Engine {
                 if (screen != null) {
                     int screenW = (Integer) screen.getClass().getMethod("getWidth").invoke(screen);
                     int screenH = (Integer) screen.getClass().getMethod("getHeight").invoke(screen);
-                    int x = (screenW - winW) / 2;
-                    int y = (screenH - winH) / 2;
+                    // Use GLWindow's own physical size for HiDPI consistency
+                    java.lang.reflect.Method getWinW = nativeSurface.getClass().getMethod("getWidth");
+                    java.lang.reflect.Method getWinH = nativeSurface.getClass().getMethod("getHeight");
+                    int physicalW = (Integer) getWinW.invoke(nativeSurface);
+                    int physicalH = (Integer) getWinH.invoke(nativeSurface);
+                    int x = (screenW - physicalW) / 2;
+                    int y = (screenH - physicalH) / 2;
                     java.lang.reflect.Method setPosition = nativeSurface.getClass().getMethod("setPosition", int.class, int.class);
                     setPosition.invoke(nativeSurface, x, y);
                     windowPositionApplied = true;

@@ -21,6 +21,7 @@ public class DisplayManager {
     private float uniformScale = 1f;
     private float offsetX = 0f;
     private float offsetY = 0f;
+    private float dpiScaleOverride = 1f;
 
     public DisplayManager(DisplayConfig config, int initialWidth, int initialHeight) {
         this.config = config;
@@ -35,9 +36,27 @@ public class DisplayManager {
      * This is typically called from the sketch's {@code windowResize()} callback.
      */
     public void onWindowResize(int w, int h) {
+        if (dpiScaleOverride > 1f) {
+            int dw = config.getDesignWidth();
+            int dh = config.getDesignHeight();
+            float ratioW = w / (float) dw;
+            float ratioH = h / (float) dh;
+            if (Math.abs(ratioW - dpiScaleOverride) < 0.05f && Math.abs(ratioH - dpiScaleOverride) < 0.05f) {
+                w = Math.round(w / dpiScaleOverride);
+                h = Math.round(h / dpiScaleOverride);
+            }
+        }
         this.actualWidth = w;
         this.actualHeight = h;
         recalculate();
+    }
+
+    public void setDpiScaleOverride(float scale) {
+        this.dpiScaleOverride = scale;
+    }
+
+    public float getDpiScaleOverride() {
+        return dpiScaleOverride;
     }
 
     private void recalculate() {

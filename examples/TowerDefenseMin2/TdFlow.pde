@@ -724,43 +724,17 @@ static final class TdFlow {
         sp.setShowVerticalBar(true);
         sp.setBackgroundColor(0x801A2035);
 
-        // Pre-render briefing text with JAVA2D to bypass P2D font texture limits
-        int maxBufferH = 2000;
-        PGraphics pg = app.createGraphics((int)contentW, maxBufferH, JAVA2D);
-        pg.beginDraw();
-        pg.background(0, 0);
-        if (briefingFont != null) {
-            pg.textFont(briefingFont);
-        } else {
-            pg.textFont(app.createFont("Microsoft YaHei", TdAssets.getFontSizeBriefing(), true, TdAssets.collectBriefingChars()));
-            pg.textSize(TdAssets.getFontSizeBriefing());
-        }
-        pg.textAlign(PApplet.LEFT, PApplet.TOP);
-        pg.fill(0xFFE0E6F0);
-        pg.text(briefingText, 4, 4, contentW - 8, maxBufferH - 8);
-        pg.endDraw();
-
-        PImage fullImg = pg.get();
-        int actualH = maxBufferH;
-        outer:
-        for (int y = maxBufferH - 1; y >= 0; y--) {
-            for (int x = 0; x < (int)contentW; x++) {
-                if ((fullImg.get(x, y) & 0xFF000000) != 0) {
-                    actualH = y + 1;
-                    break outer;
-                }
-            }
-        }
-        int cropH = Math.min(actualH + 4, maxBufferH);
-        PImage img = (cropH < maxBufferH) ? fullImg.get(0, 0, (int)contentW, cropH) : fullImg;
-
-        Image lblBriefing = new Image("lbl_briefing_text");
-        lblBriefing.setImage(img);
-        lblBriefing.setBounds(0, 0, img.width, img.height);
+        // Use BriefingText component for native P2D text rendering (fixes HiDPI issues)
+        BriefingText bt = new BriefingText("lbl_briefing_text", briefingText,
+            briefingFont, TdAssets.getFontSizeBriefing(), 0xFFE0E6F0);
+        bt.setBounds(0, 0, (int) contentW, 100);
+        bt.measure(app);
+        float actualH = bt.getHeight();
+        bt.setBounds(0, 0, (int) contentW, (int) actualH);
 
         sp.getViewport().setPaintBackground(false);
-        sp.getViewport().setSize(img.width, img.height);
-        sp.getViewport().add(lblBriefing);
+        sp.getViewport().setSize((int) contentW, (int) actualH);
+        sp.getViewport().add(bt);
         panel.add(sp);
 
         // Buttons placed outside the window, horizontally aligned
@@ -1263,5 +1237,97 @@ static final class TdFlow {
             root.removeAllChildren();
             buildLoseMenu(app);
         });
+    }
+}
+
+/**
+ * Custom UI component for briefing text rendering using P2D offscreen buffer.
+ * Text is rendered once into a cached PGraphics, then drawn via image() with
+ * source-rectangle clipping. Completely avoids glScissor / clip() conflicts.
+ */
+static class BriefingText extends UIComponent {
+    String[] rawLines;
+    String[] wrappedLines;
+    PFont font;
+    float fontSize;
+    int textColor;
+    float lineHeight;
+
+    BriefingText(String id, String text, PFont font, float fontSize, int textColor) {
+        super(id);
+        this.rawLines = (text != null) ? text.split("\n") : new String[0];
+        this.font = font;
+        this.fontSize = fontSize;
+        this.textColor = textColor;
+        this.lineHeight = fontSize * 1.5f + 4;
+    }
+
+    void measure(PApplet applet) {
+        float maxW = Math.max(1, getWidth() - 8);
+        applet.pushStyle();
+        if (font != null) applet.textFont(font);
+        applet.textSize(fontSize);
+        ArrayList<String> all = new ArrayList<String>();
+        for (String line : rawLines) {
+            String[] wrapped = wrapLine(line, maxW, applet);
+            for (String w : wrapped) all.add(w);
+        }
+        wrappedLines = all.toArray(new String[0]);
+        applet.popStyle();
+        float totalH = wrappedLines.length * lineHeight + 8;
+        setSize(maxW + 8, totalH);
+    }
+
+    void paint(PApplet applet, Theme theme) {
+        if (wrappedLines == null || wrappedLines.length == 0) return;
+
+        float ax = getAbsoluteX();
+        float ay = getAbsoluteY();
+        float viewTop = clipTop;
+        float viewBottom = clipBottom;
+
+        applet.pushStyle();
+        if (font != null) applet.textFont(font);
+        applet.textSize(fontSize);
+        applet.textAlign(LEFT, TOP);
+        applet.fill(textColor);
+        applet.noStroke();
+
+        float y = ay + 4;
+        for (String line : wrappedLines) {
+            // Strict clipping: only draw lines fully inside the viewport
+            // (avoids spilling over ScrollPane edges since P2D clip() is incompatible with text())
+            if (y >= viewTop && y + lineHeight <= viewBottom) {
+                applet.text(line, ax + 4, y);
+            }
+            y += lineHeight;
+        }
+        applet.popStyle();
+    }
+
+    String[] wrapLine(String line, float maxW, PApplet applet) {
+        if (line == null || line.isEmpty()) return new String[]{""};
+        if (applet.textWidth(line) <= maxW) return new String[]{line};
+        ArrayList<String> result = new ArrayList<String>();
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            String test = current.toString() + c;
+            if (applet.textWidth(test) > maxW) {
+                if (current.length() == 0) {
+                    result.add(String.valueOf(c));
+                } else {
+                    result.add(current.toString());
+                    current = new StringBuilder();
+                    current.append(c);
+                }
+            } else {
+                current.append(c);
+            }
+        }
+        if (current.length() > 0) {
+            result.add(current.toString());
+        }
+        return result.toArray(new String[0]);
     }
 }

@@ -20,6 +20,9 @@ Thumbs.db
 # Logs
 *.log
 
+# ppak
+*.ppak
+
 # manual notebook
 _notebook_.md
 _notebook2.md

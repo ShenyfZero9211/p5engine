@@ -1,6 +1,7 @@
 package shenyf.p5engine.ui;
 
 import processing.core.PApplet;
+import processing.core.PGraphics;
 
 public class ScrollPane extends Container {
 
@@ -144,17 +145,9 @@ public class ScrollPane extends Container {
         float ih = getContentHeight();
         float barW = (showVerticalBar && viewport.getHeight() > ih + 0.5f) ? 12f : 0f;
         float clipW = Math.max(1, iw - barW);
-        // Clip in screen-pixel coordinates to match rect() under FIT scaling
-        float sx1 = applet.screenX(ix, iy);
-        float sy1 = applet.screenY(ix, iy);
-        float sx2 = applet.screenX(ix + clipW, iy + ih);
-        float sy2 = applet.screenY(ix + clipW, iy + ih);
-        applet.pushMatrix();
-        applet.resetMatrix();
-        applet.clip(sx1, sy1, sx2 - sx1, sy2 - sy1);
-        applet.popMatrix();
+        viewport.setClipBounds(iy, iy + ih);
         viewport.paint(applet, theme);
-        applet.noClip();
+        viewport.clearClipBounds();
         if (barW > 0) {
             ThumbMetrics thumb = calcThumbMetrics(ih);
             boolean hoverOrDrag = barHover || draggingBar;

@@ -366,10 +366,28 @@ static final class TdMenuBg {
         float mx = app.mouseX;
         float my = app.mouseY;
 
+        // P2D with pixelDensity > 1 (e.g. HiDPI/Retina on Windows 150%+):
+        // gl_FragCoord is in physical pixels, but mouseX/Y and width/height are logical.
+        // Convert everything to physical pixels so shader coordinates match gl_FragCoord.
+        int pd = app.pixelDensity;
+        if (pd > 1) {
+            titleCx *= pd;
+            titleCy *= pd;
+            mx *= pd;
+            my *= pd;
+            dw *= pd;
+            dh *= pd;
+        }
+
         // Activation: elliptical zone around the title text (adapts to CN/EN width)
         float titleTextW = (cachedTitleWidth > 0 ? cachedTitleWidth : 300f) * scale;
         float titleTextH = 84f * scale;
         float margin = 40f * scale;
+        if (pd > 1) {
+            titleTextW *= pd;
+            titleTextH *= pd;
+            margin *= pd;
+        }
         float halfW = (titleTextW * 0.5f + margin) * 0.5f;  // shrink 50%
         float halfH = (titleTextH * 0.5f + margin) * 0.5f;
 
