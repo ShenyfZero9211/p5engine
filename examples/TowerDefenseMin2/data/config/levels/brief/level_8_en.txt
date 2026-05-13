@@ -1,1 +1,50 @@
-(Mission briefing to be added)
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Starship Graveyard]
+
+Deep-space scans of the KX-7 system have uncovered a stunning relic — the wreckage of an ancient Federal mega-starship, codenamed "Titan's Remains." Over three kilometers in length, the vessel was torn in two by a hyperspace accident, with its bow and stern grounded at opposite ends of the asteroid belt. The central fracture zone has become a massive alloy canyon.
+
+Harmonic locators show that both halves of the hull still contain high-density Stellar Core Orbs — ten in total. These orbs are residual fuel from the ship's jump engines, and to the Swarm they represent an extraordinarily precious "banquet."
+
+More troubling still, the Swarm has torn open rifts at both ends of the debris field. The eastern wing rift lies at the starboard side of the stern wreckage; the western wing rift lies at the port side of the bow wreckage. Two Swarm tides surge along the surviving internal corridors of the hull, which have been twisted and deformed by the ship's breakup into a labyrinth of sharp turns, dead ends, and switchbacks — a metal maze.
+
+================================
+
+[Tactical Shift: Dual Independent Lines]
+
+Unlike previous dual-route engagements, the two paths in this mission are completely independent.
+
+East line (east_in / east_out): The Swarm pours in through the stern starboard rift and pushes along the twisted eastern corridor. This channel's signature is "down, up, then down again" — the Swarm descends a ramp to the mid-deck, then suddenly switches back upward, and finally charges the base through a sharp turn. After seizing orbs, they evacuate via the eastern outbound corridor toward the stern's lower holds.
+
+West line (west_in / west_out): The Swarm enters through the bow port rift and advances along the western corridor. This path is even more treacherous — it features a massive "回"-shaped detour where the Swarm first descends deep, then switches back upward, then traverses a fractured crossbeam laterally before attacking the base from the west. The outbound route leads to abandoned cargo bays at the bow's bottom.
+
+Both routes converge at the base core, but their inbound and outbound channels never overlap. This means you must simultaneously defend against threats from four directions.
+
+================================
+
+[New Threat: The Maze Advantage]
+
+The twisted structure of the wreckage has unexpectedly become a tactical advantage for the Swarm. Narrow corridors limit the deployment angles of large defense towers; sudden direction changes at sharp turns reduce turret tracking efficiency; and switchback sections compress the effective range of Slow and Poison towers to their absolute limits.
+
+Frontline observers report that the Swarm appears to sense corridor width variations — they accelerate into sprints in wide sections and compress into dense columns in narrow passages. This "channel adaptability" renders traditional uniform fire-coverage strategies ineffective. You must concentrate firepower at critical choke points (turns, intersections) rather than relying on range advantages in open areas.
+
+================================
+
+[Mission Objectives: Titan's Remains]
+
+- Deploy defensive arrays within the twisted corridors of the hull wreckage
+- Simultaneously hold the eastern (east_in) and western (west_in) independent inbound routes
+- Protect the 10 Stellar Core Orbs in the central engine room
+- Prevent orb-carrying Swarm units from escaping via east_out or west_out
+- If all orbs are lost, the wreckage's radiation shielding will fail and the entire zone will become a Swarm nest
+
+[Operational Notes]
+Both the eastern and western corridors have obvious choke points — the sharp turn on the east line and the top of the "回"-shaped detour on the west line. Concentrate Missile and Laser towers at these positions, supported by Slow towers to stall columns. Machine Gun towers excel in wide corridor sections for area coverage but lose effectiveness in narrow turns. Command towers should cover the convergence zone to maximize gold yield.
+
+================================
+
+Three kilometers of metal grave. Ten routes. Ten orbs.
+
+Don't become another burial offering in this tomb.

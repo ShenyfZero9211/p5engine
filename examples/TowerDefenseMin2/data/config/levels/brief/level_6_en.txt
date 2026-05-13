@@ -1,1 +1,48 @@
-(Mission briefing to be added)
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Twin Rifts Outpost]
+
+The Swarm invasion of the KX-7 system has entered a new phase. Deep-space harmonic scans reveal that the Swarm is no longer content with single-point breakthroughs; instead, they have torn open two spatial rifts on opposite sides of the asteroid belt, approximately twelve hundred meters apart. The rifts are symmetrically positioned like a pair of opening black pincers, poised to snap shut.
+
+Federal engineering fleets have urgently constructed a cruciform forward platform between the two rifts, codenamed "Twinfork." The platform's central hub houses the Stellar Core Orb storage bay, containing 8 high-density energy orbs. The platform's north and south wings each extend into alloy corridors leading to the respective rift buffer zones.
+
+Two Swarm vanguard forces are surging toward the platform simultaneously. The northern wing advances along the upper corridor; the southern wing pushes along the lower corridor. Their objective is singular: the Stellar Core Orbs in the central bay.
+
+More dangerously, once the Swarm successfully seizes an orb, they will not retreat along their inbound route. Instead, they will escape through evacuation channels on the opposite side of the platform into deeper void. This means you must defend four routes simultaneously: two inbound (attack) and two outbound (evacuation).
+
+================================
+
+[Tactical Shift: Dual-Line Defense]
+
+Unlike previous missions with a single attack route, the Swarm will strike from two completely independent spawn points at the same time.
+
+The northern spawn point lies at the upper-left of the platform; Swarm units advance along the north_in route toward the base core. The southern spawn point lies at the lower-left; units push along the south_in route. Both inbound routes converge at the base core, meaning you can establish an intersecting fire network in the central area to cover both approaches.
+
+However, the outbound routes are also split into two: northeast_out toward the upper-right and southeast_out toward the lower-right. Orb-carrying Swarm units will randomly choose one of these exits. If they reach the end of an outbound route and leap into the rift, the orb is permanently lost.
+
+================================
+
+[New Threat: Pincer Harmonics]
+
+The Swarm's tactical evolution is deeply troubling. Harmonic locator signals show that the northern and southern wing advances are not fully independent; instead, they exhibit a faint synchrony. When the northern wing encounters heavy fire, the southern wing accelerates its advance proportionally — and vice versa.
+
+Frontline engineers have termed this phenomenon "pincer harmonics." The two wings function like the jaws of a pair of pincers, attempting to break your line through alternating pressure. This means you cannot focus on defending only one side; neglect on either flank will immediately be amplified by accelerated pressure from the other.
+
+================================
+
+[Mission Objectives: Twinfork Outpost]
+
+- Deploy a full defensive array on the cruciform platform and both wing corridors
+- Simultaneously hold the northern (north_in) and southern (south_in) attack routes
+- Protect all 8 Stellar Core Orbs in the central storage bay
+- Prevent orb-carrying Swarm units from escaping via northeast_out or southeast_out
+- If all orbs are lost, the outpost will lose power and collapse
+
+[Operational Notes]
+Use the central platform as an intersecting fire core, while establishing forward defenses along the前半段 of both corridors. Missile and Laser towers excel in the central zone covering both inbound routes; Slow and Poison towers are ideal for the narrow corridor sections to stall Swarm tides. Command tower gold bonuses are especially critical in dual-line combat.
+
+================================
+
+Both jaws are closing. Can you hold?

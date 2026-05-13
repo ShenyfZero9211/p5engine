@@ -1,1 +1,54 @@
-(Mission briefing to be added)
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Convergence Gorge]
+
+The spatial fabric of the KX-7 system is accelerating its collapse. Latest deep-space harmonic scans reveal that the Swarm has torn open two rifts west of the alloy corridor — one at the cliff edge of the northwest highlands, the other at the floor of a southwestern ravine. Two Swarm tides push along naturally formed canyon channels, merging at a narrow pass in the mid-section of the corridor into a single, vastly larger surge that storms directly toward the jump evacuation point at the eastern end.
+
+Federal engineering fleets have named this pass "The Convergence." It is the only strategic position from which both attack routes can be simultaneously covered; once lost, the surge will pour unchecked into the evacuation channel.
+
+However, this mission faces an unprecedented resource dilemma: due to intense subspace interference throughout the gorge region, all harmonic feedback signals from Swarm kills cannot be converted into extractable alloy currency. Your starting funds are exactly 2000 units — the entire reserve the engineering fleet could carry through the interference zone. After that, there is no income replenishment whatsoever. Every tower deployment must be precisely calculated, because bad decisions cannot be offset by later kills.
+
+================================
+
+[Tactical Shift: Zero-Income Survival]
+
+Unlike previous survival missions, eliminating Swarm units yields zero monetary reward. Your entire economy is that initial 2000.
+
+This means:
+- No Command tower kill bonuses (though its damage boost still functions)
+- No kill-feedback income
+- Selling towers for partial refunds becomes your only economic adjustment tool
+- Early overspending will cause late-game collapse
+
+Engineering recommends a "Core Focus" strategy: concentrate the bulk of your funds into an intersecting fire network near the Convergence, rather than dispersing deployment along the distant reaches of both routes. Because no matter which route the enemies take, they must all pass through the Convergence — establishing maximum firepower here provides the greatest funding efficiency.
+
+================================
+
+[Terrain Analysis: The Two Canyons]
+
+West route (west_route): The Swarm pours from the highland rift and advances southeast along a descending canyon. The first half of this route is relatively open, but the terrain narrows sharply as it approaches the Convergence, forming a natural choke point.
+
+South route (south_route): The Swarm climbs from the ravine rift and pushes northeast along an ascending channel. The slope slightly reduces Swarm movement speed, but also makes tower range coverage more complex.
+
+Both routes merge at the Convergence (coordinates 950, 600), then share a single eastern corridor leading to the evacuation point. This means you only need to build one unified defensive line east of the Convergence, rather than simultaneously guarding two separate outbound routes.
+
+================================
+
+[Mission Objectives: The Convergence Gorge]
+
+- Use your 2000-unit starting fund to establish a core defensive array at the Convergence
+- Simultaneously cover the northwest (west_route) and southwest (south_route) attack routes
+- Prevent the Swarm surge from breaching the Convergence and reaching the eastern evacuation channel
+- Crossing threshold: 8 units (breach = line collapse)
+- Survive all eight waves and hold until the Federal fleet outside the interference zone completes jump calibration
+
+[Operational Notes]
+With the zero-income mechanic, your opening deployment is critical. Engineering recommends placing 2–3 Machine Gun towers near the Convergence first to establish baseline firepower, then supplementing with Missile and Laser towers based on actual enemy pressure from the first wave. Slow and Poison towers offer exceptional value at choke points. Do not waste funds on the distant reaches of the routes — all enemies must pass through the Convergence eventually.
+
+================================
+
+2000 units. Eight waves. One convergence.
+
+This is not just defense. It is calculus.

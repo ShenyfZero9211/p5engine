@@ -23,8 +23,8 @@
   subtitleKey: level.6.subtitle
   levelType: DEFEND_BASE
 - id: 7
-  nameKey: level.new.name7
-  subtitleKey: level.new7.subtitle
+  nameKey: level.7.name
+  subtitleKey: level.7.subtitle
   levelType: SURVIVAL
 - id: 8
   nameKey: level.8.name
@@ -33,7 +33,7 @@
 - id: 9
   nameKey: level.9.name
   subtitleKey: level.9.subtitle
-  levelType: DEFEND_BASE
+  levelType: SURVIVAL
 - id: 10
   nameKey: level.9.name
   subtitleKey: level.9.subtitle

@@ -78,7 +78,7 @@ static class Tower {
         java.util.HashMap<String, Enemy> routeBest = new java.util.HashMap<>();
         Vector2 towerPos = new Vector2(worldX, worldY);
         for (Enemy e : TdGameWorld.enemies) {
-            if (e.hp <= 0) continue;
+            if (e.hp <= 0 || e.pos == null) continue;
             float d = e.pos.distance(towerPos);
             if (d > getEffectiveRange()) continue;
             float score = getThreatScore(e);

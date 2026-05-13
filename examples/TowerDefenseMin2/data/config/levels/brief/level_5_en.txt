@@ -1,1 +1,47 @@
-(Mission briefing to be added)
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Rift's Edge Provisional Line]
+
+The battle for the KX-7 system is far from over. Deep-space scans reveal that the Swarm's primary invasion conduit is not a single outpost, but a massive spatial rift tearing across the asteroid belt. The rift gapes like a torn maw, ceaselessly disgorging streams of black liquid metal.
+
+Federal engineering fleets have urgently constructed a sixteen-hundred-meter alloy corridor codenamed "Starbridge" in front of the rift to serve as a buffer zone. The corridor is flanked by bottomless void on both sides; there is no room for flanking maneuvers. Once the Swarm pours through the rift, they advance straight along this single channel toward the jump relay station at the far end.
+
+However, the relay station itself possesses no defensive capabilities, and there are no Stellar Core Orbs to protect. This is a pure holding action: you cannot rely on base power generation, nor worry about orb theft. The only metric of success is how many Swarm units make it through the corridor.
+
+================================
+
+[Tactical Shift: Survival Mode]
+
+Unlike previous base-defense operations, this mission has no "base" or "energy orbs."
+
+The alloy corridor is a one-way channel. The Swarm surges in from the rift side and pushes toward the jump side. All you can do is deploy every available weapon on the limited platforms along the corridor and destroy the Swarm before they reach the end.
+
+But the engineering fleet cannot hold the line indefinitely. When Swarm crossings reach 6 units, Federal Command will declare the line breached and order immediate evacuation. Conversely, if you survive all five waves with fewer than 6 crossings, the relay station will complete jump calibration — and the Federal main fleet will arrive via jump to seal the rift permanently.
+
+================================
+
+[New Threat: The Rift Surge]
+
+Resonance readings at the rift's edge differ from every previous encounter. The Swarm no longer appears in small scout formations; instead, they pour out in massive "surges."
+
+Frontline observers report that surge units display far higher coordination — they no longer act independently, but advance down the corridor in near-synchronous waves, as if driven by a collective will. This means traditional "pick them off one by one" tactics will be far less effective; you must rely on overlapping fields of fire and area damage to counter the dense tide.
+
+Worse still, the rift's depths register harmonics consistent with the Overseer signature. While no Overseer manifestation has been confirmed, Engineering has lifted all power-limit safeties on defensive towers — including the Poison and Command towers previously locked by safety protocols. You now have access to the full arsenal.
+
+================================
+
+[Mission Objectives: Starbridge Alloy Corridor]
+
+- Deploy a full defensive array on the corridor platforms (Machine Gun, Missile, Laser, Slow, Poison, and Command towers all available)
+- Prevent the Swarm from crossing the corridor to the jump relay
+- Crossing threshold: 6 units (breach = line collapse)
+- Survive all five surge waves and hold until the main fleet arrives
+
+[Operational Notes]
+Click the sidebar to select a tower type, then click on a glowing grid cell to deploy. Use Slow and Poison towers to stall dense swarms, while Missile and Laser towers handle high-threat targets. Command tower gold bonuses are especially critical in this mode — you have no base income; every credit must come from kills.
+
+================================
+
+No base. No retreat. Just you and this corridor.

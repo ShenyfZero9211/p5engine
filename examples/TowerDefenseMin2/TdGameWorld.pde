@@ -26,6 +26,21 @@ static final class TdGameWorld {
     static float difficultyHpMulti = 1.0f;
     static float difficultyRewardMulti = 1.0f;
     static String currentDifficultyKey = "normal";
+    static float winLoseDelay = 0;
+    static boolean pendingWin = false;
+
+    /** Parallel wave spawn tracking. Replaces legacy waveSpawnIndex/waveSpawnCount/spawnTimer. */
+    static class ActiveSpawn {
+        WaveSpawn spawn;
+        int remaining;
+        float timer;
+        ActiveSpawn(WaveSpawn spawn) {
+            this.spawn = spawn;
+            this.remaining = spawn.count;
+            this.timer = 0;
+        }
+    }
+    static ArrayList<ActiveSpawn> activeSpawns = new ArrayList<>();
 
     static boolean startLevel(TowerDefenseMin2 app, int levelId, String difficultyKey) {
         // Clean up old entities
@@ -50,6 +65,10 @@ static final class TdGameWorld {
         pendingLaserHits.clear();
         pendingAttaches.clear();
         TowerDefenseMin2.inst.lighting.clear();
+        winLoseDelay = 0;
+        pendingWin = false;
+        activeSpawns.clear();
+        activeSpawns.clear();
 
         level = TdAssets.loadLevel(levelId, difficultyKey);
         if (level == null) {
@@ -134,9 +153,21 @@ static final class TdGameWorld {
                 if (currentWave == 2) {
                     TdTutorial.triggerEvent("wave_2_start");
                 }
+                waveInProgress = true;
+                activeSpawns.clear();
+                WaveDef wave = level.waves[currentWave - 1];
+                if (wave.parallel && wave.spawns != null) {
+                    // Parallel: all spawns start simultaneously
+                    for (WaveSpawn s : wave.spawns) {
+                        activeSpawns.add(new ActiveSpawn(s));
+                    }
+                } else if (wave.spawns != null && wave.spawns.length > 0) {
+                    // Serial (legacy): only first spawn starts
+                    activeSpawns.add(new ActiveSpawn(wave.spawns[0]));
+                }
+                // Sync legacy fields for save compatibility
                 waveSpawnIndex = 0;
                 waveSpawnCount = 0;
-                waveInProgress = true;
                 spawnTimer = 0;
             }
         }
@@ -144,21 +175,33 @@ static final class TdGameWorld {
         // Spawning
         if (waveInProgress && currentWave <= totalWaves && level.waves != null) {
             WaveDef wave = level.waves[currentWave - 1];
-            if (waveSpawnIndex < wave.spawns.length) {
-                WaveSpawn spawn = wave.spawns[waveSpawnIndex];
-                spawnTimer -= dt;
-                if (spawnTimer <= 0) {
-                    spawnEnemy(spawn.enemyType, spawn.route, spawn.attaches, spawn.hpMulti);
-                    waveSpawnCount++;
-                    if (waveSpawnCount >= spawn.count) {
-                        waveSpawnIndex++;
-                        waveSpawnCount = 0;
-                        spawnTimer = spawn.interval;
-                    } else {
-                        spawnTimer = spawn.interval;
+            boolean allDone = true;
+            for (int i = 0; i < activeSpawns.size(); i++) {
+                ActiveSpawn asp = activeSpawns.get(i);
+                if (asp.remaining > 0) {
+                    allDone = false;
+                    asp.timer -= dt;
+                    if (asp.timer <= 0) {
+                        spawnEnemy(asp.spawn.enemyType, asp.spawn.route, asp.spawn.attaches, asp.spawn.hpMulti);
+                        asp.remaining--;
+                        asp.timer = asp.spawn.interval;
+                    }
+                } else if (!wave.parallel) {
+                    // Serial mode: advance to next spawn when current finishes
+                    if (i + 1 < wave.spawns.length) {
+                        activeSpawns.set(i, new ActiveSpawn(wave.spawns[i + 1]));
+                        allDone = false;
                     }
                 }
-            } else {
+            }
+            // Sync legacy fields for save compatibility
+            if (!activeSpawns.isEmpty()) {
+                ActiveSpawn first = activeSpawns.get(0);
+                waveSpawnIndex = wave.parallel ? 0 : Math.min(wave.spawns.length - 1, activeSpawns.size() - 1);
+                waveSpawnCount = first.spawn.count - first.remaining;
+                spawnTimer = first.timer;
+            }
+            if (allDone) {
                 waveInProgress = false;
                 waveTimer = (currentWave < totalWaves)
                     ? level.waves[currentWave].delay : 9999f;
@@ -305,6 +348,18 @@ static final class TdGameWorld {
 
         // Check win/lose
         checkWinLose();
+
+        // Win/Lose delay countdown
+        if (winLoseDelay > 0) {
+            winLoseDelay -= dt;
+            if (winLoseDelay <= 0) {
+                if (pendingWin) {
+                    TdFlow.showWin(TowerDefenseMin2.inst);
+                } else {
+                    TdFlow.showLose(TowerDefenseMin2.inst);
+                }
+            }
+        }
     }
 
     static void releaseOrb(float atPathDistance, PathRoute route) {
@@ -406,10 +461,11 @@ static final class TdGameWorld {
     static void checkWinLose() {
         if (level == null) return;
         int totalWaves = (level.waves != null) ? level.waves.length : 0;
+        boolean shouldWin = false;
+        boolean shouldLose = false;
 
         if (level.levelType == LevelType.DEFEND_BASE) {
             // Lose: all orbs have been carried away to the exit by escaped enemies.
-            // Base is empty, no orbs returning, and no enemy on the field is still carrying orbs.
             boolean noOrbsLeft = orbits <= 0 && orbs.isEmpty();
             boolean noCarriersOnField = true;
             for (Enemy e : enemies) {
@@ -418,29 +474,28 @@ static final class TdGameWorld {
                     break;
                 }
             }
-            if (noOrbsLeft && noCarriersOnField) {
-                TdFlow.showLose(TowerDefenseMin2.inst);
-                return;
-            }
+            if (noOrbsLeft && noCarriersOnField) shouldLose = true;
+
             // Win: all waves done, no enemies, and at least one orb in base or returning
             boolean allWavesDone = currentWave >= totalWaves;
             boolean noEnemies = enemies.isEmpty();
-            if (allWavesDone && noEnemies && (orbits > 0 || !orbs.isEmpty())) {
-                TdFlow.showWin(TowerDefenseMin2.inst);
-                return;
-            }
+            if (allWavesDone && noEnemies && (orbits > 0 || !orbs.isEmpty())) shouldWin = true;
         } else {
             // SURVIVAL
-            if (escapedEnemies >= level.maxEscapeCount) {
-                TdFlow.showLose(TowerDefenseMin2.inst);
-                return;
-            }
+            if (escapedEnemies >= level.maxEscapeCount) shouldLose = true;
             boolean allWavesDone = currentWave >= totalWaves;
             boolean noEnemies = enemies.isEmpty();
-            if (allWavesDone && noEnemies && escapedEnemies < level.maxEscapeCount) {
-                TdFlow.showWin(TowerDefenseMin2.inst);
-                return;
+            if (allWavesDone && noEnemies && escapedEnemies < level.maxEscapeCount) shouldWin = true;
+        }
+
+        if (shouldWin || shouldLose) {
+            if (winLoseDelay <= 0) {
+                winLoseDelay = TdAssets.getWinLoseDelay();
+                pendingWin = shouldWin;
             }
+        } else {
+            // Condition no longer met — cancel pending delay
+            winLoseDelay = 0;
         }
     }
 

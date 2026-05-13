@@ -1,0 +1,675 @@
+id: 9
+nameKey: level.9.name
+subtitleKey: level.9.subtitle
+briefingKey: level.9.briefing
+levelType: SURVIVAL
+mapTheme: STARFIELD
+initialMoney: 600
+maxEscapeCount: 8
+enemyHpBase: 120
+
+worldWidth: 4000
+worldHeight: 3000
+
+spawnPos: { x: 200, y: 800 }
+exitPos: { x: 3800, y: 2200 }
+
+paths:
+  - id: upper_route
+    type: DIRECT
+    points:
+      - { x: 200, y: 800 }
+      - { x: 800, y: 700 }
+      - { x: 1500, y: 850 }
+      - { x: 2200, y: 750 }
+      - { x: 2800, y: 900 }
+      - { x: 3400, y: 800 }
+      - { x: 3800, y: 800 }
+  - id: lower_route
+    type: DIRECT
+    points:
+      - { x: 200, y: 2200 }
+      - { x: 800, y: 2100 }
+      - { x: 1500, y: 2250 }
+      - { x: 2200, y: 2150 }
+      - { x: 2800, y: 2300 }
+      - { x: 3400, y: 2200 }
+      - { x: 3800, y: 2200 }
+
+platforms:
+  # --- 上路平台（不规则陨石形状） ---
+
+  # P_upper_spawn: 上路出生区附近（青色边缘，7顶点陨石）
+  - points:
+      - { x: 120, y: 680 }
+      - { x: 320, y: 620 }
+      - { x: 480, y: 750 }
+      - { x: 420, y: 900 }
+      - { x: 250, y: 940 }
+      - { x: 80, y: 820 }
+      - { x: 150, y: 720 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_upper_1: 上路出生区后第一段（青色边缘，6顶点陨石）
+  - points:
+      - { x: 580, y: 520 }
+      - { x: 850, y: 480 }
+      - { x: 920, y: 650 }
+      - { x: 780, y: 740 }
+      - { x: 550, y: 680 }
+      - { x: 520, y: 580 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_upper_2: 上路第二段（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 980, y: 620 }
+      - { x: 1240, y: 600 }
+      - { x: 1280, y: 780 }
+      - { x: 1080, y: 820 }
+      - { x: 950, y: 720 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_upper_mid: 上路中段平台（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 1360, y: 620 }
+      - { x: 1780, y: 580 }
+      - { x: 1840, y: 760 }
+      - { x: 1520, y: 830 }
+      - { x: 1340, y: 720 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_upper_3: 上路第三段（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 2080, y: 560 }
+      - { x: 2480, y: 540 }
+      - { x: 2580, y: 720 }
+      - { x: 2220, y: 790 }
+      - { x: 2020, y: 680 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_upper_end: 上路撤离区附近（橙色边缘，6顶点陨石）
+  - points:
+      - { x: 3420, y: 640 }
+      - { x: 3880, y: 620 }
+      - { x: 3960, y: 860 }
+      - { x: 3640, y: 940 }
+      - { x: 3380, y: 820 }
+      - { x: 3340, y: 720 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+  # --- 下路平台（不规则陨石形状） ---
+
+  # P_lower_spawn: 下路出生区附近（青色边缘，7顶点陨石）
+  - points:
+      - { x: 100, y: 2060 }
+      - { x: 340, y: 2000 }
+      - { x: 480, y: 2180 }
+      - { x: 400, y: 2360 }
+      - { x: 220, y: 2400 }
+      - { x: 60, y: 2280 }
+      - { x: 80, y: 2140 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_lower_1: 下路出生区后第一段（青色边缘，6顶点陨石）
+  - points:
+      - { x: 560, y: 1860 }
+      - { x: 860, y: 1820 }
+      - { x: 900, y: 2000 }
+      - { x: 760, y: 2080 }
+      - { x: 540, y: 2000 }
+      - { x: 520, y: 1940 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_lower_2: 下路第二段（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 960, y: 2100 }
+      - { x: 1320, y: 2060 }
+      - { x: 1380, y: 2260 }
+      - { x: 1080, y: 2320 }
+      - { x: 920, y: 2240 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_lower_mid: 下路中段平台（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 1380, y: 2360 }
+      - { x: 1780, y: 2320 }
+      - { x: 1840, y: 2540 }
+      - { x: 1500, y: 2620 }
+      - { x: 1280, y: 2500 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_lower_3: 下路第三段（蓝色边缘，5顶点陨石）
+  - points:
+      - { x: 2080, y: 1960 }
+      - { x: 2520, y: 1940 }
+      - { x: 2580, y: 2140 }
+      - { x: 2220, y: 2200 }
+      - { x: 2020, y: 2080 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_lower_end: 下路撤离区附近（橙色边缘，6顶点陨石）
+  - points:
+      - { x: 3420, y: 2060 }
+      - { x: 3880, y: 2040 }
+      - { x: 3960, y: 2280 }
+      - { x: 3640, y: 2360 }
+      - { x: 3380, y: 2240 }
+      - { x: 3340, y: 2140 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+blockedZones:
+  - type: circle
+    cx: 1000
+    cy: 900
+    radius: 50
+    visual: asteroid
+
+  - type: circle
+    cx: 1000
+    cy: 2100
+    radius: 50
+    visual: asteroid
+
+  - type: circle
+    cx: 2500
+    cy: 850
+    radius: 55
+    visual: asteroid
+
+  - type: circle
+    cx: 2500
+    cy: 2150
+    radius: 55
+    visual: asteroid
+
+  - type: rect
+    x: 1800
+    y: 950
+    w: 70
+    h: 55
+    visual: ruins
+
+  - type: rect
+    x: 1800
+    y: 2050
+    w: 70
+    h: 55
+    visual: ruins
+
+  - type: rect
+    x: 3200
+    y: 920
+    w: 75
+    h: 60
+    visual: ruins
+
+  - type: rect
+    x: 3200
+    y: 2080
+    w: 75
+    h: 60
+    visual: ruins
+
+waves:
+  - delay: 18.0
+    parallel: true
+    spawns:
+      - type: level1
+        count: 18
+        interval: 1.2
+        route: upper_route
+      - type: level1
+        count: 18
+        interval: 1.2
+        route: lower_route
+  - delay: 16.0
+    parallel: true
+    spawns:
+      - type: level1
+        count: 22
+        interval: 1.1
+        route: upper_route
+      - type: level2
+        count: 8
+        interval: 1.2
+        route: lower_route
+  - delay: 14.0
+    parallel: true
+    spawns:
+      - type: level2
+        count: 14
+        interval: 1.0
+        route: upper_route
+      - type: level2
+        count: 14
+        interval: 1.0
+        route: lower_route
+  - delay: 14.0
+    parallel: true
+    spawns:
+      - type: level2
+        count: 16
+        interval: 1.0
+        route: upper_route
+      - type: level3
+        count: 6
+        interval: 1.2
+        route: lower_route
+  - delay: 12.0
+    parallel: true
+    spawns:
+      - type: level3
+        count: 12
+        interval: 1.0
+        route: upper_route
+      - type: level3
+        count: 12
+        interval: 1.0
+        route: lower_route
+  - delay: 12.0
+    parallel: true
+    spawns:
+      - type: level3
+        count: 14
+        interval: 0.9
+        route: upper_route
+      - type: level4
+        count: 3
+        interval: 2.0
+        route: lower_route
+  - delay: 10.0
+    parallel: true
+    spawns:
+      - type: level4
+        count: 5
+        interval: 1.5
+        route: upper_route
+      - type: level4
+        count: 5
+        interval: 1.5
+        route: lower_route
+  - delay: 10.0
+    parallel: true
+    spawns:
+      - type: level4
+        count: 8
+        interval: 1.2
+        route: upper_route
+      - type: level4
+        count: 8
+        interval: 1.2
+        route: lower_route
+
+difficulties:
+  easy:
+    waves:
+      - delay: 20.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 14
+            interval: 1.4
+            route: upper_route
+          - type: level1
+            count: 14
+            interval: 1.4
+            route: lower_route
+      - delay: 18.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 16
+            interval: 1.3
+            route: upper_route
+          - type: level2
+            count: 5
+            interval: 1.4
+            route: lower_route
+      - delay: 16.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 10
+            interval: 1.2
+            route: upper_route
+          - type: level2
+            count: 10
+            interval: 1.2
+            route: lower_route
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 12
+            interval: 1.1
+            route: upper_route
+          - type: level3
+            count: 4
+            interval: 1.4
+            route: lower_route
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 8
+            interval: 1.1
+            route: upper_route
+          - type: level3
+            count: 8
+            interval: 1.1
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 10
+            interval: 1.0
+            route: upper_route
+          - type: level4
+            count: 2
+            interval: 2.5
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 3
+            interval: 2.0
+            route: upper_route
+          - type: level4
+            count: 3
+            interval: 2.0
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 5
+            interval: 1.5
+            route: upper_route
+          - type: level4
+            count: 5
+            interval: 1.5
+            route: lower_route
+  normal:
+    waves:
+      - delay: 18.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 16
+            interval: 1.3
+            route: upper_route
+          - type: level1
+            count: 16
+            interval: 1.3
+            route: lower_route
+      - delay: 16.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 20
+            interval: 1.2
+            route: upper_route
+          - type: level2
+            count: 7
+            interval: 1.2
+            route: lower_route
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 12
+            interval: 1.1
+            route: upper_route
+          - type: level2
+            count: 12
+            interval: 1.1
+            route: lower_route
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 14
+            interval: 1.1
+            route: upper_route
+          - type: level3
+            count: 5
+            interval: 1.2
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 10
+            interval: 1.0
+            route: upper_route
+          - type: level3
+            count: 10
+            interval: 1.0
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 12
+            interval: 0.9
+            route: upper_route
+          - type: level4
+            count: 3
+            interval: 2.0
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 4
+            interval: 1.8
+            route: upper_route
+          - type: level4
+            count: 4
+            interval: 1.8
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 6
+            interval: 1.4
+            route: upper_route
+          - type: level4
+            count: 6
+            interval: 1.4
+            route: lower_route
+  hard:
+    waves:
+      - delay: 16.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 20
+            interval: 1.1
+            route: upper_route
+          - type: level1
+            count: 20
+            interval: 1.1
+            route: lower_route
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 24
+            interval: 1.0
+            route: upper_route
+          - type: level2
+            count: 10
+            interval: 1.1
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 16
+            interval: 1.0
+            route: upper_route
+          - type: level2
+            count: 16
+            interval: 1.0
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 18
+            interval: 0.9
+            route: upper_route
+          - type: level3
+            count: 7
+            interval: 1.1
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 14
+            interval: 0.9
+            route: upper_route
+          - type: level3
+            count: 14
+            interval: 0.9
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 16
+            interval: 0.8
+            route: upper_route
+          - type: level4
+            count: 4
+            interval: 1.8
+            route: lower_route
+      - delay: 8.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 6
+            interval: 1.5
+            route: upper_route
+          - type: level4
+            count: 6
+            interval: 1.5
+            route: lower_route
+      - delay: 8.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 8
+            interval: 1.2
+            route: upper_route
+          - type: level4
+            count: 8
+            interval: 1.2
+            route: lower_route
+  challenge:
+    waves:
+      - delay: 14.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 24
+            interval: 1.0
+            route: upper_route
+          - type: level1
+            count: 24
+            interval: 1.0
+            route: lower_route
+      - delay: 12.0
+        parallel: true
+        spawns:
+          - type: level1
+            count: 28
+            interval: 0.9
+            route: upper_route
+          - type: level2
+            count: 12
+            interval: 1.0
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 20
+            interval: 0.9
+            route: upper_route
+          - type: level2
+            count: 20
+            interval: 0.9
+            route: lower_route
+      - delay: 10.0
+        parallel: true
+        spawns:
+          - type: level2
+            count: 22
+            interval: 0.8
+            route: upper_route
+          - type: level3
+            count: 8
+            interval: 1.0
+            route: lower_route
+      - delay: 8.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 16
+            interval: 0.8
+            route: upper_route
+          - type: level3
+            count: 16
+            interval: 0.8
+            route: lower_route
+      - delay: 8.0
+        parallel: true
+        spawns:
+          - type: level3
+            count: 18
+            interval: 0.7
+            route: upper_route
+          - type: level4
+            count: 5
+            interval: 1.5
+            route: lower_route
+      - delay: 6.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 8
+            interval: 1.2
+            route: upper_route
+          - type: level4
+            count: 8
+            interval: 1.2
+            route: lower_route
+      - delay: 6.0
+        parallel: true
+        spawns:
+          - type: level4
+            count: 10
+            interval: 1.0
+            route: upper_route
+          - type: level4
+            count: 10
+            interval: 1.0
+            route: lower_route

@@ -213,6 +213,8 @@ final class TdAppSetup {
     void setupCamera() {
         GameObject camGo = GameObject.create("camera");
         camera = camGo.addComponent(Camera2D.class);
+        camera.setMinZoom(TdAssets.getCameraMinZoom());
+        camera.setMaxZoom(TdAssets.getCameraMaxZoom());
         camera.setWorldBounds(new Rect(0, 0, TowerDefenseMin2.WORLD_W, TowerDefenseMin2.WORLD_H));
         camera.jumpCenterTo(TowerDefenseMin2.WORLD_W * 0.5f, TowerDefenseMin2.WORLD_H * 0.5f);
         // Camera viewport will be synced to actual render area in syncCameraToWindow()

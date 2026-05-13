@@ -1,1 +1,51 @@
-(Mission briefing to be added)
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Twin-Track Alloy Corridor]
+
+The Swarm invasion of the KX-7 system has entered its most unsettling phase. Deep-space harmonic scans reveal that the Swarm has torn open two rifts along a four-kilometer alloy transport corridor — one on the northern track, the other on the southern track. The two rifts are approximately fourteen hundred meters apart, running perfectly parallel like a pair of parallel black wounds.
+
+This alloy corridor was originally a Federal dual-track channel for mineral transport. The upper and lower tracks run parallel to each other, with a bottomless void rift valley in between. After pouring in from the left ends of both tracks, the Swarm advances straight along their respective channels toward the jump relay station at the corridor's far end.
+
+Unlike previous converging routes, these two tracks remain strictly parallel from start to finish, never intersecting. This means you cannot rely on "convergence point crossfire" tactics — both routes are entirely independent, requiring complete defensive systems to be built for each.
+
+================================
+
+[Tactical Shift: Dual Independent Interception]
+
+The defining characteristic of this mission is the complete independence of the two routes.
+
+Upper track (upper_route): The Swarm surges from the left end of the northern track, advancing rightward along a slightly undulating channel. The channel sits slightly higher than the lower track, offering relatively open sightlines — but this also means the Swarm sprints faster in the wide sections.
+
+Lower track (lower_route): The Swarm pours from the left end of the southern track, pushing along a channel that is almost a mirror image of the upper route. The channel has minor elevation changes at several key points, but its overall trajectory remains strictly parallel to the upper track.
+
+Both routes terminate at the jump relay station at the corridor's right end. The crossing threshold is cumulative across both routes — whether enemies breach from the upper or lower track, the total crossing count of 8 spells line collapse.
+
+================================
+
+[New Threat: Parallel Synchronization]
+
+Harmonic locators have captured a deeply troubling signal pattern: the Swarm advances on both tracks display a high degree of synchronization. They do not act independently, but advance along the parallel tracks with nearly identical frequency and rhythm.
+
+Frontline engineers speculate that this "parallel synchronization" may be an expression of Swarm collective consciousness — when Swarm units on both routes push simultaneously, they reinforce each other's action rhythms, creating a kind of resonance effect. This means that if you build a powerful defense on the upper track, the lower-track Swarm may accelerate proportionally, and vice versa.
+
+The more direct tactical implication: you cannot commit all resources to one route. Over-investment on either flank will leave the other under-defended, and the Swarm's synchronized advance will rapidly exploit that vulnerability.
+
+================================
+
+[Mission Objectives: The Twin-Track Alloy Corridor]
+
+- Establish complete defensive arrays on both the upper and lower parallel tracks
+- Simultaneously cover advancing Swarm units on the upper (upper_route) and lower (lower_route) tracks
+- Total crossing threshold: 8 units (cumulative across upper and lower tracks)
+- Survive all eight waves and hold until the Federal fleet seals both ends of the corridor
+
+[Operational Notes]
+Because the two routes are completely independent, a "symmetrical firepower" strategy is recommended: deploy identical tower types at corresponding positions on both tracks to ensure balanced defense strength on both flanks. Missile and Laser towers excel in the open mid-sections of the channels, while Slow and Poison towers are most effective at the undulating choke points. Command towers should be placed in the central zone where they can cover both tracks simultaneously, maximizing gold yield.
+
+================================
+
+Two tracks. One rhythm. Eight waves.
+
+Don't let your line become a victim of resonance.

@@ -353,6 +353,8 @@ static class TdMinimapComponent extends UIComponent {
         if (TdGameWorld.level != null && TdGameWorld.level.worldW > 0) {
             MH = MW * TdGameWorld.level.worldH / TdGameWorld.level.worldW;
         }
+        // Clamp height so it never grows tall enough to overlap tower buttons
+        MH = Math.min(MH, MW * 0.75f);
         setSize(MW, MH);
         // Position minimap at the bottom of the build panel with a margin
         TowerDefenseMin2 app = TowerDefenseMin2.inst;
@@ -368,13 +370,10 @@ static class TdMinimapComponent extends UIComponent {
         float my = getAbsoluteY();
 
         applet.pushStyle();
+        // Deep blue for inactive margin area
         applet.noStroke();
-        applet.fill(TdTheme.BG_DARK);
+        applet.fill(0xFF080C18);
         applet.rect(mx, my, MW, MH);
-        applet.stroke(TdTheme.BORDER);
-        applet.strokeWeight(1);
-        applet.noFill();
-        applet.rect(mx + 0.5f, my + 0.5f, MW - 1, MH - 1);
 
         if (TdGameWorld.level != null) {
             float worldW = TdGameWorld.level.worldW;
@@ -384,41 +383,11 @@ static class TdMinimapComponent extends UIComponent {
             float drawH = worldH * scale;
             float ox = mx + (MW - drawW) * 0.5f;
             float oy = my + (MH - drawH) * 0.5f;
+            // Normal dark bg for the active world area
+            applet.noStroke();
+            applet.fill(TdTheme.BG_DARK);
+            applet.rect(ox, oy, drawW, drawH);
 
-            // Base
-            applet.fill(0xFF4A9EFF);
-            applet.ellipse(ox + TdGameWorld.level.basePos.x * scale, oy + TdGameWorld.level.basePos.y * scale, 6, 6);
-            // Spawns
-            applet.fill(0xFFFF8C42);
-            if (TdGameWorld.level.spawnPos != null) {
-                applet.ellipse(ox + TdGameWorld.level.spawnPos.x * scale, oy + TdGameWorld.level.spawnPos.y * scale, 5, 5);
-            }
-            // Exits
-            applet.fill(0xFFFF4444);
-            if (TdGameWorld.level.exitPos != null) {
-                applet.ellipse(ox + TdGameWorld.level.exitPos.x * scale, oy + TdGameWorld.level.exitPos.y * scale, 6, 6);
-            }
-            // Multi-path spawns and exits
-            if (TdGameWorld.level.paths != null) {
-                for (PathRoute pr : TdGameWorld.level.paths) {
-                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
-                    Vector2 start = pr.path.points[0];
-                    Vector2 end = pr.path.points[pr.path.points.length - 1];
-                    // Spawn
-                    boolean spawnDistinct = (TdGameWorld.level.spawnPos == null) || start.distance(TdGameWorld.level.spawnPos) > 10f;
-                    if (spawnDistinct) {
-                        applet.fill(0xFFFF8C42);
-                        applet.ellipse(ox + start.x * scale, oy + start.y * scale, 5, 5);
-                    }
-                    // Exit
-                    boolean isBase = (TdGameWorld.level.basePos != null) && end.distance(TdGameWorld.level.basePos) <= 10f;
-                    boolean isGlobalExit = (TdGameWorld.level.exitPos != null) && end.distance(TdGameWorld.level.exitPos) <= 10f;
-                    if (!isBase && !isGlobalExit) {
-                        applet.fill(0xFFFF4444);
-                        applet.ellipse(ox + end.x * scale, oy + end.y * scale, 6, 6);
-                    }
-                }
-            }
             // Platforms
             if (TdGameWorld.level.platforms != null) {
                 for (PlatformZone pz : TdGameWorld.level.platforms) {
@@ -442,7 +411,6 @@ static class TdMinimapComponent extends UIComponent {
                     }
                 }
             }
-
             // Path — draw all routes (multi-path) or legacy pathPoints
             applet.stroke(0xFF4A9EFF);
             applet.strokeWeight(1);
@@ -480,7 +448,68 @@ static class TdMinimapComponent extends UIComponent {
             for (Enemy e : TdGameWorld.enemies) {
                 applet.ellipse(ox + e.pos.x * scale, oy + e.pos.y * scale, 5, 5);
             }
-            // Camera rect
+            // Camera rect removed from here — drawn after border
+            // Base (DEFEND_BASE only) — draw last so it appears on top
+            if (TdGameWorld.level.levelType == LevelType.DEFEND_BASE && TdGameWorld.level.basePos != null) {
+                applet.noStroke();
+                applet.fill(0xFF4A9EFF);
+                applet.ellipse(ox + TdGameWorld.level.basePos.x * scale, oy + TdGameWorld.level.basePos.y * scale, 6, 6);
+            }
+            // Spawns & Exits — draw last so they appear on top of everything
+            if (TdGameWorld.level.paths != null && TdGameWorld.level.paths.length > 0) {
+                for (PathRoute pr : TdGameWorld.level.paths) {
+                    if (pr.path == null || pr.path.points == null || pr.path.points.length < 2) continue;
+                    Vector2 start = pr.path.points[0];
+                    Vector2 end = pr.path.points[pr.path.points.length - 1];
+                    // Spawn (orange), skip if it IS the base in DEFEND_BASE mode
+                    boolean spawnIsBase = (TdGameWorld.level.levelType == LevelType.DEFEND_BASE)
+                        && (TdGameWorld.level.basePos != null)
+                        && start.distance(TdGameWorld.level.basePos) <= 10f;
+                    if (!spawnIsBase) {
+                        applet.noStroke();
+                        applet.fill(0xFFFF8C42);
+                        applet.ellipse(ox + start.x * scale, oy + start.y * scale, 6, 6);
+                    }
+                    // Exit (red), skip if it IS the base in DEFEND_BASE mode
+                    boolean endIsBase = (TdGameWorld.level.levelType == LevelType.DEFEND_BASE)
+                        && (TdGameWorld.level.basePos != null)
+                        && end.distance(TdGameWorld.level.basePos) <= 10f;
+                    if (!endIsBase) {
+                        applet.noStroke();
+                        applet.fill(0xFFFF4444);
+                        applet.ellipse(ox + end.x * scale, oy + end.y * scale, 6, 6);
+                    }
+                }
+            } else {
+                // Legacy single-path fallback
+                if (TdGameWorld.level.spawnPos != null) {
+                    applet.noStroke();
+                    applet.fill(0xFFFF8C42);
+                    applet.ellipse(ox + TdGameWorld.level.spawnPos.x * scale, oy + TdGameWorld.level.spawnPos.y * scale, 6, 6);
+                }
+                if (TdGameWorld.level.exitPos != null) {
+                    applet.noStroke();
+                    applet.fill(0xFFFF4444);
+                    applet.ellipse(ox + TdGameWorld.level.exitPos.x * scale, oy + TdGameWorld.level.exitPos.y * scale, 6, 6);
+                }
+            }
+        }
+        // Outer border — drawn on top of map elements but under camera rect
+        applet.stroke(TdTheme.BORDER);
+        applet.strokeWeight(1);
+        applet.noFill();
+        applet.rect(mx + 0.5f, my + 0.5f, MW - 1, MH - 1);
+
+        // Camera rect — drawn AFTER border so it never gets covered,
+        // but clamped to the active area so it doesn't spill into margin
+        if (TdGameWorld.level != null) {
+            float worldW = TdGameWorld.level.worldW;
+            float worldH = TdGameWorld.level.worldH;
+            float scale = Math.min(MW / worldW, MH / worldH);
+            float drawW = worldW * scale;
+            float drawH = worldH * scale;
+            float ox = mx + (MW - drawW) * 0.5f;
+            float oy = my + (MH - drawH) * 0.5f;
             TowerDefenseMin2 app = TowerDefenseMin2.inst;
             Camera2D cam = app.camera;
             if (cam != null) {
@@ -488,21 +517,19 @@ static class TdMinimapComponent extends UIComponent {
                 float cy = cam.getTransform().getPosition().y;
                 float cw = cam.getViewportWidth() / cam.getZoom();
                 float ch = cam.getViewportHeight() / cam.getZoom();
+                float rx0 = ox + (cx - cw * 0.5f) * scale + 1;
+                float ry0 = oy + (cy - ch * 0.5f) * scale + 1;
+                float rw0 = Math.max(1, cw * scale - 2);
+                float rh0 = Math.max(1, ch * scale - 2);
+                // Clamp to active area (keep 2px away from border to avoid overlap with outer frame)
+                float rx = Math.max(ox + 2, rx0);
+                float ry = Math.max(oy + 2, ry0);
+                float rw = Math.max(1, Math.min(rw0, ox + drawW - 2 - rx));
+                float rh = Math.max(1, Math.min(rh0, oy + drawH - 2 - ry));
                 applet.noFill();
                 applet.stroke(0xFFFF8C42);
                 applet.strokeWeight(1);
-                float rx = ox + (cx - cw * 0.5f) * scale + 1;
-                float ry = oy + (cy - ch * 0.5f) * scale + 1;
-                float rw = Math.max(1, cw * scale - 2);
-                float rh = Math.max(1, ch * scale - 2);
                 applet.rect(rx, ry, rw, rh);
-                // if (app.frameCount % 60 == 0) {
-                //     println("[MINIMAP] mx=" + mx + " my=" + my + " MW=" + MW + " MH=" + MH +
-                //             " | cam pos=" + cx + "," + cy + " vp=" + cam.getViewportWidth() + "x" + cam.getViewportHeight() +
-                //             " zoom=" + cam.getZoom() + " cw=" + cw + " ch=" + ch +
-                //             " | rx=" + rx + " ry=" + ry + " rw=" + rw + " rh=" + rh +
-                //             " | worldW=" + TdGameWorld.level.worldW + " worldH=" + TdGameWorld.level.worldH);
-                // }
             }
         }
         applet.popStyle();

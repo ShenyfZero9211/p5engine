@@ -1,0 +1,222 @@
+id: 7
+nameKey: level.7.name
+subtitleKey: level.7.subtitle
+briefingKey: level.7.briefing
+levelType: SURVIVAL
+mapTheme: STARFIELD
+initialMoney: 2000
+maxEscapeCount: 8
+enemyHpBase: 130
+earnMoneyOnKill: false
+
+worldWidth: 2000
+worldHeight: 1200
+
+spawnPos: { x: 150, y: 400 }
+exitPos: { x: 1800, y: 600 }
+
+paths:
+  - id: west_route
+    type: DIRECT
+    points:
+      - { x: 150, y: 400 }
+      - { x: 400, y: 350 }
+      - { x: 700, y: 480 }
+      - { x: 950, y: 600 }
+      - { x: 1200, y: 600 }
+      - { x: 1500, y: 600 }
+      - { x: 1800, y: 600 }
+  - id: south_route
+    type: DIRECT
+    points:
+      - { x: 150, y: 950 }
+      - { x: 400, y: 900 }
+      - { x: 700, y: 750 }
+      - { x: 950, y: 600 }
+      - { x: 1200, y: 600 }
+      - { x: 1500, y: 600 }
+      - { x: 1800, y: 600 }
+
+platforms:
+  # P_west_spawn: 西侧出生点附近大平台（青色边缘，六边形）
+  - points:
+      - { x: 80, y: 340 }
+      - { x: 260, y: 310 }
+      - { x: 320, y: 440 }
+      - { x: 240, y: 520 }
+      - { x: 100, y: 500 }
+      - { x: 40, y: 420 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_south_spawn: 南侧出生点附近平台（青色边缘，不规则五边形）
+  - points:
+      - { x: 80, y: 890 }
+      - { x: 280, y: 860 }
+      - { x: 340, y: 1000 }
+      - { x: 200, y: 1060 }
+      - { x: 60, y: 980 }
+    edgeColor: [0, 200, 170]
+    fillColor: [20, 35, 40]
+
+  # P_merge: 汇聚点附近核心平台（绿色边缘，六边形）
+  - points:
+      - { x: 840, y: 520 }
+      - { x: 1060, y: 500 }
+      - { x: 1140, y: 600 }
+      - { x: 1060, y: 720 }
+      - { x: 840, y: 700 }
+      - { x: 760, y: 600 }
+    edgeColor: [40, 199, 111]
+    fillColor: [22, 35, 30]
+
+  # P_mid: 中段狭长平台（蓝色边缘，四边形）
+  - points:
+      - { x: 1220, y: 540 }
+      - { x: 1480, y: 540 }
+      - { x: 1500, y: 660 }
+      - { x: 1240, y: 660 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P_exit: 撤离点附近平台（橙色边缘，不规则五边形）
+  - points:
+      - { x: 1620, y: 520 }
+      - { x: 1860, y: 500 }
+      - { x: 1920, y: 640 }
+      - { x: 1740, y: 700 }
+      - { x: 1580, y: 620 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+blockedZones:
+  # 路径周围漂浮岩石
+  - type: circle
+    cx: 520
+    cy: 420
+    radius: 40
+    visual: asteroid
+
+  - type: circle
+    cx: 520
+    cy: 820
+    radius: 40
+    visual: asteroid
+
+  - type: circle
+    cx: 1350
+    cy: 550
+    radius: 45
+    visual: asteroid
+
+  # 残骸区
+  - type: rect
+    x: 780
+    y: 400
+    w: 65
+    h: 50
+    visual: ruins
+
+  - type: rect
+    x: 780
+    y: 820
+    w: 65
+    h: 50
+    visual: ruins
+
+  - type: rect
+    x: 1550
+    y: 680
+    w: 70
+    h: 55
+    visual: ruins
+
+waves:
+  - delay: 18.0
+    parallel: true
+    spawns:
+      - type: level1
+        count: 16
+        interval: 1.2
+        route: west_route
+      - type: level1
+        count: 16
+        interval: 1.2
+        route: south_route
+  - delay: 16.0
+    parallel: true
+    spawns:
+      - type: level1
+        count: 20
+        interval: 1.1
+        route: west_route
+      - type: level2
+        count: 8
+        interval: 1.2
+        route: south_route
+  - delay: 14.0
+    parallel: true
+    spawns:
+      - type: level2
+        count: 14
+        interval: 1.0
+        route: west_route
+      - type: level2
+        count: 14
+        interval: 1.0
+        route: south_route
+  - delay: 14.0
+    parallel: true
+    spawns:
+      - type: level2
+        count: 16
+        interval: 1.0
+        route: west_route
+      - type: level3
+        count: 6
+        interval: 1.2
+        route: south_route
+  - delay: 12.0
+    parallel: true
+    spawns:
+      - type: level3
+        count: 12
+        interval: 1.0
+        route: west_route
+      - type: level3
+        count: 12
+        interval: 1.0
+        route: south_route
+  - delay: 12.0
+    parallel: true
+    spawns:
+      - type: level3
+        count: 14
+        interval: 0.9
+        route: west_route
+      - type: level4
+        count: 3
+        interval: 2.0
+        route: south_route
+  - delay: 10.0
+    parallel: true
+    spawns:
+      - type: level4
+        count: 5
+        interval: 1.5
+        route: west_route
+      - type: level4
+        count: 5
+        interval: 1.5
+        route: south_route
+  - delay: 10.0
+    parallel: true
+    spawns:
+      - type: level4
+        count: 8
+        interval: 1.2
+        route: west_route
+      - type: level4
+        count: 8
+        interval: 1.2
+        route: south_route

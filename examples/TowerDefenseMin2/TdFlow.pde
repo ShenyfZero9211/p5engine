@@ -112,6 +112,29 @@ static final class TdFlow {
     static int difficultySelectLevelId = -1;
     static int resumeDialogLevelId = -1;
 
+    static void showMainMenuLoadError(TowerDefenseMin2 app) {
+        Panel root = app.ui.getRoot();
+        Label lbl = new Label("lbl_mainmenu_error");
+        lbl.setText(TdAssets.i18n("game.loadFailed"));
+        lbl.setBounds(0, 0, 400, 40);
+        lbl.setTextAlign(PApplet.CENTER);
+        lbl.setTextColor(0xFFFF5B5B);
+        lbl.setAlpha(0);
+        // Center in screen (same as showLoadSuccessToast)
+        DisplayManager dm = app.engine.getDisplayManager();
+        float sw = dm.getActualWidth() / dm.getUniformScale();
+        float sh = dm.getActualHeight() / dm.getUniformScale();
+        lbl.setPosition((sw - 400) * 0.5f, sh * 0.45f);
+        root.add(lbl);
+
+        TweenManager tm = app.engine.getTweenManager();
+        java.util.function.Consumer<Float> setter = v -> lbl.setAlpha(v);
+        tm.toFloat(0f, 1f, 0.4f, setter).ease(Ease::outQuad).start();
+        tm.toFloat(1f, 0f, 0.5f, setter).ease(Ease::inQuad).delay(1.8f).onComplete(() -> {
+            root.remove(lbl);
+        }).start();
+    }
+
     static void buildMainMenu(TowerDefenseMin2 app) {
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
         TdSaveData.saveSettings();
@@ -791,10 +814,12 @@ static final class TdFlow {
             boolean ok = TdGameWorld.startLevel(app, levelId, difficultyKey);
             if (!ok) {
                 buildMainMenu(app);
+                showMainMenuLoadError(app);
                 return;
             }
         } catch (Exception e) {
             buildMainMenu(app);
+            showMainMenuLoadError(app);
             return;
         }
         app.setupWorldViewport();
@@ -986,31 +1011,63 @@ static final class TdFlow {
         btnSave.setAction(() -> {
         btnSave.setSfxPath(TdSound.SFX_CLICK);
             boolean ok = TdSaveLoad.saveGame(app);
+            TweenManager tm = app.engine.getTweenManager();
+            tm.killTarget(saveHintAlphaSetter);
             if (ok) {
+                lblSaveHint.setTextColor(0xFF4ADE80);
                 lblSaveHint.setText(TdAssets.i18n("game.saved"));
-                lblSaveHint.setAlpha(0);
-                TweenManager tm = app.engine.getTweenManager();
-                tm.killTarget(saveHintAlphaSetter);
-                tm.toFloat(0f, 1f, 0.4f, saveHintAlphaSetter).ease(Ease::outQuad).start();
-                tm.toFloat(1f, 0f, 0.5f, saveHintAlphaSetter).ease(Ease::inQuad).delay(1.8f).start();
+            } else {
+                lblSaveHint.setTextColor(0xFFFF5B5B);
+                lblSaveHint.setText(TdAssets.i18n("game.saveFailed"));
             }
+            lblSaveHint.setAlpha(0);
+            tm.toFloat(0f, 1f, 0.4f, saveHintAlphaSetter).ease(Ease::outQuad).start();
+            tm.toFloat(1f, 0f, 0.5f, saveHintAlphaSetter).ease(Ease::inQuad).delay(1.8f).start();
         });
         btnSave.appear(0.13f);
         panel.add(btnSave);
         y += btnH + gap;
 
         // Load progress
+        Label lblLoadHint = new Label("lbl_load_hint");
+        lblLoadHint.setText("");
+        lblLoadHint.setBounds(btnX + btnW + 8, y, 90, btnH);
+        lblLoadHint.setTextAlign(PApplet.LEFT);
+        lblLoadHint.setTextColor(0xFFFF5B5B);
+        lblLoadHint.setAlpha(0);
+        panel.add(lblLoadHint);
+
+        java.util.function.Consumer<Float> loadHintAlphaSetter = v -> lblLoadHint.setAlpha(v);
+
         Button btnLoad = new Button("btn_load");
         btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
         btnLoad.setBounds(btnX, y, btnW, btnH);
         btnLoad.setAction(() -> {
-        btnLoad.setSfxPath(TdSound.SFX_CLICK);
-            if (TdGameWorld.level != null) {
-                boolean ok = TdSaveLoad.loadGame(app, TdGameWorld.level.id);
-                if (ok) {
-                    hidePauseMenu(app);
-                    showLoadSuccessToast(app);
+            try {
+                btnLoad.setSfxPath(TdSound.SFX_CLICK);
+                if (TdGameWorld.level != null) {
+                    boolean ok = TdSaveLoad.loadGame(app, TdGameWorld.level.id);
+                    if (ok) {
+                        hidePauseMenu(app);
+                        showLoadSuccessToast(app);
+                    } else {
+                        lblLoadHint.setText(TdAssets.i18n("game.loadFailed"));
+                        lblLoadHint.setAlpha(0);
+                        TweenManager tm = app.engine.getTweenManager();
+                        tm.killTarget(loadHintAlphaSetter);
+                        tm.toFloat(0f, 1f, 0.4f, loadHintAlphaSetter).ease(Ease::outQuad).start();
+                        tm.toFloat(1f, 0f, 0.5f, loadHintAlphaSetter).ease(Ease::inQuad).delay(1.8f).start();
+                    }
                 }
+            } catch (Exception e) {
+                println("[DEBUG] Exception in pause load action: " + e.getMessage());
+                e.printStackTrace();
+                lblLoadHint.setText(TdAssets.i18n("game.loadFailed"));
+                lblLoadHint.setAlpha(0);
+                TweenManager tm = app.engine.getTweenManager();
+                tm.killTarget(loadHintAlphaSetter);
+                tm.toFloat(0f, 1f, 0.4f, loadHintAlphaSetter).ease(Ease::outQuad).start();
+                tm.toFloat(1f, 0f, 0.5f, loadHintAlphaSetter).ease(Ease::inQuad).delay(1.8f).start();
             }
         });
         btnLoad.appear(0.16f);
@@ -1107,19 +1164,47 @@ static final class TdFlow {
         btnRestart.appear(0.1f);
         panel.add(btnRestart);
 
+        Label lblLoadHint = new Label("lbl_load_hint_save");
+        lblLoadHint.setText("");
+        lblLoadHint.setBounds(348, 148, 90, 44);
+        lblLoadHint.setTextAlign(PApplet.LEFT);
+        lblLoadHint.setTextColor(0xFFFF5B5B);
+        lblLoadHint.setAlpha(0);
+        panel.add(lblLoadHint);
+
+        java.util.function.Consumer<Float> loadHintAlphaSetter2 = v -> lblLoadHint.setAlpha(v);
+
         Button btnLoad = new Button("btn_load_save");
         btnLoad.setLabel(TdAssets.i18n("game.loadProgress"));
         btnLoad.setBounds(60, 148, 280, 44);
         btnLoad.setAction(() -> {
-        btnLoad.setSfxPath(TdSound.SFX_CLICK);
-            boolean ok = TdSaveLoad.loadGame(app, levelId);
-            if (ok) {
-                app.ui.getRoot().removeAllChildren();
-                app.state = TdState.PLAYING;
-                app.setupWorldViewport();
-                app.setupHud();
-                TdSound.playBgmGame();
-                showLoadSuccessToast(app);
+            try {
+                btnLoad.setSfxPath(TdSound.SFX_CLICK);
+                boolean ok = TdSaveLoad.loadGame(app, levelId);
+                if (ok) {
+                    app.ui.getRoot().removeAllChildren();
+                    app.state = TdState.PLAYING;
+                    app.setupWorldViewport();
+                    app.setupHud();
+                    TdSound.playBgmGame();
+                    showLoadSuccessToast(app);
+                } else {
+                    lblLoadHint.setText(TdAssets.i18n("game.loadFailed"));
+                    lblLoadHint.setAlpha(0);
+                    TweenManager tm = app.engine.getTweenManager();
+                    tm.killTarget(loadHintAlphaSetter2);
+                    tm.toFloat(0f, 1f, 0.4f, loadHintAlphaSetter2).ease(Ease::outQuad).start();
+                    tm.toFloat(1f, 0f, 0.5f, loadHintAlphaSetter2).ease(Ease::inQuad).delay(1.8f).start();
+                }
+            } catch (Exception e) {
+                println("[DEBUG] Exception in levelSelect load action: " + e.getMessage());
+                e.printStackTrace();
+                lblLoadHint.setText(TdAssets.i18n("game.loadFailed"));
+                lblLoadHint.setAlpha(0);
+                TweenManager tm = app.engine.getTweenManager();
+                tm.killTarget(loadHintAlphaSetter2);
+                tm.toFloat(0f, 1f, 0.4f, loadHintAlphaSetter2).ease(Ease::outQuad).start();
+                tm.toFloat(1f, 0f, 0.5f, loadHintAlphaSetter2).ease(Ease::inQuad).delay(1.8f).start();
             }
         });
         btnLoad.appear(0.15f);

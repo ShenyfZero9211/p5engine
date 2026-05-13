@@ -18,6 +18,10 @@ gameSettings:
   menuBgB: 28
   # 背景 LOD 触发阈值：当 camera zoom <= 该值时启用降级渲染 (0.0 = 永久关闭 LOD)
   bgLodZoomThreshold: 1.7
+  # 摄像机最小缩放倍数（缩得越小，看得越远）
+  cameraMinZoom: 0.2
+  # 摄像机最大缩放倍数（放得越大，看得越近）
+  cameraMaxZoom: 2.0
   # 背景星星/星云是否每次随机生成 (true = 每次随机, false = 按关卡 ID 固定)
   randomBackground: true
   # 是否渲染 blockedZones 视觉元素 (true = 渲染, false = 隐藏)
@@ -41,6 +45,8 @@ gameSettings:
   fontSizeLarge: 128
   # 任务简报字体大小
   fontSizeBriefing: 14
+  # 胜利/失败触发后的延迟时间（秒）
+  winLoseDelay: 1.5
 
 # 游戏难度参数
 difficulties:

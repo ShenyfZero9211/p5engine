@@ -137,7 +137,8 @@ static final class PathRoute {
                 }
             }
         } else {
-            this.baseDistance = -1;
+            // SURVIVAL DIRECT route: baseDistance = path end (total length)
+            this.baseDistance = this.path.getTotalLength();
             this.baseIndex = -1;
         }
     }
@@ -217,10 +218,16 @@ static final class WaveSpawn {
 static final class WaveDef {
     final float delay;
     final WaveSpawn[] spawns;
+    final boolean parallel;
 
     WaveDef(float delay, WaveSpawn[] spawns) {
+        this(delay, spawns, false);
+    }
+
+    WaveDef(float delay, WaveSpawn[] spawns, boolean parallel) {
         this.delay = delay;
         this.spawns = spawns;
+        this.parallel = parallel;
     }
 }
 

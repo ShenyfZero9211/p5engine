@@ -378,6 +378,15 @@ static final class TdAssets {
         return 1.0f;
     }
 
+    static float getWinLoseDelay() {
+        if (gameSettingsYamlRoot == null) return 1.5f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 1.5f;
+        Object v = gs.get("winLoseDelay");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 1.5f;
+    }
+
     static float getStarBrightness() {
         if (gameSettingsYamlRoot == null) return 1.0f;
         java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
@@ -430,6 +439,24 @@ static final class TdAssets {
         Object v = gs.get("bgLodZoomThreshold");
         if (v instanceof Number) return ((Number) v).floatValue();
         return 0.5f;
+    }
+
+    static float getCameraMinZoom() {
+        if (gameSettingsYamlRoot == null) return 0.2f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 0.2f;
+        Object v = gs.get("cameraMinZoom");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 0.2f;
+    }
+
+    static float getCameraMaxZoom() {
+        if (gameSettingsYamlRoot == null) return 5.0f;
+        java.util.Map gs = (java.util.Map) gameSettingsYamlRoot.get("gameSettings");
+        if (gs == null) return 5.0f;
+        Object v = gs.get("cameraMaxZoom");
+        if (v instanceof Number) return ((Number) v).floatValue();
+        return 5.0f;
     }
 
     static boolean isRandomBackground() {
@@ -627,6 +654,9 @@ static final class TdAssets {
         for (int i = 0; i < waveList.size(); i++) {
             java.util.Map w = (java.util.Map) waveList.get(i);
             float delay = ((Number) w.get("delay")).floatValue();
+            boolean parallel = false;
+            Object pObj = w.get("parallel");
+            if (pObj != null) parallel = Boolean.parseBoolean(pObj.toString());
             java.util.List spawnList = (java.util.List) w.get("spawns");
             WaveSpawn[] spawns = new WaveSpawn[spawnList != null ? spawnList.size() : 0];
             for (int j = 0; j < spawns.length; j++) {
@@ -641,7 +671,7 @@ static final class TdAssets {
                     loadAttaches(s)
                 );
             }
-            waves[i] = new WaveDef(delay, spawns);
+            waves[i] = new WaveDef(delay, spawns, parallel);
         }
         return waves;
     }
@@ -669,7 +699,11 @@ static final class TdAssets {
 
         // Positions
         java.util.Map base = (java.util.Map) lvl.get("basePos");
-        ld.basePos = new Vector2(((Number)base.get("x")).floatValue(), ((Number)base.get("y")).floatValue());
+        if (base != null) {
+            ld.basePos = new Vector2(((Number)base.get("x")).floatValue(), ((Number)base.get("y")).floatValue());
+        } else {
+            ld.basePos = new Vector2(ld.worldW * 0.5f, ld.worldH * 0.5f);
+        }
         java.util.Map exit = (java.util.Map) lvl.get("exitPos");
         ld.exitPos = new Vector2(((Number)exit.get("x")).floatValue(), ((Number)exit.get("y")).floatValue());
         java.util.Map spawn = (java.util.Map) lvl.get("spawnPos");
@@ -692,7 +726,9 @@ static final class TdAssets {
                     java.util.Map pm = (java.util.Map) ppts.get(j);
                     points[j] = new Vector2(((Number)pm.get("x")).floatValue(), ((Number)pm.get("y")).floatValue());
                 }
-                ld.paths[i] = new PathRoute(pid, rt, points, ld.basePos);
+                // SURVIVAL DIRECT routes: baseDistance should be path end (total length), not distance to basePos
+                Vector2 routeBasePos = (ld.levelType == LevelType.SURVIVAL && rt == RouteType.DIRECT) ? null : ld.basePos;
+                ld.paths[i] = new PathRoute(pid, rt, points, routeBasePos);
             }
         }
 

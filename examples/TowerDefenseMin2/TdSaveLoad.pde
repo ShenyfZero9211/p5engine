@@ -38,6 +38,17 @@ static final class TdSaveLoad {
         json.setInt("waveSpawnIndex", TdGameWorld.waveSpawnIndex);
         json.setInt("waveSpawnCount", TdGameWorld.waveSpawnCount);
         json.setBoolean("firstTowerPlaced", TdGameWorld.firstTowerPlaced);
+        // Save activeSpawns for parallel wave support
+        JSONArray aspArr = new JSONArray();
+        for (int i = 0; i < TdGameWorld.activeSpawns.size(); i++) {
+            TdGameWorld.ActiveSpawn asp = TdGameWorld.activeSpawns.get(i);
+            JSONObject o = new JSONObject();
+            o.setInt("idx", i);
+            o.setInt("remaining", asp.remaining);
+            o.setFloat("timer", asp.timer);
+            aspArr.append(o);
+        }
+        json.setJSONArray("activeSpawns", aspArr);
         json.setFloat("baseIncomeAccumulator", TdGameWorld.baseIncomeAccumulator);
         json.setFloat("levelStartTotalTime", TdGameWorld.levelStartTotalTime);
         json.setFloat("levelPlayTime", TdGameWorld.levelPlayTime);
@@ -46,58 +57,145 @@ static final class TdSaveLoad {
         json.setJSONArray("orbs", serializeOrbs());
         json.setJSONArray("pendingAttaches", serializePendingAttaches());
 
-        java.io.File dir = new java.io.File(getSaveDir(app));
-        if (!dir.exists()) dir.mkdirs();
-        app.saveJSONObject(json, getSavePath(app, TdGameWorld.level.id));
-        return true;
+        try {
+            java.io.File dir = new java.io.File(getSaveDir(app));
+            if (!dir.exists()) dir.mkdirs();
+            app.saveJSONObject(json, getSavePath(app, TdGameWorld.level.id));
+            return true;
+        } catch (Exception e) {
+            println("[TdSaveLoad] Save failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // ── Load ──
 
     static boolean loadGame(TowerDefenseMin2 app, int levelId) {
-        String path = getSavePath(app, levelId);
-        java.io.File f = new java.io.File(path);
-        if (!f.exists()) return false;
-        JSONObject json = app.loadJSONObject(path);
-        if (json == null) return false;
+        try {
+            String path = getSavePath(app, levelId);
+            java.io.File f = new java.io.File(path);
+            if (!f.exists()) return false;
+            JSONObject json = app.loadJSONObject(path);
+            if (json == null) return false;
 
-        int version = json.getInt("version", 0);
-        if (version != 1) {
-            System.err.println("[TdSaveLoad] Save version mismatch: expected 1, got " + version);
+            int version = json.getInt("version", 0);
+            if (version != 1) {
+                System.err.println("[TdSaveLoad] Save version mismatch: expected 1, got " + version);
+                return false;
+            }
+
+            String diffKey = json.hasKey("difficultyKey") ? json.getString("difficultyKey") : "normal";
+
+            // ── Phase 1: Validate save data BEFORE touching game state ──
+            // Pre-load level def to validate route IDs against this level
+            LevelDef ld = TdAssets.loadLevel(levelId, diffKey);
+            if (ld == null) return false;
+
+            // Validate enemy route IDs
+            JSONArray enemiesArr = getJSONArrayOrEmpty(json, "enemies");
+            for (int i = 0; i < enemiesArr.size(); i++) {
+                JSONObject o = enemiesArr.getJSONObject(i);
+                String activeRouteId = o.getString("activeRouteId", "");
+                if (!activeRouteId.isEmpty()) {
+                    boolean found = false;
+                    if (ld.paths != null) {
+                        for (PathRoute pr : ld.paths) {
+                            if (pr.id.equals(activeRouteId)) { found = true; break; }
+                        }
+                    }
+                    if (!found) {
+                        println("[TdSaveLoad] Validation failed: enemy route '" + activeRouteId + "' not found in level " + levelId);
+                        return false;
+                    }
+                }
+            }
+            // Validate orb route IDs
+            JSONArray orbsArr = getJSONArrayOrEmpty(json, "orbs");
+            for (int i = 0; i < orbsArr.size(); i++) {
+                JSONObject o = orbsArr.getJSONObject(i);
+                String routeId = o.getString("routeId", "");
+                if (!routeId.isEmpty()) {
+                    boolean found = false;
+                    if (ld.paths != null) {
+                        for (PathRoute pr : ld.paths) {
+                            if (pr.id.equals(routeId)) { found = true; break; }
+                        }
+                    }
+                    if (!found) {
+                        println("[TdSaveLoad] Validation failed: orb route '" + routeId + "' not found in level " + levelId);
+                        return false;
+                    }
+                }
+            }
+
+            // ── Phase 2: Apply save data (only after validation passed) ──
+            boolean ok = TdGameWorld.startLevel(app, levelId, diffKey);
+            if (!ok) return false;
+
+            // Override game state
+            TdGameWorld.money = json.getInt("money", TdGameWorld.money);
+            TdGameWorld.orbits = json.getInt("orbits", TdGameWorld.orbits);
+            TdGameWorld.currentWave = json.getInt("currentWave", TdGameWorld.currentWave);
+            TdGameWorld.escapedEnemies = json.getInt("escapedEnemies", TdGameWorld.escapedEnemies);
+            TdGameWorld.waveInProgress = json.getBoolean("waveInProgress", TdGameWorld.waveInProgress);
+            TdGameWorld.waveTimer = json.getFloat("waveTimer", TdGameWorld.waveTimer);
+            TdGameWorld.spawnTimer = json.getFloat("spawnTimer", TdGameWorld.spawnTimer);
+            TdGameWorld.waveSpawnIndex = json.getInt("waveSpawnIndex", TdGameWorld.waveSpawnIndex);
+            TdGameWorld.waveSpawnCount = json.getInt("waveSpawnCount", TdGameWorld.waveSpawnCount);
+            TdGameWorld.firstTowerPlaced = json.getBoolean("firstTowerPlaced", TdGameWorld.firstTowerPlaced);
+            TdGameWorld.baseIncomeAccumulator = json.getFloat("baseIncomeAccumulator", TdGameWorld.baseIncomeAccumulator);
+            TdGameWorld.levelStartTotalTime = json.getFloat("levelStartTotalTime", TdGameWorld.levelStartTotalTime);
+            TdGameWorld.levelPlayTime = json.getFloat("levelPlayTime", TdGameWorld.levelPlayTime);
+
+            // Restore activeSpawns for parallel wave support (new format)
+            JSONArray aspArr = json.getJSONArray("activeSpawns");
+            if (aspArr != null && TdGameWorld.currentWave > 0 && TdGameWorld.level.waves != null) {
+                TdGameWorld.activeSpawns.clear();
+                WaveDef wave = TdGameWorld.level.waves[TdGameWorld.currentWave - 1];
+                for (int i = 0; i < aspArr.size(); i++) {
+                    JSONObject o = aspArr.getJSONObject(i);
+                    int idx = o.getInt("idx", 0);
+                    if (idx >= 0 && idx < wave.spawns.length) {
+                        TdGameWorld.ActiveSpawn asp = new TdGameWorld.ActiveSpawn(wave.spawns[idx]);
+                        asp.remaining = o.getInt("remaining", asp.remaining);
+                        asp.timer = o.getFloat("timer", asp.timer);
+                        TdGameWorld.activeSpawns.add(asp);
+                    }
+                }
+            } else {
+                // Legacy fallback: reconstruct activeSpawns from waveSpawnIndex/waveSpawnCount
+                TdGameWorld.activeSpawns.clear();
+                if (TdGameWorld.currentWave > 0 && TdGameWorld.level.waves != null) {
+                    WaveDef wave = TdGameWorld.level.waves[TdGameWorld.currentWave - 1];
+                    int idx = TdGameWorld.waveSpawnIndex;
+                    if (idx >= 0 && idx < wave.spawns.length) {
+                        TdGameWorld.ActiveSpawn asp = new TdGameWorld.ActiveSpawn(wave.spawns[idx]);
+                        asp.remaining = Math.max(0, wave.spawns[idx].count - TdGameWorld.waveSpawnCount);
+                        asp.timer = TdGameWorld.spawnTimer;
+                        TdGameWorld.activeSpawns.add(asp);
+                    }
+                }
+            }
+
+            // Clear transient entities
+            TdGameWorld.bullets.clear();
+            TdGameWorld.effects.clear();
+            TdGameWorld.pendingLaserHits.clear();
+
+            // Rebuild persistent entities
+            rebuildTowers(app, getJSONArrayOrEmpty(json, "towers"));
+            rebuildEnemies(app, getJSONArrayOrEmpty(json, "enemies"));
+            rebuildOrbs(app, getJSONArrayOrEmpty(json, "orbs"));
+            rebuildPendingAttaches(getJSONArrayOrEmpty(json, "pendingAttaches"));
+
+            return true;
+        } catch (Exception e) {
+            println("[TdSaveLoad] Load failed for level " + levelId + ": " + e.getMessage());
+            e.printStackTrace();
+            // Intentionally do NOT rollback - keep current game state unchanged on load failure
             return false;
         }
-
-        String diffKey = json.hasKey("difficultyKey") ? json.getString("difficultyKey") : "normal";
-        boolean ok = TdGameWorld.startLevel(app, levelId, diffKey);
-        if (!ok) return false;
-
-        // Override game state
-        TdGameWorld.money = json.getInt("money", TdGameWorld.money);
-        TdGameWorld.orbits = json.getInt("orbits", TdGameWorld.orbits);
-        TdGameWorld.currentWave = json.getInt("currentWave", TdGameWorld.currentWave);
-        TdGameWorld.escapedEnemies = json.getInt("escapedEnemies", TdGameWorld.escapedEnemies);
-        TdGameWorld.waveInProgress = json.getBoolean("waveInProgress", TdGameWorld.waveInProgress);
-        TdGameWorld.waveTimer = json.getFloat("waveTimer", TdGameWorld.waveTimer);
-        TdGameWorld.spawnTimer = json.getFloat("spawnTimer", TdGameWorld.spawnTimer);
-        TdGameWorld.waveSpawnIndex = json.getInt("waveSpawnIndex", TdGameWorld.waveSpawnIndex);
-        TdGameWorld.waveSpawnCount = json.getInt("waveSpawnCount", TdGameWorld.waveSpawnCount);
-        TdGameWorld.firstTowerPlaced = json.getBoolean("firstTowerPlaced", TdGameWorld.firstTowerPlaced);
-        TdGameWorld.baseIncomeAccumulator = json.getFloat("baseIncomeAccumulator", TdGameWorld.baseIncomeAccumulator);
-        TdGameWorld.levelStartTotalTime = json.getFloat("levelStartTotalTime", TdGameWorld.levelStartTotalTime);
-        TdGameWorld.levelPlayTime = json.getFloat("levelPlayTime", TdGameWorld.levelPlayTime);
-
-        // Clear transient entities
-        TdGameWorld.bullets.clear();
-        TdGameWorld.effects.clear();
-        TdGameWorld.pendingLaserHits.clear();
-
-        // Rebuild persistent entities
-        rebuildTowers(app, getJSONArrayOrEmpty(json, "towers"));
-        rebuildEnemies(app, getJSONArrayOrEmpty(json, "enemies"));
-        rebuildOrbs(app, getJSONArrayOrEmpty(json, "orbs"));
-        rebuildPendingAttaches(getJSONArrayOrEmpty(json, "pendingAttaches"));
-
-        return true;
     }
 
     // ── Serialize ──
@@ -256,6 +354,10 @@ static final class TdSaveLoad {
                 go.addComponent(new EnemyRenderer(e));
                 app.gameScene.addGameObject(go);
                 e.gameObject = go;
+            }
+            if (e.pos == null) {
+                println("[TdSaveLoad] Warning: skipping enemy with null pos, routeId=" + activeRouteId + " in level " + TdGameWorld.level.id);
+                continue;
             }
             TdGameWorld.enemies.add(e);
 

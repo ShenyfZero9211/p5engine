@@ -70,7 +70,10 @@ static class Enemy {
                 routeProgress += speed * slowFactor * dt;
                 if (routeProgress >= activeRoute.baseDistance) {
                     routeProgress = activeRoute.baseDistance;
-                    if (orbsCarried > 0) {
+                    if (activeRoute.type == RouteType.DIRECT) {
+                        // SURVIVAL: reaching path end = escape immediately
+                        reachedEnd = true;
+                    } else if (orbsCarried > 0) {
                         // Already carrying orb(s) captured along the way; skip steal and retreat
                         state = EnemyState.FLEE;
                         pickOutboundRoute();

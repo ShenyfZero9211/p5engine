@@ -876,26 +876,28 @@ static class WorldBgRenderer extends RendererComponent {
             }
         }
 
-        // Base — pulsing blue core with rotating ring
-        float pulse = 1 + 0.15f * PApplet.sin(time * 3);
-        g.noStroke();
-        // Outer glow
-        g.fill(0xFF4A9EFF, 60);
-        drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 24 * pulse, 16);
-        // Core
-        g.fill(0xFF4A9EFF);
-        drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 10, 12);
-        g.fill(0xFFFFFFFF);
-        drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 4, 8);
-        // Rotating ring
-        g.noFill();
-        g.stroke(0xFF88CCFF, 180);
-        g.strokeWeight(2);
-        g.pushMatrix();
-        g.translate(lv.basePos.x, lv.basePos.y);
-        g.rotate(time * 1.5f);
-        g.arc(0, 0, 36, 36, 0, PApplet.PI * 1.3f);
-        g.popMatrix();
+        // Base — pulsing blue core with rotating ring (DEFEND_BASE only)
+        if (lv.levelType == LevelType.DEFEND_BASE) {
+            float pulse = 1 + 0.15f * PApplet.sin(time * 3);
+            g.noStroke();
+            // Outer glow
+            g.fill(0xFF4A9EFF, 60);
+            drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 24 * pulse, 16);
+            // Core
+            g.fill(0xFF4A9EFF);
+            drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 10, 12);
+            g.fill(0xFFFFFFFF);
+            drawPolyCircle(g, lv.basePos.x, lv.basePos.y, 4, 8);
+            // Rotating ring
+            g.noFill();
+            g.stroke(0xFF88CCFF, 180);
+            g.strokeWeight(2);
+            g.pushMatrix();
+            g.translate(lv.basePos.x, lv.basePos.y);
+            g.rotate(time * 1.5f);
+            g.arc(0, 0, 36, 36, 0, PApplet.PI * 1.3f);
+            g.popMatrix();
+        }
 
         // Exit — red X mark
         g.noStroke();
