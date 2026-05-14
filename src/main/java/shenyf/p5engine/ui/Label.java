@@ -149,46 +149,7 @@ public class Label extends UIComponent {
 
     @Override
     public void paint(PApplet applet, Theme theme) {
-        if (textColor != -1) {
-            float alpha = getEffectiveAlpha();
-            int c = textColor;
-            if (alpha < 1f) {
-                int origA = (c >>> 24) & 0xFF;
-                int newA = Math.round(origA * alpha);
-                c = (newA << 24) | (c & 0x00FFFFFF);
-            }
-            applet.fill(c);
-            applet.noStroke();
-            if (font != null) {
-                applet.textFont(font);
-            }
-            if (textMode != -1) {
-                applet.textMode(textMode);
-            }
-            float ts = textSize > 0 ? textSize : Math.min(14, getHeight() * 0.5f);
-            applet.textSize(ts);
-            float tx;
-            if (textAlign == PApplet.CENTER) {
-                tx = getAbsoluteX() + getWidth() * 0.5f;
-            } else if (textAlign == PApplet.RIGHT) {
-                tx = getAbsoluteX() + getWidth() - 4;
-            } else {
-                tx = getAbsoluteX() + 4;
-            }
-            if (wrapWidth > 0) {
-                applet.textAlign(textAlign, PApplet.TOP);
-                applet.text(text != null ? text : "", getAbsoluteX() + 4, getAbsoluteY() + 4, getWidth() - 8, getHeight() - 8);
-            } else {
-                applet.textAlign(textAlign, PApplet.BASELINE);
-                float ty = getAbsoluteY() + getHeight() * 0.5f + (applet.textAscent() - applet.textDescent()) * 0.5f;
-                applet.text(text != null ? text : "", tx, ty);
-            }
-            if (textMode != -1) {
-                applet.textMode(PApplet.MODEL);
-            }
-        } else {
-            theme.setCurrentAlpha(getEffectiveAlpha());
-            theme.drawLabel(applet, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);
-        }
+        theme.setCurrentAlpha(getEffectiveAlpha());
+        theme.drawLabel(applet, this, getAbsoluteX(), getAbsoluteY(), getWidth(), getHeight(), text, !isEnabled(), textAlign);
     }
 }

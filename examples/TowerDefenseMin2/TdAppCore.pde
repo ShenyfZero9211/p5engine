@@ -46,9 +46,13 @@ final class TdAppSetup {
         PFont cnFontSmall = createFont("Microsoft YaHei", fontSizeSmall);
         PFont cnFontLarge = createFont("Microsoft YaHei", fontSizeLarge);
         int fontSizeBriefing = TdAssets.getFontSizeBriefing();
-        PFont cnFontBriefing = createFont("Microsoft YaHei", fontSizeBriefing, true);
+        PFont cnFontBriefing = createFont("Microsoft YaHei", 64, true);
         theme.setFont(cnFontSmall);
         theme.setBriefingFont(cnFontBriefing);
+        PFont cardFont = createFont("Microsoft YaHei Bold", 64);
+        if (cardFont != null) {
+            TdLevelCard.setCardFont(cardFont);
+        }
         TdMenuBg.setFont(cnFontSmall);
         TdMenuBg.setTitleFont(cnFontLarge);
         ui.setTheme(theme);
@@ -58,6 +62,8 @@ final class TdAppSetup {
         PImage cursorImg = loadImage("cur/cursor_optimized.png");
         if (cursorImg != null) {
             ui.setCustomCursor(cursorImg);
+            float cursorScale = engine.getSketchConfig().getFloat(SketchConfig.SECTION_UI, SketchConfig.KEY_CURSOR_SCALE, 0.65f);
+            ui.setCursorScale(cursorScale);
         }
 
         gameScene = engine.getSceneManager().getActiveScene();
@@ -500,6 +506,32 @@ static final class TdAppInput {
                 case '5': app.engine.getGameTime().setTargetTimeScale(5.0f); break;
             }
         }
+
+        // Level select keyboard navigation
+        if (app.state == TdState.LEVEL_SELECT) {
+            if (TdFlow.resumeDialogLevelId < 0 && TdFlow.difficultySelectLevelId < 0) {
+                if (app.keyCode == PApplet.LEFT) {
+                    if (TdFlow.levelCarouselRef != null) {
+                        TdFlow.levelCarouselRef.prev();
+                    }
+                } else if (app.keyCode == PApplet.RIGHT) {
+                    if (TdFlow.levelCarouselRef != null) {
+                        TdFlow.levelCarouselRef.next();
+                    }
+                } else if (app.keyCode == PApplet.ENTER || app.key == ' ') {
+                    if (TdFlow.levelCarouselRef != null) {
+                        int lid = TdFlow.levelCarouselRef.getSelectedLevelId();
+                        if (lid >= 0 && TdFlow.levelCarouselRef.isSelectedUnlocked()) {
+                            if (TdSaveLoad.hasSave(app, lid)) {
+                                TdFlow.showLevelResumeDialog(app, lid);
+                            } else {
+                                TdFlow.showDifficultySelect(app, lid);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     static void handleKeyboardInput(TowerDefenseMin2 app, InputManager im) {
@@ -555,6 +587,7 @@ static final class TdAppInput {
             TowerDef defQ = TdAssets.loadTowerDef(TowerType.MG);
             if (defQ != null && (app.devMode || TdGameWorld.money >= defQ.cost)) {
                 app.buildMode = TdBuildMode.MG;
+                TdSound.playTowerSelect();
             } else if (defQ != null) {
                 app.hudBuildPanel.flashButton(TowerType.MG);
             }
@@ -566,6 +599,7 @@ static final class TdAppInput {
             TowerDef defW = TdAssets.loadTowerDef(TowerType.MISSILE);
             if (defW != null && (app.devMode || TdGameWorld.money >= defW.cost)) {
                 app.buildMode = TdBuildMode.MISSILE;
+                TdSound.playTowerSelect();
             } else if (defW != null) {
                 app.hudBuildPanel.flashButton(TowerType.MISSILE);
             }
@@ -577,6 +611,7 @@ static final class TdAppInput {
             TowerDef defE = TdAssets.loadTowerDef(TowerType.LASER);
             if (defE != null && (app.devMode || TdGameWorld.money >= defE.cost)) {
                 app.buildMode = TdBuildMode.LASER;
+                TdSound.playTowerSelect();
             } else if (defE != null) {
                 app.hudBuildPanel.flashButton(TowerType.LASER);
             }
@@ -588,6 +623,7 @@ static final class TdAppInput {
             TowerDef defR = TdAssets.loadTowerDef(TowerType.SLOW);
             if (defR != null && (app.devMode || TdGameWorld.money >= defR.cost)) {
                 app.buildMode = TdBuildMode.SLOW;
+                TdSound.playTowerSelect();
             } else if (defR != null) {
                 app.hudBuildPanel.flashButton(TowerType.SLOW);
             }
@@ -599,6 +635,7 @@ static final class TdAppInput {
             TowerDef defT = TdAssets.loadTowerDef(TowerType.POISON);
             if (defT != null && (app.devMode || TdGameWorld.money >= defT.cost)) {
                 app.buildMode = TdBuildMode.POISON;
+                TdSound.playTowerSelect();
             } else if (defT != null) {
                 app.hudBuildPanel.flashButton(TowerType.POISON);
             }
@@ -610,6 +647,7 @@ static final class TdAppInput {
             TowerDef defY = TdAssets.loadTowerDef(TowerType.COMMAND);
             if (defY != null && (app.devMode || TdGameWorld.money >= defY.cost)) {
                 app.buildMode = TdBuildMode.COMMAND;
+                TdSound.playTowerSelect();
             } else if (defY != null) {
                 app.hudBuildPanel.flashButton(TowerType.COMMAND);
             }

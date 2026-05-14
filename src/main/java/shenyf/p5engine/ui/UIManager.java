@@ -55,6 +55,9 @@ public final class UIManager {
     private final DragManager dragManager = new DragManager();
     private boolean focusRingVisible = false;
     private processing.core.PImage customCursor;
+    private processing.core.PImage scaledCursor;
+    private float lastCursorScale = -1;
+    private float cursorScale = 1.0f;
     /** Cursor-state deduplication: avoids redundant native cursor() calls. */
     private int currentCursorType = -1;
     private processing.core.PImage currentCursorImage;
@@ -265,6 +268,11 @@ public final class UIManager {
 
     public void setCustomCursor(processing.core.PImage cursor) {
         this.customCursor = cursor;
+    }
+
+    public void setCursorScale(float scale) {
+        this.cursorScale = scale;
+        this.scaledCursor = null; // force re-scale
     }
 
     /**
@@ -703,7 +711,16 @@ public final class UIManager {
                 }
             }
             if (targetType == PApplet.ARROW && customCursor != null) {
-                targetImg = customCursor;
+                float scale = (displayManager != null) ? displayManager.getUniformScale() : 1.0f;
+                scale *= cursorScale;
+                if (scale != lastCursorScale || scaledCursor == null) {
+                    lastCursorScale = scale;
+                    int newW = Math.max(1, Math.round(customCursor.width * scale));
+                    int newH = Math.max(1, Math.round(customCursor.height * scale));
+                    scaledCursor = applet.createImage(newW, newH, PApplet.ARGB);
+                    scaledCursor.copy(customCursor, 0, 0, customCursor.width, customCursor.height, 0, 0, newW, newH);
+                }
+                targetImg = scaledCursor;
             }
         }
 

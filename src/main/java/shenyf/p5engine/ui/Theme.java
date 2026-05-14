@@ -22,6 +22,23 @@ public interface Theme {
         drawLabel(g, x, y, w, h, text, disabled, PApplet.CENTER);
     }
 
+    default void drawLabel(PApplet g, UIComponent comp, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
+        drawLabel(g, x, y, w, h, text, disabled, textAlign);
+    }
+
+    default void drawMultiLineLabel(PApplet g, UIComponent comp, float x, float y, float w, String[] lines, float lineHeight, float clipTop, float clipBottom, boolean disabled) {
+        g.fill(0xFFFFFFFF);
+        g.noStroke();
+        g.textAlign(PApplet.LEFT, PApplet.TOP);
+        float startY = y + 4;
+        for (int i = 0; i < lines.length; i++) {
+            float lineY = startY + i * lineHeight;
+            if (lineY + lineHeight < clipTop) continue;
+            if (lineY > clipBottom) break;
+            g.text(lines[i], x + 4, lineY);
+        }
+    }
+
     void drawTextField(PApplet g, float x, float y, float w, float h, String text, int caretIndex, boolean focused, boolean disabled);
 
     void drawSliderTrack(PApplet g, float x, float y, float w, float h, float value01, boolean hover, boolean disabled);

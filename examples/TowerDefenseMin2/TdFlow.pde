@@ -111,6 +111,9 @@ static final class TdFlow {
     static int briefingLevelId = -1;
     static int difficultySelectLevelId = -1;
     static int resumeDialogLevelId = -1;
+    static int levelSelectChapter = 0;
+    static LevelCarousel levelCarouselRef = null;
+    static Button[] chapterButtonRefs = new Button[3];
 
     static void showMainMenuLoadError(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
@@ -251,10 +254,10 @@ static final class TdFlow {
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
-        // Centered level select window, no title bar, no background
+        // Main window: larger, centered, no title bar
         Window win = new Window("level_win");
         win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
-        win.setBounds(0, 0, 640, 400);
+        win.setBounds(0, 0, 900, 540);
         win.hideTitleBar();
         win.setResizable(false);
         win.setZOrder(10);
@@ -262,63 +265,119 @@ static final class TdFlow {
         win.fadeIn(0f);
         root.add(win);
 
-        // Level buttons: 5:2 aspect ratio, 2 rows x 4 cols, centered in panel
-        int btnW = 140;   // 5
-        int btnH = 56;    // 2
-        int cols = 4;
-        int rows = 2;
-        int hgap = 16;
-        int vgap = 16;
-        int gridW = cols * btnW + (cols - 1) * hgap;
-        int gridH = rows * btnH + (rows - 1) * vgap;
-        int panelH = 320;
-        int startX = (640 - gridW) / 2;
-        int startY = (panelH - gridH) / 2;
+        // Title
+        Label lblTitle = new Label("lbl_level_title");
+        lblTitle.setText(TdAssets.i18n("levelSelect.title"));
+        lblTitle.setBounds(0, 16, 900, 36);
+        lblTitle.setTextAlign(PApplet.CENTER);
+        lblTitle.setAlpha(0);
+        lblTitle.appear(0.1f);
+        win.add(lblTitle);
 
-        Panel panel = new Panel("level_panel");
-        panel.setBounds(0, 0, 640, panelH);
-        panel.setPaintBackground(false);
-        panel.fadeIn(0f);
-        win.add(panel);
-
-        int count = TdAssets.getLevelCount();
-        int maxReached = TdSaveData.getMaxLevelReached();
-        for (int i = 1; i <= count; i++) {
-            final int lid = i;
-            int col = (i - 1) % cols;
-            int row = (i - 1) / cols;
-            int bx = startX + col * (btnW + hgap);
-            int by = startY + row * (btnH + vgap);
-            LevelButton btn = new LevelButton("btn_level_" + i);
-            btn.setBounds(bx, by, btnW, btnH);
-            btn.setLabel(TdAssets.i18n("levelSelect.level", i));
-            boolean unlocked = lid <= maxReached;
-            btn.locked = !unlocked;
-            btn.cleared = unlocked && TdCompletion.hasAnyCompletion(lid);
-            if (unlocked) {
-                btn.setSfxPath(TdSound.SFX_CLICK);
-                btn.setAction(() -> {
-                    if (TdSaveLoad.hasSave(app, lid)) {
-                        TdFlow.showLevelResumeDialog(app, lid);
-                    } else {
-                        TdFlow.showDifficultySelect(app, lid);
-                    }
-                });
+        // Level list (declare before chapter buttons so lambda can capture it)
+        int listY = 120;
+        int listH = 290;
+        TdLevelList levelList = new TdLevelList("level_list", app);
+        levelList.setBounds(100, listY, 700, listH);
+        levelList.loadLevels(levelSelectChapter);
+        levelList.setAlpha(0);
+        levelList.appear(0.3f, 20f, 0.5f);
+        levelList.onEnterAction = () -> {
+            int lid = levelList.getSelectedLevelId();
+            if (lid < 0) return;
+            if (!levelList.isSelectedUnlocked()) return;
+            if (TdSaveLoad.hasSave(app, lid)) {
+                TdFlow.showLevelResumeDialog(app, lid);
             } else {
-                btn.setEnabled(false);
+                TdFlow.showDifficultySelect(app, lid);
             }
-            btn.appear(0.05f * i, 16f, 0.4f);
-            panel.add(btn);
+        };
+        win.add(levelList);
+
+        // Chapter tabs
+        String[] chapterKeys = {"chapter.1", "chapter.2", "chapter.3"};
+        int chBtnW = 140;
+        int chBtnH = 38;
+        int chGap = 16;
+        int chTotalW = 3 * chBtnW + 2 * chGap;
+        int chStartX = (900 - chTotalW) / 2;
+        TdChapterButton[] chBtnRefs = new TdChapterButton[3];
+
+        for (int i = 0; i < 3; i++) {
+            final int chIdx = i;
+            TdChapterButton btn = new TdChapterButton("btn_ch" + i);
+            btn.setLabel(TdAssets.i18n(chapterKeys[i]));
+            btn.setBounds(chStartX + i * (chBtnW + chGap), 64, chBtnW, chBtnH);
+            btn.selected = (i == levelSelectChapter);
+            btn.setAlpha(0);
+            btn.setAction(() -> {
+                if (levelSelectChapter == chIdx) return;
+                levelSelectChapter = chIdx;
+                levelList.loadLevels(levelSelectChapter);
+                for (int j = 0; j < 3; j++) {
+                    chBtnRefs[j].selected = (j == levelSelectChapter);
+                }
+            });
+            btn.setSfxPath(TdSound.SFX_CLICK);
+            btn.appear(0.15f + i * 0.05f, 12f, 0.35f);
+            win.add(btn);
+            chBtnRefs[i] = btn;
         }
 
-        // Back button centered below the level grid
+        // Left arrow
+        Button btnLeft = new Button("btn_left");
+        btnLeft.setLabel("<");
+        btnLeft.setBounds(40, listY + listH / 2 - 20, 44, 44);
+        btnLeft.setAction(() -> levelList.prev());
+        btnLeft.setSfxPath(TdSound.SFX_CLICK);
+        btnLeft.setAlpha(0);
+        btnLeft.appear(0.35f, 12f, 0.4f);
+        win.add(btnLeft);
+
+        // Right arrow
+        Button btnRight = new Button("btn_right");
+        btnRight.setLabel(">");
+        btnRight.setBounds(900 - 84, listY + listH / 2 - 20, 44, 44);
+        btnRight.setAction(() -> levelList.next());
+        btnRight.setSfxPath(TdSound.SFX_CLICK);
+        btnRight.setAlpha(0);
+        btnRight.appear(0.35f, 12f, 0.4f);
+        win.add(btnRight);
+
+        // Bottom buttons: Back + Enter Level
+        int botY = 440;
+        int botBtnW = 160;
+        int botBtnH = 44;
+        int botGap = 40;
+        int botTotalW = botBtnW * 2 + botGap;
+        int botStartX = (900 - botTotalW) / 2;
+
         Button btnBack = new Button("btn_back");
         btnBack.setLabel(TdAssets.i18n("menu.back"));
-        btnBack.setBounds((640 - 200) / 2, 340, 200, 44);
+        btnBack.setBounds(botStartX, botY, botBtnW, botBtnH);
         btnBack.setAction(() -> TdFlow.buildMainMenu(app));
         btnBack.setSfxPath(TdSound.SFX_CLICK);
-        btnBack.appear(0.05f * (count + 1), 16f, 0.4f);
+        btnBack.setAlpha(0);
+        btnBack.appear(0.45f, 12f, 0.4f);
         win.add(btnBack);
+
+        Button btnEnter = new Button("btn_enter");
+        btnEnter.setLabel(TdAssets.i18n("levelSelect.enter"));
+        btnEnter.setBounds(botStartX + botBtnW + botGap, botY, botBtnW, botBtnH);
+        btnEnter.setAlpha(0);
+        btnEnter.setAction(() -> {
+            int lid = levelList.getSelectedLevelId();
+            if (lid < 0) return;
+            if (!levelList.isSelectedUnlocked()) return;
+            if (TdSaveLoad.hasSave(app, lid)) {
+                TdFlow.showLevelResumeDialog(app, lid);
+            } else {
+                TdFlow.showDifficultySelect(app, lid);
+            }
+        });
+        btnEnter.setSfxPath(TdSound.SFX_CLICK);
+        btnEnter.appear(0.5f, 12f, 0.4f);
+        win.add(btnEnter);
     }
 
     static void showSettings(TowerDefenseMin2 app, boolean animated) {
@@ -645,10 +704,11 @@ static final class TdFlow {
         win.add(panel);
 
         // Title
-        Label lblTitle = new Label("lbl_diff_title");
+        TdLabel lblTitle = new TdLabel("lbl_diff_title");
         lblTitle.setText(TdAssets.i18n("difficulty.selectTitle"));
         lblTitle.setBounds(0, 20, 400, 40);
         lblTitle.setTextAlign(PApplet.CENTER);
+        lblTitle.setLabelStyle(TdLabel.Style.TITLE);
         panel.add(lblTitle);
 
         // Difficulty buttons
@@ -734,21 +794,21 @@ static final class TdFlow {
 
         // Title: level name
         String levelName = TdAssets.i18n("level." + levelId + ".name");
-        Label lblTitle = new Label("lbl_briefing_title");
+        TdLabel lblTitle = new TdLabel("lbl_briefing_title");
         lblTitle.setText(levelName);
         lblTitle.setBounds(0, 4, winW, 32);
         lblTitle.setTextAlign(PApplet.CENTER);
-        if (briefingFont != null) lblTitle.setFont(briefingFont);
+        lblTitle.setLabelStyle(TdLabel.Style.TITLE);
         panel.add(lblTitle);
 
         // Difficulty label
         DifficultyDef diff = TdAssets.getDifficulty(difficultyKey);
         String diffLabel = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : difficultyKey;
-        Label lblDiff = new Label("lbl_briefing_diff");
+        TdLabel lblDiff = new TdLabel("lbl_briefing_diff");
         lblDiff.setText(diffLabel);
         lblDiff.setBounds(0, 36, winW, 24);
         lblDiff.setTextAlign(PApplet.CENTER);
-        if (briefingFont != null) lblDiff.setFont(briefingFont);
+        lblDiff.setLabelStyle(TdLabel.Style.HINT);
         panel.add(lblDiff);
 
         // Briefing text: load from locale-specific txt file
@@ -762,17 +822,19 @@ static final class TdFlow {
         sp.setShowVerticalBar(true);
         sp.setBackgroundColor(0x801A2035);
 
-        // Use BriefingText component for native P2D text rendering (fixes HiDPI issues)
-        BriefingText bt = new BriefingText("lbl_briefing_text", briefingText,
-            briefingFont, TdAssets.getFontSizeBriefing(), 0xFFE0E6F0);
-        bt.setBounds(0, 0, (int) contentW, 100);
-        bt.measure(app);
-        float actualH = bt.getHeight();
-        bt.setBounds(0, 0, (int) contentW, (int) actualH);
+        // Multi-line briefing text rendered by TdTheme
+        TdMultiLineLabel ml = new TdMultiLineLabel("lbl_briefing_text");
+        ml.setText(briefingText);
+        ml.setBounds(0, 0, (int) contentW, 100);
+        ml.setLabelStyle(TdLabel.Style.DEFAULT);
+        ml.setCustomTextSize(16);  // 16 * 1.25 = 20px final
+        ml.measure(app);
+        float actualH = ml.getHeight();
+        ml.setBounds(0, 0, (int) contentW, (int) actualH);
 
         sp.getViewport().setPaintBackground(false);
         sp.getViewport().setSize((int) contentW, (int) actualH);
-        sp.getViewport().add(bt);
+        sp.getViewport().add(ml);
         panel.add(sp);
 
         // Buttons placed outside the window, horizontally aligned
@@ -933,8 +995,18 @@ static final class TdFlow {
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
 
+        // Check if overlay already exists (e.g. kept open behind exit-save dialog)
+        boolean hasOverlay = false;
+        for (UIComponent c : root.getChildren()) {
+            if ("pause_overlay".equals(c.getId())) {
+                hasOverlay = true;
+                break;
+            }
+        }
+
         // Semi-transparent overlay to block clicks
-        Panel overlay = new Panel("pause_overlay") {
+        if (!hasOverlay) {
+            Panel overlay = new Panel("pause_overlay") {
             @Override
             public void paint(PApplet applet, Theme theme) {
                 applet.fill(0x66000000);
@@ -946,11 +1018,12 @@ static final class TdFlow {
         DisplayManager dm = app.engine.getDisplayManager();
         float w = dm.getActualWidth() / dm.getUniformScale();
         float h = dm.getActualHeight() / dm.getUniformScale();
-        overlay.setBounds(0, 0, w, h);
-        overlay.setPaintBackground(false);
-        overlay.setZOrder(50);
-        overlay.fadeIn(0f);
-        root.add(overlay);
+            overlay.setBounds(0, 0, w, h);
+            overlay.setPaintBackground(false);
+            overlay.setZOrder(50);
+            overlay.fadeIn(0f);
+            root.add(overlay);
+        }
 
         Window win = new Window("pause_win");
         win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
@@ -975,11 +1048,11 @@ static final class TdFlow {
             ? TdAssets.i18n("levelSelect.level", TdGameWorld.level.id) : "";
         DifficultyDef diff = TdAssets.getDifficulty(TdGameWorld.currentDifficultyKey);
         String diffText = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : "";
-        Label lblInfo = new Label("lbl_pause_info");
+        TdLabel lblInfo = new TdLabel("lbl_pause_info");
         lblInfo.setText(levelText + " - " + diffText);
         lblInfo.setBounds(0, 10, 400, 28);
         lblInfo.setTextAlign(PApplet.CENTER);
-        lblInfo.setTextColor(0xFF8899AA);
+        lblInfo.setLabelStyle(TdLabel.Style.HINT);
         panel.add(lblInfo);
 
         int btnX = 100, btnW = 200, btnH = 36, gap = 12;
@@ -995,11 +1068,12 @@ static final class TdFlow {
         y += btnH + gap;
 
         // Save progress
-        Label lblSaveHint = new Label("lbl_save_hint");
+        TdLabel lblSaveHint = new TdLabel("lbl_save_hint");
         lblSaveHint.setText("");
         lblSaveHint.setBounds(0, -20, 400, 28);
         lblSaveHint.setTextAlign(PApplet.CENTER);
-        lblSaveHint.setTextColor(0xFF4ADE80);
+        lblSaveHint.setLabelStyle(TdLabel.Style.SUCCESS);
+        lblSaveHint.setCustomTextSize(18);
         lblSaveHint.setAlpha(0);
         panel.add(lblSaveHint);
 
@@ -1014,10 +1088,10 @@ static final class TdFlow {
             TweenManager tm = app.engine.getTweenManager();
             tm.killTarget(saveHintAlphaSetter);
             if (ok) {
-                lblSaveHint.setTextColor(0xFF4ADE80);
+                lblSaveHint.setLabelStyle(TdLabel.Style.SUCCESS);
                 lblSaveHint.setText(TdAssets.i18n("game.saved"));
             } else {
-                lblSaveHint.setTextColor(0xFFFF5B5B);
+                lblSaveHint.setLabelStyle(TdLabel.Style.ERROR);
                 lblSaveHint.setText(TdAssets.i18n("game.saveFailed"));
             }
             lblSaveHint.setAlpha(0);
@@ -1029,11 +1103,11 @@ static final class TdFlow {
         y += btnH + gap;
 
         // Load progress
-        Label lblLoadHint = new Label("lbl_load_hint");
+        TdLabel lblLoadHint = new TdLabel("lbl_load_hint");
         lblLoadHint.setText("");
         lblLoadHint.setBounds(btnX + btnW + 8, y, 90, btnH);
         lblLoadHint.setTextAlign(PApplet.LEFT);
-        lblLoadHint.setTextColor(0xFFFF5B5B);
+        lblLoadHint.setLabelStyle(TdLabel.Style.ERROR);
         lblLoadHint.setAlpha(0);
         panel.add(lblLoadHint);
 
@@ -1093,8 +1167,15 @@ static final class TdFlow {
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(btnX, y, btnW, btnH);
         btnMenu.setAction(() -> {
-        btnMenu.setSfxPath(TdSound.SFX_CLICK);
-            hidePauseMenu(app);
+            btnMenu.setSfxPath(TdSound.SFX_CLICK);
+            // Remove pause window but keep overlay as background for the exit-save dialog
+            Panel pauseRoot = app.ui.getRoot();
+            for (UIComponent c : new java.util.ArrayList<>(pauseRoot.getChildren())) {
+                if ("pause_win".equals(c.getId())) {
+                    pauseRoot.remove(c);
+                    break;
+                }
+            }
             showExitSaveDialog(app, () -> {
                 buildMainMenu(app);
             });
@@ -1149,11 +1230,11 @@ static final class TdFlow {
         lblTitle.setTextAlign(PApplet.CENTER);
         panel.add(lblTitle);
 
-        Label lblHint = new Label("lbl_resume_hint");
+        TdLabel lblHint = new TdLabel("lbl_resume_hint");
         lblHint.setText(TdAssets.i18n("game.hasSaveHint"));
         lblHint.setBounds(0, 58, 400, 28);
         lblHint.setTextAlign(PApplet.CENTER);
-        lblHint.setTextColor(0xFF8899AA);
+        lblHint.setLabelStyle(TdLabel.Style.HINT);
         panel.add(lblHint);
 
         Button btnRestart = new Button("btn_restart");
@@ -1164,11 +1245,11 @@ static final class TdFlow {
         btnRestart.appear(0.1f);
         panel.add(btnRestart);
 
-        Label lblLoadHint = new Label("lbl_load_hint_save");
+        TdLabel lblLoadHint = new TdLabel("lbl_load_hint_save");
         lblLoadHint.setText("");
         lblLoadHint.setBounds(348, 148, 90, 44);
         lblLoadHint.setTextAlign(PApplet.LEFT);
-        lblLoadHint.setTextColor(0xFFFF5B5B);
+        lblLoadHint.setLabelStyle(TdLabel.Style.ERROR);
         lblLoadHint.setAlpha(0);
         panel.add(lblLoadHint);
 
@@ -1244,11 +1325,11 @@ static final class TdFlow {
         panel.setLayoutManager(new AbsoluteLayout());
         win.add(panel);
 
-        Label lblHint = new Label("lbl_exit_save_hint");
+        TdLabel lblHint = new TdLabel("lbl_exit_save_hint");
         lblHint.setText(TdAssets.i18n("game.exitSaveHint"));
         lblHint.setBounds(20, 50, 400, 60);
         lblHint.setTextAlign(PApplet.CENTER);
-        lblHint.setTextColor(0xFFCCCCCC);
+        lblHint.setLabelStyle(TdLabel.Style.HINT);
         panel.add(lblHint);
 
         Button btnSaveExit = new Button("btn_save_exit");
@@ -1281,11 +1362,11 @@ static final class TdFlow {
 
     static void showLoadSuccessToast(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
-        Label lbl = new Label("lbl_load_success");
+        TdLabel lbl = new TdLabel("lbl_load_success");
         lbl.setText(TdAssets.i18n("game.loadSuccess"));
         lbl.setBounds(0, 0, 400, 40);
         lbl.setTextAlign(PApplet.CENTER);
-        lbl.setTextColor(0xFF4ADE80);
+        lbl.setLabelStyle(TdLabel.Style.SUCCESS);
         lbl.setAlpha(0);
         // Center in screen
         DisplayManager dm = app.engine.getDisplayManager();

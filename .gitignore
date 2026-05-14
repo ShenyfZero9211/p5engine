@@ -25,10 +25,7 @@ Thumbs.db
 
 # manual notebook
 _notebook_.md
-_notebook2.md
-_notebook3.md
-_notebook4.md
-
+_notebook*.md
 
 # Agent rules
 AGENTS.md

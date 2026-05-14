@@ -36,16 +36,10 @@ public class DisplayManager {
      * This is typically called from the sketch's {@code windowResize()} callback.
      */
     public void onWindowResize(int w, int h) {
-        if (dpiScaleOverride > 1f) {
-            int dw = config.getDesignWidth();
-            int dh = config.getDesignHeight();
-            float ratioW = w / (float) dw;
-            float ratioH = h / (float) dh;
-            if (Math.abs(ratioW - dpiScaleOverride) < 0.05f && Math.abs(ratioH - dpiScaleOverride) < 0.05f) {
-                w = Math.round(w / dpiScaleOverride);
-                h = Math.round(h / dpiScaleOverride);
-            }
-        }
+        // Processing 4's windowResize() callback passes logical pixels.
+        // The dpiScaleOverride division was based on an incorrect assumption
+        // that the callback receives physical pixels. Removed to prevent
+        // erroneously downsizing the actual resolution on 125%/150% DPI.
         this.actualWidth = w;
         this.actualHeight = h;
         recalculate();

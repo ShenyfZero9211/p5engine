@@ -19,6 +19,7 @@ public class SketchConfig {
     public static final String SECTION_WINDOW_POSITION = "window_position";
     public static final String SECTION_CACHE = "cache";
     public static final String SECTION_SCRIPT = "script";
+    public static final String SECTION_UI = "ui";
 
 
     public static final String KEY_NAME = "name";
@@ -34,6 +35,7 @@ public class SketchConfig {
     public static final String KEY_CACHE_ENABLED = "enabled";
     public static final String KEY_LUA_PATH = "lua_path";
     public static final String KEY_HOT_RELOAD = "hot_reload";
+    public static final String KEY_CURSOR_SCALE = "cursor_scale";
 
     public static final String KEY_SCREENSHOT_TO_FILE = "screenshot_to_file";
     public static final String KEY_SCREENSHOT_DIR = "screenshot_dir";
@@ -177,6 +179,18 @@ public class SketchConfig {
         String value = get(section, key);
         if (value != null) {
             return Boolean.parseBoolean(value);
+        }
+        return defaultValue;
+    }
+
+    public float getFloat(String section, String key, float defaultValue) {
+        String value = get(section, key);
+        if (value != null) {
+            try {
+                return Float.parseFloat(value);
+            } catch (NumberFormatException e) {
+                // ignore
+            }
         }
         return defaultValue;
     }

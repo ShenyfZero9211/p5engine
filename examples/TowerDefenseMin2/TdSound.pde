@@ -189,4 +189,5 @@ static final class TdSound {
     static void playClick() { TdAssets.playSfx(SFX_CLICK); }
     static void playShot()  { TdAssets.playSfx(SFX_SHOT); }
     static void playPlace() { TdAssets.playSfx(SFX_PLACE); }
+    static void playTowerSelect() { TdAssets.playSfx(SFX_TOWER_SELECT); }
 }

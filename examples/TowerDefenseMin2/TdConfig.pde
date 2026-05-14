@@ -434,5 +434,16 @@ static final class LevelDef {
     MapTheme mapTheme = MapTheme.STARFIELD; // 地图视觉主题，默认星星背景
 }
 
+static ArrayList<Integer> getLevelIdsForChapter(int chapter) {
+    ArrayList<Integer> ids = new ArrayList<>();
+    if (chapter == 0) {
+        // Chapter 1: all existing levels (1~10)
+        int count = TdAssets.getLevelCount();
+        for (int i = 1; i <= count; i++) ids.add(i);
+    }
+    // Chapter 2 and 3 are empty for now
+    return ids;
+}
+
 enum TdState { INTRO, MENU, LEVEL_SELECT, SETTINGS, BRIEFING, PLAYING, PAUSED, WIN, LOSE }
 enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW, POISON, COMMAND }

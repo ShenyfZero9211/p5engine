@@ -12,6 +12,10 @@ public class TdTheme implements Theme {
         this.font = font;
     }
 
+    public processing.core.PFont getFont() {
+        return font;
+    }
+
     public void setBriefingFont(processing.core.PFont font) {
         this.briefingFont = font;
     }
@@ -225,8 +229,64 @@ public class TdTheme implements Theme {
         g.fill(a(disabled ? TEXT_DIM : TEXT));
         g.noStroke();
         g.textAlign(textAlign, PApplet.CENTER);
-        applyFont(g, Math.min(14, h * 0.5f));
+        // Match button text sizing: Math.min(18, h * 0.48f)
+        applyFont(g, Math.min(18, h * 0.48f));
         g.text(text != null ? text : "", x, y, w, h);
+    }
+
+    @Override
+    public void drawLabel(PApplet g, shenyf.p5engine.ui.UIComponent comp, float x, float y, float w, float h, String text, boolean disabled, int textAlign) {
+        if (comp instanceof TdLabel) {
+            TdLabel td = (TdLabel) comp;
+            int c;
+            switch (td.getLabelStyle()) {
+                case HINT:     c = TEXT_DIM; break;
+                case SUCCESS:  c = 0xFF4ADE80; break;
+                case ERROR:    c = 0xFFFF5B5B; break;
+                case TITLE:    c = 0xFFFFFFFF; break;
+                case STATUS:   c = ACCENT; break;
+                default:       c = TEXT; break;
+            }
+            g.fill(a(disabled ? TEXT_DIM : c));
+            g.noStroke();
+            g.textAlign(textAlign, PApplet.CENTER);
+            float size = td.getCustomTextSize() > 0 ? td.getCustomTextSize() : Math.min(18, h * 0.48f);
+            applyFont(g, size);
+            g.text(text != null ? text : "", x, y, w, h);
+        } else {
+            drawLabel(g, x, y, w, h, text, disabled, textAlign);
+        }
+    }
+
+    @Override
+    public void drawMultiLineLabel(PApplet g, shenyf.p5engine.ui.UIComponent comp, float x, float y, float w, String[] lines, float lineHeight, float clipTop, float clipBottom, boolean disabled) {
+        int c = TEXT;
+        float size = 14;
+        if (comp instanceof TdMultiLineLabel) {
+            TdMultiLineLabel ml = (TdMultiLineLabel) comp;
+            switch (ml.getLabelStyle()) {
+                case HINT:     c = TEXT_DIM; break;
+                case SUCCESS:  c = 0xFF4ADE80; break;
+                case ERROR:    c = 0xFFFF5B5B; break;
+                case TITLE:    c = 0xFFFFFFFF; break;
+                case STATUS:   c = ACCENT; break;
+                default:       c = TEXT; break;
+            }
+            size = ml.getCustomTextSize() > 0 ? ml.getCustomTextSize() : Math.min(18, comp.getHeight() * 0.48f);
+        }
+        if (size < 1) size = 14;
+        g.fill(a(disabled ? TEXT_DIM : c));
+        g.noStroke();
+        g.textAlign(PApplet.LEFT, PApplet.TOP);
+        applyFont(g, size);
+        float startY = y + 4;
+        for (int i = 0; i < lines.length; i++) {
+            float lineY = startY + i * lineHeight;
+            // Strict clipping: only draw lines fully inside the viewport
+            if (lineY >= clipTop && lineY + lineHeight <= clipBottom) {
+                g.text(lines[i], x + 4, lineY);
+            }
+        }
     }
 
     @Override
