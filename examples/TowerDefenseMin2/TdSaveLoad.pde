@@ -10,13 +10,13 @@ static final class TdSaveLoad {
     return app.sketchPath("data/save");
   }
 
-  static String getSavePath(PApplet app, int levelId) {
+  static String getSavePath(PApplet app, String levelId) {
     return getSaveDir(app) + "/level_" + levelId + ".json";
   }
 
   // ── Check save existence ──
 
-  static boolean hasSave(PApplet app, int levelId) {
+  static boolean hasSave(PApplet app, String levelId) {
     return new java.io.File(getSavePath(app, levelId)).exists();
   }
 
@@ -26,7 +26,7 @@ static final class TdSaveLoad {
     if (TdGameWorld.level == null) return false;
     JSONObject json = new JSONObject();
     json.setInt("version", 1);
-    json.setInt("levelId", TdGameWorld.level.id);
+    json.setString("levelId", TdGameWorld.level.id);
     json.setString("difficultyKey", TdGameWorld.currentDifficultyKey);
     json.setInt("money", TdGameWorld.money);
     json.setInt("orbits", TdGameWorld.orbits);
@@ -72,7 +72,7 @@ static final class TdSaveLoad {
 
   // ── Load ──
 
-  static boolean loadGame(TowerDefenseMin2 app, int levelId) {
+  static boolean loadGame(TowerDefenseMin2 app, String levelId) {
     try {
       String path = getSavePath(app, levelId);
       java.io.File f = new java.io.File(path);

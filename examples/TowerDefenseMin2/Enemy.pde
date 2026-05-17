@@ -12,6 +12,7 @@ enum EnemyState {
 static class Enemy {
     Vector2 pos;
     float hp, maxHp;
+    float armor, maxArmor;
     float speed;
     float radius;
     float slowFactor = 1f;
@@ -134,8 +135,7 @@ static class Enemy {
             }
         }
         if (poisonDamageTotal > 0) {
-            hp -= poisonDamageTotal;
-            if (hitFlashTimer <= 0) hitFlashTimer = 0.05f;
+            takeDamage(poisonDamageTotal, TowerType.POISON);
         }
 
         // Hit flash timer
@@ -147,6 +147,30 @@ static class Enemy {
             currentSegment = newSegment;
             triggerSmoothTurn();
         }
+    }
+
+    /**
+     * Apply damage with armor check.
+     * Only missile towers can damage armor; all other tower types are completely
+     * blocked while armor remains. Overflow armor damage converts to HP damage.
+     * @return true if HP was actually reduced
+     */
+    boolean takeDamage(float rawDmg, TowerType sourceType) {
+        if (armor > 0 && sourceType != TowerType.MISSILE && sourceType != TowerType.PIERCER) {
+            return false;
+        }
+        if (armor > 0 && (sourceType == TowerType.MISSILE || sourceType == TowerType.PIERCER)) {
+            armor -= rawDmg;
+            if (armor < 0) {
+                hp += armor;
+                armor = 0;
+            }
+            hitFlashTimer = 0.15f;
+            return true;
+        }
+        hp -= rawDmg;
+        hitFlashTimer = 0.15f;
+        return true;
     }
 
     void pickOutboundRoute() {

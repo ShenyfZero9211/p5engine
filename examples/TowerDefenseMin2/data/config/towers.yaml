@@ -24,14 +24,40 @@ towers:
       place: sounds/keytyping4.wav
       complete: sounds/percussive-bongo-hi.wav
 
+  piercer:
+    # 破甲者 — 超高单体伤害，可穿透护甲，狙击精英怪
+    nameKey: tower.piercer.name
+    descKey: tower.piercer.desc
+    cost: 350
+    range: 300
+    firePeriod: 5.0
+    damage: 200
+    aoeRadius: 0
+    laserBonus: 0
+    slowFactor: 0
+    buildTime: 2.5
+    iconColor: [180, 30, 60]
+    missileSpeed: 600              # 火球飞行速度（像素/秒）
+    upgrade:
+      cost: 120
+      buildTime: 2.5
+      damageMult: 1.4
+    upgrade2:
+      cost: 180
+      buildTime: 2.5
+    sfx:
+      fire: sounds/synthetic-spike.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/percussive-bongo-hi.wav
+
   missile:
     # 导弹塔 — 发射导弹，命中后造成范围爆炸伤害
     nameKey: tower.missile.name
     descKey: tower.missile.desc
     cost: 200                       # 建造花费（金币）
-    range: 250                      # 攻击射程（像素）
+    range: 280                      # 攻击射程（像素）
     firePeriod: 1.5                 # 发射冷却间隔（秒）
-    damage: 20                      # 基础伤害
+    damage: 25                      # 基础伤害
     aoeRadius: 80                   # 爆炸伤害半径（像素）
     laserBonus: 0                   # 激光额外伤害（导弹塔不使用）
     slowFactor: 0                   # 减速系数（导弹塔不使用）
@@ -59,8 +85,8 @@ towers:
     descKey: tower.laser.desc
     cost: 200                       # 建造花费（金币）
     range: 200                      # 攻击射程（像素）
-    firePeriod: 2.0                 # 发射冷却间隔（秒）
-    damage: 140                     # 基础伤害
+    firePeriod: 2.5                 # 发射冷却间隔（秒）
+    damage: 60                     # 基础伤害
     aoeRadius: 0                    # 爆炸/范围伤害半径（激光塔不使用）
     laserBonus: 3.0                 # 激光额外持续伤害
     slowFactor: 0                   # 减速系数（激光塔不使用）
@@ -69,7 +95,7 @@ towers:
     upgrade:
       cost: 80                      # 升级花费（金币）
       buildTime: 2.7                # 升级所需时间（秒）
-      speedMult: 0.6                # 升级后冷却时间倍率，越小攻速越快
+      speedMult: 0.7                # 升级后冷却时间倍率，越小攻速越快
     upgrade2:                       # 伤害 +60%
       cost: 80
       buildTime: 2.7
@@ -166,3 +192,34 @@ towers:
       fire: sounds/ambient-swoosh.wav
       place: sounds/keytyping4.wav
       complete: sounds/ambient-glass.wav
+
+  tesla:
+    # 特斯拉塔 — 连锁闪电，对密集敌群效率极高
+    nameKey: tower.tesla.name
+    descKey: tower.tesla.desc
+    cost: 120                       # 建造花费（金币）
+    range: 160                      # 攻击射程（像素）
+    firePeriod: 2.5                 # 发射冷却间隔（秒）
+    damage: 25                      # 基础伤害
+    aoeRadius: 0                    # 爆炸/范围即时伤害半径（不使用）
+    laserBonus: 0                   # 激光额外伤害（不使用）
+    slowFactor: 0                   # 减速系数（不使用）
+    buildTime: 2.0                  # 建造所需时间（秒）
+    iconColor: [0, 229, 255]        # 图标/塔身颜色（电青色 RGB）
+    chainCount: 3                   # 基础弹射次数
+    chainRange: 80                 # 弹射索敌范围（像素）
+    chainDecay: 0.2                 # 基础伤害衰减比例（20%）
+    upgrade:
+      cost: 50                      # 升级花费（金币）
+      buildTime: 2.0                # 升级所需时间（秒）
+      chainCount: 5                 # 1 级弹射次数
+      chainDecay: 0.15              # 1 级衰减比例（15%）
+    upgrade2:
+      cost: 80                      # 升级花费（金币）
+      buildTime: 2.0                # 升级所需时间（秒）
+      chainCount: 7                 # 2 级弹射次数
+      chainDecay: 0.12              # 2 级衰减比例（12%）
+    sfx:
+      fire: sounds/synthetic-spike.wav
+      place: sounds/keytyping4.wav
+      complete: sounds/percussive-bongo-hi.wav

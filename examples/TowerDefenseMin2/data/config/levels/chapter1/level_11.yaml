@@ -1,7 +1,7 @@
-id: 1
-nameKey: level.1.name
-subtitleKey: level.1.subtitle
-briefingKey: level.1.briefing
+id: "11"
+nameKey: level.11.name
+subtitleKey: level.11.subtitle
+briefingKey: level.11.briefing
 levelType: DEFEND_BASE
 mapTheme: STARFIELD
 initialMoney: 125

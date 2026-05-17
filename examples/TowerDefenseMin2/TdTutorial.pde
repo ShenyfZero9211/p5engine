@@ -337,16 +337,14 @@ static class TdTutorial {
 
     // ---- Persistence ----
 
-    static String getTutorialKeyForLevel(int levelId) {
+    static String getTutorialKeyForLevel(String levelId) {
         if (tutorialMeta == null) return null;
         for (java.util.Map.Entry<String, java.util.Map<String, Object>> entry : tutorialMeta.entrySet()) {
             java.util.Map<String, Object> meta = entry.getValue();
             Object lidObj = meta.get("levelId");
             if (lidObj != null) {
-                try {
-                    int lid = Integer.parseInt(lidObj.toString());
-                    if (lid == levelId) return entry.getKey();
-                } catch (NumberFormatException e) {}
+                String lid = lidObj.toString();
+                if (lid.equals(levelId)) return entry.getKey();
             }
         }
         return null;

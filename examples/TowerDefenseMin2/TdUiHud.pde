@@ -24,7 +24,7 @@ static class TowerButton extends Button {
         this.towerType = type;
         this.initial = initial;
         this.hotkey = hotkey;
-        setSize(TdConfig.RIGHT_W - 16, 56);
+        setSize(TdConfig.RIGHT_W - 16, 52);
     }
 
     void flash() {
@@ -137,6 +137,21 @@ static class TowerButton extends Button {
                     drawTowerIconTriangle(applet, icx, icy + cmdIconOffset, ihalf);
                     applet.fill(0xFFFFFFFF, 120);
                     drawPolyCircle(applet.g, icx, icy + cmdIconOffset, ihalf * 0.3f, 6);
+                    break;
+                case TESLA:
+                    drawPolyCircle(applet.g, icx, icy, ihalf, 12);
+                    applet.fill(0xFFFFFFFF, 120);
+                    drawPolyCircle(applet.g, icx, icy, ihalf * 0.3f, 6);
+                    break;
+                case PIERCER:
+                    applet.beginShape();
+                    applet.vertex(icx, icy - ihalf);
+                    applet.vertex(icx + ihalf, icy);
+                    applet.vertex(icx, icy + ihalf);
+                    applet.vertex(icx - ihalf, icy);
+                    applet.endShape(PApplet.CLOSE);
+                    applet.fill(0xFFFFFFFF, 120);
+                    drawPolyCircle(applet.g, icx, icy, ihalf * 0.3f, 6);
                     break;
             }
         } else {
@@ -388,8 +403,8 @@ static class TdMinimapComponent extends UIComponent {
             applet.fill(TdTheme.BG_DARK);
             applet.rect(ox, oy, drawW, drawH);
 
-            // Platforms
-            if (TdGameWorld.level.platforms != null) {
+            // Platforms (skip in DEBUG_GRID — entire grid is buildable)
+            if (TdGameWorld.level.platforms != null && TdGameWorld.level.mapTheme != MapTheme.DEBUG_GRID) {
                 for (PlatformZone pz : TdGameWorld.level.platforms) {
                     if (pz.vertices == null || pz.vertices.length < 3) continue;
                     applet.noStroke();
@@ -580,6 +595,8 @@ static class TdTopBar extends Panel {
     Button btnRange;
     Button btnPause;
     Button btnMenu;
+    Button btnSpeedDown;
+    Button btnSpeedUp;
 
     TdTopBar(String id) {
         super(id);
@@ -593,25 +610,64 @@ static class TdTopBar extends Panel {
         lblStatus.setTextAlign(PApplet.LEFT);
         add(lblStatus);
 
-        // Center-aligned layout: Speed | Time | NextWave
+        // Center-aligned layout: [◀] Speed [▶] | Time | NextWave
         float barW = getWidth();
         int timeW = 120;
-        int speedW = 70;
+        int speedW = 50;
         int nextW = 180;
-        int gap = 16;
+        int innerGap = 8;
+        int outerGap = 16;
         int timeX = (int)(barW - timeW) / 2;
-        int speedX = timeX - gap - speedW;
-        int nextX = timeX + timeW + gap;
+        int speedGroupW = 28 + innerGap + speedW + innerGap + 28;
+        int btnDownX = timeX - outerGap - speedGroupW;
+        int speedX = btnDownX + 28 + innerGap;
+        int btnUpX = speedX + speedW + innerGap;
+        int nextX = timeX + timeW + outerGap;
+        int btnY = (int)((TdConfig.TOP_HUD - 28) * 0.5f);
 
         lblTime = new Label("lbl_time");
         lblTime.setBounds(timeX, 0, timeW, TdConfig.TOP_HUD);
         lblTime.setTextAlign(PApplet.CENTER);
         add(lblTime);
 
+        btnSpeedDown = new Button("btn_speed_down");
+        btnSpeedDown.setLabel("<");
+        btnSpeedDown.setBounds(btnDownX, btnY, 28, 28);
+        btnSpeedDown.setAction(() -> {
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            float ts = app.engine.getGameTime().getTimeScale();
+            float[] levels = {0.2f, 0.5f, 1.0f, 2.0f, 5.0f};
+            for (int i = levels.length - 1; i >= 0; i--) {
+                if (ts > levels[i] + 0.01f) {
+                    app.engine.getGameTime().setTargetTimeScale(levels[i]);
+                    break;
+                }
+            }
+        });
+        btnSpeedDown.setSfxPath(TdSound.SFX_CLICK);
+        add(btnSpeedDown);
+
         lblSpeed = new Label("lbl_speed");
         lblSpeed.setBounds(speedX, 0, speedW, TdConfig.TOP_HUD);
         lblSpeed.setTextAlign(PApplet.CENTER);
         add(lblSpeed);
+
+        btnSpeedUp = new Button("btn_speed_up");
+        btnSpeedUp.setLabel(">");
+        btnSpeedUp.setBounds(btnUpX, btnY, 28, 28);
+        btnSpeedUp.setAction(() -> {
+            TowerDefenseMin2 app = TowerDefenseMin2.inst;
+            float ts = app.engine.getGameTime().getTimeScale();
+            float[] levels = {0.2f, 0.5f, 1.0f, 2.0f, 5.0f};
+            for (int i = 0; i < levels.length; i++) {
+                if (ts < levels[i] - 0.01f) {
+                    app.engine.getGameTime().setTargetTimeScale(levels[i]);
+                    break;
+                }
+            }
+        });
+        btnSpeedUp.setSfxPath(TdSound.SFX_CLICK);
+        add(btnSpeedUp);
 
         lblNextWave = new Label("lbl_nextwave");
         lblNextWave.setBounds(nextX, 0, nextW, TdConfig.TOP_HUD);
@@ -663,18 +719,25 @@ btnMenu.setSfxPath(TdSound.SFX_CLICK);
         // Recompute center-aligned layout when bar width changes (resolution / fullscreen)
         float barW = getWidth();
         int timeW = 120;
-        int speedW = 70;
+        int speedW = 50;
         int nextW = 180;
-        int gap = 16;
+        int innerGap = 8;
+        int outerGap = 16;
         int timeX = (int)(barW - timeW) / 2;
-        int speedX = timeX - gap - speedW;
-        int nextX = timeX + timeW + gap;
+        int speedGroupW = 28 + innerGap + speedW + innerGap + 28;
+        int btnDownX = timeX - outerGap - speedGroupW;
+        int speedX = btnDownX + 28 + innerGap;
+        int btnUpX = speedX + speedW + innerGap;
+        int nextX = timeX + timeW + outerGap;
+        int btnY = (int)((TdConfig.TOP_HUD - 28) * 0.5f);
         lblTime.setPosition(timeX, 0);
         lblSpeed.setPosition(speedX, 0);
         lblNextWave.setPosition(nextX, 0);
-        btnRange.setPosition(barW - 72 - 12 - 72 - 8 - 80 - 8, (TdConfig.TOP_HUD - 28) * 0.5f);
-        btnPause.setPosition(barW - 72 - 12 - 72 - 8, (TdConfig.TOP_HUD - 28) * 0.5f);
-        btnMenu.setPosition(barW - 72 - 12, (TdConfig.TOP_HUD - 28) * 0.5f);
+        btnSpeedDown.setPosition(btnDownX, btnY);
+        btnSpeedUp.setPosition(btnUpX, btnY);
+        btnRange.setPosition(barW - 72 - 12 - 72 - 8 - 80 - 8, btnY);
+        btnPause.setPosition(barW - 72 - 12 - 72 - 8, btnY);
+        btnMenu.setPosition(barW - 72 - 12, btnY);
 
         String statusText;
         if (TdGameWorld.level != null && TdGameWorld.level.levelType == LevelType.SURVIVAL) {
@@ -732,8 +795,8 @@ btnMenu.setSfxPath(TdSound.SFX_CLICK);
 // ─── Build Panel ───
 
 static class TdBuildPanel extends Panel {
-    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW, TowerType.POISON, TowerType.COMMAND };
-    String[] allInitials = { "M", "W", "L", "S", "P", "C" };
+    TowerType[] allTypes = { TowerType.MG, TowerType.MISSILE, TowerType.LASER, TowerType.SLOW, TowerType.POISON, TowerType.COMMAND, TowerType.TESLA, TowerType.PIERCER };
+    String[] allInitials = { "M", "W", "L", "S", "P", "C", "T", "P" };
 
     TdBuildPanel(String id) {
         super(id);
@@ -772,7 +835,7 @@ static class TdBuildPanel extends Panel {
             if (!isAllowed) continue;
 
             final TdBuildMode mode = TowerType.toBuildMode(tt);
-            String[] hotkeys = { "Q", "W", "E", "R", "T", "Y" };
+            String[] hotkeys = { "Q", "W", "E", "R", "T", "Y", "U", "I" };
             final TowerButton btn = new TowerButton("btn_" + tt.name().toLowerCase(), tt, allInitials[i], hotkeys[i]);
             btn.setPosition(8, by);
             btn.setSfxPath(TdSound.SFX_TOWER_SELECT);
@@ -787,7 +850,7 @@ static class TdBuildPanel extends Panel {
                 }
             });
             add(btn);
-            by += 56 + 8;
+            by += 52 + 8;
         }
 
 

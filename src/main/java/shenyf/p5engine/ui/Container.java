@@ -103,9 +103,11 @@ public class Container extends UIComponent {
         if (tm == null) return;
 
         child.setAlpha(0);
+        child.incrementTweenCount();
         tm.toAlpha(child, 1f, child.getFadeInDuration())
           .ease(shenyf.p5engine.tween.Ease::outQuad)
           .delay(child.getFadeInDelay())
+          .onComplete(() -> child.decrementTweenCount())
           .start();
 
         child.clearFadeInPending();
@@ -121,9 +123,11 @@ public class Container extends UIComponent {
         child.setSlideUpOriginalY(originalY);
         child.setPosition(child.getX(), originalY + child.getSlideUpOffsetY());
 
+        child.incrementTweenCount();
         tm.toY(child, originalY, child.getSlideUpDuration())
           .ease(shenyf.p5engine.tween.Ease::outQuad)
           .delay(child.getSlideUpDelay())
+          .onComplete(() -> child.decrementTweenCount())
           .start();
 
         child.clearSlideUpPending();

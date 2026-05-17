@@ -6,7 +6,7 @@
 // ── Blocked zone visual helpers ──
 static boolean RUINS_USE_TEXTURES = true;
 static java.util.IdentityHashMap<BlockedZone, float[]> ZONE_DRIFT_CACHE = new java.util.IdentityHashMap<>();
-static java.util.HashMap<Integer, int[]> ZONE_LAYER_CACHE = new java.util.HashMap<>();
+static java.util.HashMap<String, int[]> ZONE_LAYER_CACHE = new java.util.HashMap<>();
 
 static float[] getZoneDrift(BlockedZone bz, float time) {
     float[] drift = ZONE_DRIFT_CACHE.get(bz);
@@ -39,7 +39,7 @@ static int[] getZoneLayers(LevelDef lv) {
         fromCache = false;
         java.util.Random rng = TdAssets.isRandomBackground()
             ? new java.util.Random()
-            : new java.util.Random(lv.id * 7919 + 7);
+            : new java.util.Random(lv.id.hashCode() * 7919 + 7);
         layers = new int[lv.blockedZones.length];
 
         // Ruins: only assign to Layer 2 if they stay inside viewport at default camera position
@@ -285,9 +285,9 @@ static final class GlowStarData {
     GlowStarData(float x, float y, int size) { this.x = x; this.y = y; this.size = size; }
 }
 
-static java.util.HashMap<Integer, StarData[]> FAR_STARS = new java.util.HashMap<>();
-static java.util.HashMap<Integer, StarData[]> MID_STARS = new java.util.HashMap<>();
-static java.util.HashMap<Integer, GlowStarData[]> NEAR_STARS = new java.util.HashMap<>();
+static java.util.HashMap<String, StarData[]> FAR_STARS = new java.util.HashMap<>();
+static java.util.HashMap<String, StarData[]> MID_STARS = new java.util.HashMap<>();
+static java.util.HashMap<String, GlowStarData[]> NEAR_STARS = new java.util.HashMap<>();
 
 // ── Procedural nebula clouds ──
 static final class NebulaData {
@@ -311,7 +311,7 @@ static final class NebulaData {
     }
 }
 
-static java.util.HashMap<Integer, NebulaData[]> NEBULA_CACHE = new java.util.HashMap<>();
+static java.util.HashMap<String, NebulaData[]> NEBULA_CACHE = new java.util.HashMap<>();
 
 static final int[] NEBULA_PALETTE = {
     0xFF00AAAA, 0xFF6600AA, 0xFFAA4400, 0xFF4488FF,
@@ -456,7 +456,7 @@ static void clearStarCaches() {
 static StarData[] generateFarStars(LevelDef lv) {
     java.util.Random rng = TdAssets.isRandomBackground()
         ? new java.util.Random()
-        : new java.util.Random(lv.id * 7919);
+        : new java.util.Random(lv.id.hashCode() * 7919);
     int count = (lv.worldW * lv.worldH) / 500;
     StarData[] arr = new StarData[count];
     for (int i = 0; i < count; i++) {
@@ -473,7 +473,7 @@ static StarData[] generateFarStars(LevelDef lv) {
 static StarData[] generateMidStars(LevelDef lv) {
     java.util.Random rng = TdAssets.isRandomBackground()
         ? new java.util.Random()
-        : new java.util.Random(lv.id * 7919 + 1);
+        : new java.util.Random(lv.id.hashCode() * 7919 + 1);
     int count = (lv.worldW * lv.worldH) / 350;
     StarData[] arr = new StarData[count];
     for (int i = 0; i < count; i++) {
@@ -490,7 +490,7 @@ static StarData[] generateMidStars(LevelDef lv) {
 static GlowStarData[] generateNearStars(LevelDef lv) {
     java.util.Random rng = TdAssets.isRandomBackground()
         ? new java.util.Random()
-        : new java.util.Random(lv.id * 7919 + 2);
+        : new java.util.Random(lv.id.hashCode() * 7919 + 2);
     int count = (lv.worldW * lv.worldH) / 2000;
     GlowStarData[] arr = new GlowStarData[count];
     for (int i = 0; i < count; i++) {
@@ -505,7 +505,7 @@ static GlowStarData[] generateNearStars(LevelDef lv) {
 static NebulaData[] generateNebulas(LevelDef lv) {
     java.util.Random rng = TdAssets.isRandomBackground()
         ? new java.util.Random()
-        : new java.util.Random(lv.id * 7919 + 3);
+        : new java.util.Random(lv.id.hashCode() * 7919 + 3);
     float w = lv.worldW, h = lv.worldH;
     float baseR = Math.min(w, h);
 
@@ -972,12 +972,17 @@ static class EnemyRenderer extends RendererComponent {
         g.translate(x, y);
         g.rotate(dir);
 
-        // Glow 锟?red by default, gold when carrying orbs
+        // Glow 锟?red by default, gold when carrying orbs, pale silver for armored (tier 4)
         g.noStroke();
         if (enemy.orbsCarried > 0) {
             g.fill(0xFFFFDD00, 80);
         } else {
-            g.fill(0xFFFF4444, 60);
+            int tierGlow = (enemy.enemyDef != null) ? enemy.enemyDef.key.charAt(enemy.enemyDef.key.length() - 1) - '0' : 1;
+            if (tierGlow == 4) {
+                g.fill(0xFFC0C0C0, 70);
+            } else {
+                g.fill(0xFFFF4444, 60);
+            }
         }
         drawPolyCircle(g, 0, 0, r * 1.4f, 16);
 
@@ -1020,16 +1025,32 @@ static class EnemyRenderer extends RendererComponent {
                 g.vertex(-r * 0.6f, r * 0.7f);
                 g.endShape(PApplet.CLOSE);
             } else if (tier == 4) {
-                g.stroke(0xFFFFD700);
+                // Armored enemy: level3 bronze arrow + pale silver glow
+                g.stroke(0xFFD4A017);
                 g.strokeWeight(2);
-                // inner outline
                 g.beginShape();
                 g.vertex(r * 1.2f, 0);
                 g.vertex(-r * 0.6f, -r * 0.7f);
                 g.vertex(-r * 0.3f, 0);
                 g.vertex(-r * 0.6f, r * 0.7f);
                 g.endShape(PApplet.CLOSE);
-                // outer outline (20% larger, thinner, semi-transparent)
+                // Silver ring border: visible only while armor remains
+                if (enemy.armor > 0) {
+                    g.noFill();
+                    g.stroke(0xFFC0C0C0, 200);
+                    g.strokeWeight(1.5f);
+                    drawPolyCircle(g, 0, 0, r * 1.4f, 16);
+                }
+            } else if (tier == 5) {
+                // Original level4 (now level5): gold double outline
+                g.stroke(0xFFFFD700);
+                g.strokeWeight(2);
+                g.beginShape();
+                g.vertex(r * 1.2f, 0);
+                g.vertex(-r * 0.6f, -r * 0.7f);
+                g.vertex(-r * 0.3f, 0);
+                g.vertex(-r * 0.6f, r * 0.7f);
+                g.endShape(PApplet.CLOSE);
                 float o = 1.35f;
                 g.strokeWeight(1);
                 g.stroke(255, 215, 0, 140);
@@ -1073,7 +1094,8 @@ static class EnemyHpBarRenderer extends RendererComponent {
         Rect vp = (cam != null) ? cam.getViewport() : null;
         g.noStroke();
         for (Enemy e : TdGameWorld.enemies) {
-            if (e == null || e.hp <= 0 || e.hp >= e.maxHp) continue;
+            if (e == null || e.hp <= 0) continue;
+            if (e.hp >= e.maxHp && e.armor >= e.maxArmor) continue;
             if (vp != null && !vp.contains(e.pos.x, e.pos.y)) continue;
 
             float x = e.pos.x;
@@ -1083,6 +1105,18 @@ static class EnemyHpBarRenderer extends RendererComponent {
             float barH = 5;
             float barX = x - barW * 0.5f;
             float barY = y - r - 12;
+
+            // Armor bar (above HP bar)
+            if (e.armor > 0) {
+                float armorBarY = barY - 7;
+                g.fill(0xFF222222, 200);
+                drawRoundRect(g, barX - 1, armorBarY - 1, barW + 2, 4 + 2, 2);
+                g.fill(0xFF333333);
+                drawRoundRect(g, barX, armorBarY, barW, 4, 2);
+                float armorPct = e.maxArmor > 0 ? e.armor / e.maxArmor : 0;
+                g.fill(0xFF88AAFF);
+                drawRoundRect(g, barX, armorBarY, barW * armorPct, 4, 2);
+            }
 
             g.fill(0xFF222222, 200);
             drawRoundRect(g, barX - 1, barY - 1, barW + 2, barH + 2, 2);
@@ -1162,10 +1196,17 @@ static class TowerRenderer extends RendererComponent {
         // Command tower: persistent buff aura (subtle pulsing glow)
         float cmdOffset = (tower.def.type == TowerType.COMMAND) ? half * 0.25f : 0f;
         if (tower.def.type == TowerType.COMMAND && tower.built) {
-            float auraPulse = 0.6f + 0.4f * PApplet.sin(time * 2.5f);
+            float auraPulse = 0.5f + 0.5f * PApplet.sin(time * 2.5f);
             g.noStroke();
-            g.fill(c, (int)(14 * auraPulse * fade));
-            drawTriangle(g, x, y + cmdOffset, half * 1.35f);
+            // Warm glow disc
+            g.fill(c, (int)(35 * auraPulse * fade));
+            drawTriangle(g, x, y + cmdOffset, half * 1.45f);
+            // Thin golden ring (size fixed, only alpha pulses — disabled for now)
+            // g.noFill();
+            // g.stroke(0xFFFFD700, (int)(60 * auraPulse * fade));
+            // g.strokeWeight(1.5f);
+            // drawPolyCircle(g, x, y, half * 1.35f, 24);
+            // g.strokeWeight(1f);
         }
 
         // Command tower buff: pulsing golden grid highlight
@@ -1174,7 +1215,7 @@ static class TowerRenderer extends RendererComponent {
             g.noStroke();
             float gameT = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
             float buffPulse = 0.5f + 0.5f * PApplet.sin(gameT * 2.5f);
-            int buffAlpha = (int)(45 * buffPulse);
+            int buffAlpha = (int)(75 * buffPulse);
             g.fill(135, 206, 250, buffAlpha);
             drawRoundRect(g, tower.gridX * TdConfig.GRID + 2, tower.gridY * TdConfig.GRID + 2,
                    TdConfig.GRID - 4, TdConfig.GRID - 4, 6);
@@ -1224,6 +1265,23 @@ static class TowerRenderer extends RendererComponent {
                 }
                 drawPolyCircle(g, x, y + cmdOffset, half * 0.3f, 6);
                 break;
+            case TESLA:
+                drawPolyCircle(g, x, y, half, 16);
+                g.fill(0xFFFFFFFF, (int)(120 * fade));
+                g.noStroke();
+                g.line(x, y - half * 0.4f, x, y + half * 0.4f);
+                drawPolyCircle(g, x, y, half * 0.25f, 8);
+                break;
+            case PIERCER:
+                g.beginShape();
+                g.vertex(x, y - half);
+                g.vertex(x + half, y);
+                g.vertex(x, y + half);
+                g.vertex(x - half, y);
+                g.endShape(PApplet.CLOSE);
+                g.fill(0xFFFFFFFF, (int)(120 * fade));
+                drawPolyCircle(g, x, y, half * 0.3f, 6);
+                break;
         }
 
         // Upgraded border
@@ -1261,6 +1319,17 @@ static class TowerRenderer extends RendererComponent {
                 case COMMAND:
                     drawTriangle(g, x, y + cmdOffset, half + 2.5f);
                     break;
+                case TESLA:
+                    drawPolyCircle(g, x, y, half + 1.5f, 16);
+                    break;
+                case PIERCER:
+                    g.beginShape();
+                    g.vertex(x, y - half - 1.5f);
+                    g.vertex(x + half + 1.5f, y);
+                    g.vertex(x, y + half + 1.5f);
+                    g.vertex(x - half - 1.5f, y);
+                    g.endShape(PApplet.CLOSE);
+                    break;
             }
             // Inner stroke: white (level 1) or double gold (level 2)
             if (tower.upgradeLevel >= 2) {
@@ -1292,6 +1361,17 @@ static class TowerRenderer extends RendererComponent {
                     case COMMAND:
                         drawTriangle(g, x, y + cmdOffset, half - 1);
                         break;
+                    case TESLA:
+                        drawPolyCircle(g, x, y, half - 1, 16);
+                        break;
+                    case PIERCER:
+                        g.beginShape();
+                        g.vertex(x, y - half + 1);
+                        g.vertex(x + half - 1, y);
+                        g.vertex(x, y + half - 1);
+                        g.vertex(x - half + 1, y);
+                        g.endShape(PApplet.CLOSE);
+                        break;
                 }
                 // Inner inner stroke (thicker, further inward)
                 g.stroke(innerColor, (int)(255 * fade));
@@ -1318,6 +1398,17 @@ static class TowerRenderer extends RendererComponent {
                         break;
                     case COMMAND:
                         drawTriangle(g, x, y + cmdOffset, half - 3);
+                        break;
+                    case TESLA:
+                        drawPolyCircle(g, x, y, half - 3, 16);
+                        break;
+                    case PIERCER:
+                        g.beginShape();
+                        g.vertex(x, y - half + 3);
+                        g.vertex(x + half - 3, y);
+                        g.vertex(x, y + half - 3);
+                        g.vertex(x - half + 3, y);
+                        g.endShape(PApplet.CLOSE);
                         break;
                 }
             } else {
@@ -1346,15 +1437,28 @@ static class TowerRenderer extends RendererComponent {
                     case COMMAND:
                         drawTriangle(g, x, y + cmdOffset, half);
                         break;
+                    case TESLA:
+                        drawPolyCircle(g, x, y, half, 16);
+                        break;
+                    case PIERCER:
+                        g.beginShape();
+                        g.vertex(x, y - half);
+                        g.vertex(x + half, y);
+                        g.vertex(x, y + half);
+                        g.vertex(x - half, y);
+                        g.endShape(PApplet.CLOSE);
+                        break;
                 }
             }
         }
 
         // Hover highlight
         if (tower == app.hoveredTower && !tower.isSelling) {
+            boolean mouseDown = app.engine.getInput().isMousePressed();
             g.noFill();
-            g.stroke(0xFFFFFFFF, (int)(180 * fade));
-            g.strokeWeight(2);
+            g.stroke(mouseDown ? 0xFF888888 : 0xFFFFFFFF,
+                     (int)((mouseDown ? 90 : 180) * fade));
+            g.strokeWeight(mouseDown ? 1.5f : 2f);
             switch (tower.def.type) {
                 case MG:
                     drawRoundRect(g, x - half - 2, y - half - 2, size + 4, size + 4, 4);
@@ -1377,6 +1481,17 @@ static class TowerRenderer extends RendererComponent {
                     break;
                 case COMMAND:
                     drawTriangle(g, x, y + cmdOffset, half + 5);
+                    break;
+                case TESLA:
+                    drawPolyCircle(g, x, y, half + 3, 16);
+                    break;
+                case PIERCER:
+                    g.beginShape();
+                    g.vertex(x, y - half - 3);
+                    g.vertex(x + half + 3, y);
+                    g.vertex(x, y + half + 3);
+                    g.vertex(x - half - 3, y);
+                    g.endShape(PApplet.CLOSE);
                     break;
             }
         }

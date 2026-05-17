@@ -42,7 +42,7 @@ static final class TdGameWorld {
     }
     static ArrayList<ActiveSpawn> activeSpawns = new ArrayList<>();
 
-    static boolean startLevel(TowerDefenseMin2 app, int levelId, String difficultyKey) {
+    static boolean startLevel(TowerDefenseMin2 app, String levelId, String difficultyKey) {
         // Clean up old entities
         for (Enemy e : enemies) {
             if (e.gameObject != null) e.gameObject.markForDestroy();
@@ -75,23 +75,37 @@ static final class TdGameWorld {
             app.state = TdState.MENU;
             return false;
         }
-        // Apply difficulty multipliers
+        // Apply difficulty multipliers (global first, then level-specific override)
         DifficultyDef diff = TdAssets.getDifficulty(difficultyKey);
+        float hpMulti = 1.0f;
+        float rewardMulti = 1.0f;
+        float moneyMulti = 1.0f;
         if (diff != null) {
-            difficultyHpMulti = diff.enemyHpMultiplier;
-            difficultyRewardMulti = diff.killRewardMultiplier;
+            hpMulti = diff.enemyHpMultiplier;
+            rewardMulti = diff.killRewardMultiplier;
+            moneyMulti = diff.startingMoneyMultiplier;
             currentDifficultyKey = difficultyKey;
         } else {
-            difficultyHpMulti = 1.0f;
-            difficultyRewardMulti = 1.0f;
             currentDifficultyKey = "normal";
         }
+        // Level-specific difficulty overrides
+        if (level.difficultyMultipliers != null) {
+            String key = (difficultyKey != null) ? difficultyKey : "normal";
+            float[] lvlMulti = level.difficultyMultipliers.get(key);
+            if (lvlMulti != null) {
+                hpMulti = lvlMulti[0];
+                rewardMulti = lvlMulti[1];
+                moneyMulti = lvlMulti[2];
+            }
+        }
+        difficultyHpMulti = hpMulti;
+        difficultyRewardMulti = rewardMulti;
         // Clear cached layer/drift data so YAML changes always take effect
         ZONE_LAYER_CACHE.clear();
         ZONE_DRIFT_CACHE.clear();
         ASTEROID_ROCK_CACHE.clear();
         app.devMode = level.devMode;
-        money = (int)(level.initialMoney * (diff != null ? diff.startingMoneyMultiplier : 1.0f));
+        money = (int)(level.initialMoney * moneyMulti);
         if (level.levelType == LevelType.DEFEND_BASE) {
             orbits = level.baseOrbs;
         } else {
@@ -136,7 +150,7 @@ static final class TdGameWorld {
         int totalWaves = (level.waves != null) ? level.waves.length : 0;
 
         // Base income (DEFEND_BASE mode only)
-        if (level.levelType == LevelType.DEFEND_BASE) {
+        if (level.levelType == LevelType.DEFEND_BASE && firstTowerPlaced) {
             baseIncomeAccumulator += TdAssets.getBaseIncomeRate() * dt;
             if (baseIncomeAccumulator >= 1f) {
                 int add = (int) baseIncomeAccumulator;
@@ -188,8 +202,9 @@ static final class TdGameWorld {
                     }
                 } else if (!wave.parallel) {
                     // Serial mode: advance to next spawn when current finishes
-                    if (i + 1 < wave.spawns.length) {
-                        activeSpawns.set(i, new ActiveSpawn(wave.spawns[i + 1]));
+                    if (waveSpawnIndex + 1 < wave.spawns.length) {
+                        waveSpawnIndex++;
+                        activeSpawns.set(i, new ActiveSpawn(wave.spawns[waveSpawnIndex]));
                         allDone = false;
                     }
                 }
@@ -197,7 +212,10 @@ static final class TdGameWorld {
             // Sync legacy fields for save compatibility
             if (!activeSpawns.isEmpty()) {
                 ActiveSpawn first = activeSpawns.get(0);
-                waveSpawnIndex = wave.parallel ? 0 : Math.min(wave.spawns.length - 1, activeSpawns.size() - 1);
+                if (wave.parallel) {
+                    waveSpawnIndex = 0;
+                }
+                // In serial mode, waveSpawnIndex is managed by the advance logic above
                 waveSpawnCount = first.spawn.count - first.remaining;
                 spawnTimer = first.timer;
             }
@@ -339,8 +357,7 @@ static final class TdGameWorld {
             plh.delay -= dt;
             if (plh.delay <= 0) {
                 if (plh.target != null && plh.target.hp > 0) {
-                    plh.target.hp -= plh.damage;
-                    plh.target.hitFlashTimer = 0.15f;
+                    plh.target.takeDamage(plh.damage, TowerType.LASER);
                 }
                 pendingLaserHits.remove(i);
             }
@@ -405,6 +422,8 @@ static final class TdGameWorld {
         e.pos = route.path.sample(0);
         e.hp = level.enemyHpBase * def.hpMultiplier * hpMulti * difficultyHpMulti;
         e.maxHp = e.hp;
+        e.armor = def.armor * hpMulti;
+        e.maxArmor = e.armor;
         e.speed = def.speedMultiplier * 60; // base speed 60
         e.radius = def.radius;
         e.state = EnemyState.MOVE_TO_BASE;

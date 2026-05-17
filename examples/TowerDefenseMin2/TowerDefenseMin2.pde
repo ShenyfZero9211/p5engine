@@ -37,7 +37,7 @@ boolean introSkipRequested = false;
 //  输入状态
 // ============================================
 boolean keyScrollUp, keyScrollDown, keyScrollLeft, keyScrollRight;
-boolean wasKeyP, wasKeyF, wasKeyT, wasKeyQ, wasKeyW, wasKeyE, wasKeyR, wasKeySpace, wasKeyY, wasKeyCtrl;
+boolean wasKeyP, wasKeyF, wasKeyT, wasKeyQ, wasKeyW, wasKeyE, wasKeyR, wasKeySpace, wasKeyY, wasKeyU, wasKeyI, wasKeyCtrl, wasKeyAlt;
 
 // ============================================
 //  HUD 组件
@@ -47,6 +47,7 @@ TdBuildPanel hudBuildPanel;
 TdMinimapComponent hudMinimap;
 Panel sellMenuPanel;
 Tower hoveredTower;
+TdLabel devWaveLabel;
 
 // ============================================
 //  子系统

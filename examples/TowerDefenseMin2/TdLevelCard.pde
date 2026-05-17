@@ -6,7 +6,7 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
 
     private PImage previewImage;
     private String levelName = "";
-    private int levelId = -1;
+    private String levelId = null;
     private boolean unlocked = true;
     private boolean cleared = false;
     private boolean selected = false;
@@ -34,8 +34,23 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
     public PImage getPreviewImage() { return previewImage; }
     public void setLevelName(String name) { this.levelName = name != null ? name : ""; }
     public String getLevelName() { return levelName; }
-    public void setLevelId(int id) { this.levelId = id; }
-    public int getLevelId() { return levelId; }
+    public void setLevelId(String id) { this.levelId = id; }
+    public String getLevelId() { return levelId; }
+
+    /**
+     * Automatically derive the chapter-local display index from the level ID.
+     * Naming rule: level_&lt;chapter_prefix&gt;&lt;num&gt;  (e.g. "11" = ch1-#1, "110" = ch1-#10)
+     * Non-numeric IDs (custom levels) return -1.
+     */
+    public int getDisplayIndex() {
+        if (levelId == null) return -1;
+        try {
+            // Strip the leading chapter digit and parse the remainder
+            return Integer.parseInt(levelId.substring(1));
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            return -1;
+        }
+    }
     public void setUnlocked(boolean v) { this.unlocked = v; }
     public boolean isUnlocked() { return unlocked; }
     public void setCleared(boolean v) { this.cleared = v; }
@@ -118,7 +133,12 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
         float lineSpacing = textSize * 1.55f;
         float line1Y = textAreaTop + (textAreaH - lineSpacing) / 2f;
         float line2Y = line1Y + lineSpacing;
-        g.text(toChineseNumber(levelId), x + w / 2f, line1Y);
+        int displayIdx = getDisplayIndex();
+        if (displayIdx > 0) {
+            g.text(toChineseNumber(displayIdx), x + w / 2f, line1Y);
+        } else {
+            g.text(levelId != null ? levelId : "", x + w / 2f, line1Y);
+        }
         g.text(levelName, x + w / 2f, line2Y);
 
         // Border
@@ -208,14 +228,4 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
         return (newA << 24) | rgb;
     }
 
-    private static String toChineseNumber(int n) {
-        if (n <= 0) return String.valueOf(n);
-        String[] digits = {"零", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
-        if (n < 10) return digits[n];
-        if (n < 20) return "十" + (n == 10 ? "" : digits[n % 10]);
-        if (n < 100) {
-            return digits[n / 10] + "十" + (n % 10 == 0 ? "" : digits[n % 10]);
-        }
-        return String.valueOf(n);
-    }
 }

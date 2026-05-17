@@ -80,8 +80,7 @@ static class Bullet {
     void hit(Enemy e) {
         float dmg = damage;
         if (laserBonus > 0) dmg += laserBonus;
-        e.hp -= dmg;
-        e.hitFlashTimer = 0.15f;
+        e.takeDamage(dmg, towerType);
         if (slowFactor > 0) {
             e.slowFactor = Math.min(e.slowFactor, slowFactor);
             e.slowTimer = Math.max(e.slowTimer, slowDuration);
@@ -93,8 +92,7 @@ static class Bullet {
                     float dx = e.pos.x - ne.pos.x;
                     float dy = e.pos.y - ne.pos.y;
                     if (dx * dx + dy * dy <= aoeRadius * aoeRadius) {
-                        ne.hp -= dmg * 0.5f;
-                        ne.hitFlashTimer = 0.15f;
+                        ne.takeDamage(dmg * 0.5f, towerType);
                     }
                 }
             }

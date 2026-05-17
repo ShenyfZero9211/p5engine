@@ -1,7 +1,7 @@
-id: 2
-nameKey: level.2.name
-subtitleKey: level.2.subtitle
-briefingKey: level.2.briefing
+id: "12"
+nameKey: level.12.name
+subtitleKey: level.12.subtitle
+briefingKey: level.12.briefing
 levelType: DEFEND_BASE
 initialMoney: 200
 baseOrbs: 5
@@ -113,23 +113,5 @@ waves:
       - type: level2
         count: 8
         interval: 1.2
-  - delay: 14.0
-    spawns:
-      - type: level1
-        count: 30
-        interval: 1.0
-        hpMulti: 1.1
-  - delay: 12.0
-    spawns:
-      - type: level2
-        count: 20
-        interval: 1.2
-  - delay: 12.0
-    spawns:
-      - type: level1
-        count: 20
-        interval: 0.9
-      - type: level2
-        count: 20
-        interval: 1.2
-        hpMulti: 1.2
+
+#hpMulti: 1.2

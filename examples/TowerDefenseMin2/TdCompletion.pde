@@ -30,27 +30,27 @@ static final class TdCompletion {
         }
     }
 
-    static boolean isCompleted(int levelId, String difficultyKey) {
+    static boolean isCompleted(String levelId, String difficultyKey) {
         if (data == null || difficultyKey == null) return false;
-        String key = String.valueOf(levelId);
+        String key = levelId;
         if (!data.hasKey(key)) return false;
         JSONObject levelObj = data.getJSONObject(key);
         if (levelObj == null || !levelObj.hasKey(difficultyKey)) return false;
         return levelObj.getBoolean(difficultyKey, false);
     }
 
-    static void setCompleted(int levelId, String difficultyKey) {
+    static void setCompleted(String levelId, String difficultyKey) {
         if (data == null) data = new JSONObject();
         if (difficultyKey == null) return;
-        String key = String.valueOf(levelId);
+        String key = levelId;
         JSONObject levelObj = data.hasKey(key) ? data.getJSONObject(key) : new JSONObject();
         levelObj.setBoolean(difficultyKey, true);
         data.setJSONObject(key, levelObj);
     }
 
-    static boolean hasAnyCompletion(int levelId) {
+    static boolean hasAnyCompletion(String levelId) {
         if (data == null) return false;
-        String key = String.valueOf(levelId);
+        String key = levelId;
         if (!data.hasKey(key)) return false;
         JSONObject levelObj = data.getJSONObject(key);
         if (levelObj == null) return false;

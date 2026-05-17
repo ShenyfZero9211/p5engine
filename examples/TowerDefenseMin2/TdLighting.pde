@@ -323,6 +323,12 @@ static class TdLightingSystem {
             case COMMAND:
                 addFlash(tower.worldX, tower.worldY, baseSize * 1.5f, tower.def.iconColor, 0.1f, 0.25f);
                 break;
+            case TESLA:
+                addFlash(tower.worldX, tower.worldY, baseSize * 2.0f, tower.def.iconColor, 0.1f, 0.25f);
+                break;
+            case PIERCER:
+                addFlash(tower.worldX, tower.worldY, baseSize * 2.5f, tower.def.iconColor, 0.15f, 0.50f);
+                break;
         }
     }
 }

@@ -1,7 +1,7 @@
-id: 3
-nameKey: level.3.name
-subtitleKey: level.3.subtitle
-briefingKey: level.3.briefing
+id: "13"
+nameKey: level.13.name
+subtitleKey: level.13.subtitle
+briefingKey: level.13.briefing
 levelType: DEFEND_BASE
 initialMoney: 420
 baseOrbs: 5
@@ -10,8 +10,8 @@ enemyHpBase: 100
 worldWidth: 1600
 worldHeight: 700
 
-basePos: { x: 680, y: 270 }
-exitPos: { x: 1500, y: 350 }
+basePos: { x: 1500, y: 350 }
+exitPos: { x: 80, y: 350 }
 spawnPos: { x: 80, y: 350 }
 
 pathPoints:

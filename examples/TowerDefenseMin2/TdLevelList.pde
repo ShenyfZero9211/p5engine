@@ -14,6 +14,9 @@ static class TdLevelList extends Panel {
     TowerDefenseMin2 appRef;
     TdLabel emptyLabel;
 
+    // Chapter memory: last selected index per chapter
+    static final int[] CHAPTER_MEMORY = new int[4];
+
     static final float CARD_W = 220f;
     static final float CARD_H = 240f;
     static final float SLOT_W = 260f;
@@ -35,11 +38,14 @@ static class TdLevelList extends Panel {
             remove(card);
         }
         cards.clear();
-        selectedIndex = 0;
-        scrollX = 0f;
-        targetScrollX = 0f;
 
-        ArrayList<Integer> ids = getLevelIdsForChapter(chapter);
+        // Restore memory for this chapter
+        int memoryIndex = (chapter >= 0 && chapter < CHAPTER_MEMORY.length) ? CHAPTER_MEMORY[chapter] : 0;
+        selectedIndex = memoryIndex;
+        updateTargetScroll();
+        scrollX = targetScrollX;
+
+        ArrayList<String> ids = getLevelIdsForChapter(chapter);
         int maxReached = TdSaveData.getMaxLevelReached();
 
         PImage defaultPreview = appRef.loadImage("textures/thumbnails/chapter1_0.jpg");
@@ -61,7 +67,8 @@ static class TdLevelList extends Panel {
             emptyLabel.setVisible(false);
         }
 
-        for (int lid : ids) {
+        boolean alwaysUnlock = (chapter == 3);
+        for (String lid : ids) {
             String name = TdAssets.i18n("level." + lid + ".name");
             if (name == null || name.startsWith("level.")) {
                 name = TdAssets.i18n("levelSelect.level", lid);
@@ -71,8 +78,17 @@ static class TdLevelList extends Panel {
             card.setPreviewImage(defaultPreview);
             card.setLevelName(name);
             card.setLevelId(lid);
-            card.setUnlocked(lid <= maxReached);
-            card.setCleared(lid <= maxReached && TdCompletion.hasAnyCompletion(lid));
+            boolean unlocked = alwaysUnlock;
+            if (!unlocked) {
+                int idx = getLevelIndex(lid);
+                if (idx > 0) {
+                    unlocked = idx <= maxReached;
+                } else {
+                    unlocked = false;
+                }
+            }
+            card.setUnlocked(unlocked);
+            card.setCleared(unlocked && TdCompletion.hasAnyCompletion(lid));
             card.setSelected(false);
             card.setEnabled(false); // events managed by parent
             card.setVisible(false);
@@ -81,11 +97,11 @@ static class TdLevelList extends Panel {
         }
     }
 
-    int getSelectedLevelId() {
+    String getSelectedLevelId() {
         if (selectedIndex >= 0 && selectedIndex < cards.size()) {
             return cards.get(selectedIndex).getLevelId();
         }
-        return -1;
+        return null;
     }
 
     boolean isSelectedUnlocked() {
@@ -111,6 +127,12 @@ static class TdLevelList extends Panel {
         targetScrollX = -selectedIndex * SLOT_W;
     }
 
+    void saveChapterMemory(int chapter) {
+        if (chapter >= 0 && chapter < CHAPTER_MEMORY.length) {
+            CHAPTER_MEMORY[chapter] = selectedIndex;
+        }
+    }
+
     @Override
     public void update(PApplet applet, float dt) {
         super.update(applet, dt);
@@ -129,7 +151,7 @@ static class TdLevelList extends Panel {
         float mx = UIManager.getDesignMouseX();
         float my = UIManager.getDesignMouseY();
         for (TdLevelCard card : cards) {
-            card.setHover(card.isVisible() && card.containsPoint(mx, my));
+            card.setHover(card.isVisible() && !card.isAnimating() && card.containsPoint(mx, my));
         }
     }
 

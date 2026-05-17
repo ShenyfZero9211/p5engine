@@ -28,8 +28,18 @@ enemies:
 
   level4:
     nameKey: enemy.level4.name
+    speedMultiplier: 0.8
+    hpMultiplier: 8.0
+    orbCapacity: 2
+    radius: 18
+    killReward: 20
+    armor: 60
+    sfxDeath: sounds/percussive-gong.wav
+
+  level5:
+    nameKey: enemy.level5.name
     speedMultiplier: 0.5
-    hpMultiplier: 25
+    hpMultiplier: 25.0
     orbCapacity: 3
     radius: 20
     killReward: 25

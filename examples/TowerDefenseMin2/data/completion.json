@@ -1,5 +1,20 @@
-{"1": {
-  "normal": true,
-  "hard": true,
-  "easy": true
-}}
+{
+  "11": {
+    "normal": true,
+    "hard": true,
+    "easy": true
+  },
+  "110": {"easy": true},
+  "12": {
+    "normal": true,
+    "easy": true
+  },
+  "13": {"easy": true},
+  "14": {
+    "normal": true,
+    "easy": true
+  },
+  "15": {"easy": true},
+  "test": {"challenge": true},
+  "16": {"easy": true}
+}

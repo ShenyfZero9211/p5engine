@@ -120,7 +120,7 @@ static class GhostRenderer extends RendererComponent {
             g.noStroke();
             float gameT = TowerDefenseMin2.inst.engine.getGameTime().getTotalTime();
             float buffPulse = 0.5f + 0.5f * PApplet.sin(gameT * 2.5f);
-            int buffAlpha = (int)(30 + 60 * buffPulse);
+            int buffAlpha = (int)(50 + 70 * buffPulse);
             g.fill(135, 206, 250, buffAlpha);
             g.rect(TdGhost.gridX * TdConfig.GRID + 2, TdGhost.gridY * TdConfig.GRID + 2,
                    TdConfig.GRID - 4, TdConfig.GRID - 4, 6);
@@ -141,6 +141,7 @@ static class GhostRenderer extends RendererComponent {
             case SLOW:    ghostColor = 0xFF3CDC78; break;
             case POISON:  ghostColor = 0xFF44CC44; break;
             case COMMAND: ghostColor = 0xFFFFD700; break;
+            case TESLA:   ghostColor = 0xFF00E5FF; break;
             default:      ghostColor = 0xFFFFFFFF;
         }
 

@@ -6,11 +6,11 @@
 static class LevelCarousel extends Panel {
 
     static final class LevelCard {
-        int levelId;
+        String levelId;
         String name;
         PImage preview;
 
-        LevelCard(int levelId, String name, PImage preview) {
+        LevelCard(String levelId, String name, PImage preview) {
             this.levelId = levelId;
             this.name = name;
             this.preview = preview;
@@ -49,8 +49,8 @@ static class LevelCarousel extends Panel {
         scrollX = 0f;
         targetScrollX = 0f;
 
-        ArrayList<Integer> ids = getLevelIdsForChapter(chapter);
-        for (int lid : ids) {
+        ArrayList<String> ids = getLevelIdsForChapter(chapter);
+        for (String lid : ids) {
             String name = TdAssets.i18n("level." + lid + ".name");
             if (name == null || name.startsWith("level.")) {
                 name = TdAssets.i18n("levelSelect.level", lid);
@@ -60,16 +60,22 @@ static class LevelCarousel extends Panel {
         }
     }
 
-    int getSelectedLevelId() {
+    String getSelectedLevelId() {
         if (selectedIndex >= 0 && selectedIndex < cards.size()) {
             return cards.get(selectedIndex).levelId;
         }
-        return -1;
+        return null;
     }
 
     boolean isSelectedUnlocked() {
         if (selectedIndex < 0 || selectedIndex >= cards.size()) return false;
-        return cards.get(selectedIndex).levelId <= TdSaveData.getMaxLevelReached();
+        String lid = cards.get(selectedIndex).levelId;
+        try {
+            int idValue = Integer.parseInt(lid);
+            return idValue <= TdSaveData.getMaxLevelReached();
+        } catch (NumberFormatException e) {
+            return true; // custom levels are always unlocked
+        }
     }
 
     void prev() {
@@ -177,7 +183,13 @@ static class LevelCarousel extends Panel {
             if (x + cardW < -20 || x > g.width + 20) continue;
 
             boolean isSelected = dist < 0.5f;
-            boolean unlocked = card.levelId <= maxReached;
+            boolean unlocked;
+            int idx = getLevelIndex(card.levelId);
+            if (idx > 0) {
+                unlocked = idx <= maxReached;
+            } else {
+                unlocked = true; // custom levels always unlocked
+            }
             boolean cleared = unlocked && TdCompletion.hasAnyCompletion(card.levelId);
 
             g.pushMatrix();
@@ -327,7 +339,14 @@ static class LevelCarousel extends Panel {
                 // Clicked on a card
                 if (pressedCardIndex == selectedIndex) {
                     // Center card: enter level if unlocked
-                    if (cards.get(pressedCardIndex).levelId <= TdSaveData.getMaxLevelReached() && onEnterAction != null) {
+                    String clickedId = cards.get(pressedCardIndex).levelId;
+                    boolean clickedUnlocked;
+                    try {
+                        clickedUnlocked = Integer.parseInt(clickedId) <= TdSaveData.getMaxLevelReached();
+                    } catch (NumberFormatException e) {
+                        clickedUnlocked = true;
+                    }
+                    if (clickedUnlocked && onEnterAction != null) {
                         TdSound.playClick();
                         onEnterAction.run();
                     }

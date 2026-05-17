@@ -85,24 +85,31 @@ static final class TdSaveData {
 
     static int getMaxLevelReached() {
         int iniMax = cfg.getInt("progress", "maxLevelReached", 1);
-        int completionMax = 1;
+        // Migrate old format: old ini stored raw 1~10 (max level index).
+        // New format also stores 1-based level index (1~10).
+        // Old values 1~10 are already correct as indices, no conversion needed.
+        // However, if iniMax was migrated once to 11~110 (bug from earlier code),
+        // treat values > 10 as indices too (they were incorrectly stored as id values).
+        if (iniMax > 10) {
+            // Heuristic: if value looks like an id (11,12..19,110), convert back to index
+            int idx = getLevelIndex(String.valueOf(iniMax));
+            if (idx > 0) iniMax = idx;
+        }
+        int completionMax = 1; // default unlocks first level (index 1 = id "11")
         if (TdCompletion.data != null) {
             for (Object keyObj : TdCompletion.data.keys()) {
-                try {
-                    int levelId = Integer.parseInt((String) keyObj);
-                    if (TdCompletion.hasAnyCompletion(levelId)) {
-                        completionMax = Math.max(completionMax, levelId + 1);
-                    }
-                } catch (NumberFormatException e) {
-                    // ignore non-numeric keys
+                String key = (String) keyObj;
+                int idx = getLevelIndex(key);
+                if (idx > 0 && TdCompletion.hasAnyCompletion(key)) {
+                    completionMax = Math.max(completionMax, idx + 1);
                 }
             }
         }
         return Math.max(iniMax, completionMax);
     }
 
-    static void setMaxLevelReached(int level) {
-        cfg.set("progress", "maxLevelReached", level);
+    static void setMaxLevelReached(int levelIndex) {
+        cfg.set("progress", "maxLevelReached", levelIndex);
     }
 
     static void saveSettings() {

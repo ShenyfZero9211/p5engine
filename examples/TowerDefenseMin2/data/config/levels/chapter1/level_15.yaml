@@ -1,7 +1,7 @@
-id: 5
-nameKey: level.5.name
-subtitleKey: level.5.subtitle
-briefingKey: level.5.briefing
+id: "15"
+nameKey: level.15.name
+subtitleKey: level.15.subtitle
+briefingKey: level.15.briefing
 levelType: SURVIVAL
 mapTheme: STARFIELD
 initialMoney: 500
@@ -163,9 +163,14 @@ waves:
       - type: level3
         count: 14
         interval: 1.0
-      - type: level4
+      - type: level5
         count: 4
         interval: 8.0
+  - delay: 15.0
+    spawns:
+      - type: level4
+        count: 2
+        interval: 12.0
 
 difficulties:
   easy:
@@ -201,7 +206,7 @@ difficulties:
           - type: level3
             count: 8
             interval: 1.1
-          - type: level4
+          - type: level5
             count: 2
             interval: 10.0
   normal:
@@ -237,7 +242,7 @@ difficulties:
           - type: level3
             count: 10
             interval: 1.0
-          - type: level4
+          - type: level5
             count: 3
             interval: 9.0
   hard:
@@ -273,7 +278,7 @@ difficulties:
           - type: level3
             count: 16
             interval: 0.9
-          - type: level4
+          - type: level5
             count: 5
             interval: 7.0
   challenge:
@@ -309,6 +314,6 @@ difficulties:
           - type: level3
             count: 18
             interval: 0.8
-          - type: level4
+          - type: level5
             count: 6
             interval: 6.0

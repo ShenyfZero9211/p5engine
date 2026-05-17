@@ -108,12 +108,13 @@ static class WinLoseTextAnimator {
 static final class TdFlow {
 
     static WinLoseTextAnimator winLoseAnimator = null;
-    static int briefingLevelId = -1;
-    static int difficultySelectLevelId = -1;
-    static int resumeDialogLevelId = -1;
+    static String briefingLevelId = null;
+    static String difficultySelectLevelId = null;
+    static String resumeDialogLevelId = null;
     static int levelSelectChapter = 0;
+    static boolean skipChapterMemoryRestore = false;
     static LevelCarousel levelCarouselRef = null;
-    static Button[] chapterButtonRefs = new Button[3];
+    static Button[] chapterButtonRefs = new Button[4];
 
     static void showMainMenuLoadError(TowerDefenseMin2 app) {
         Panel root = app.ui.getRoot();
@@ -139,6 +140,10 @@ static final class TdFlow {
     }
 
     static void buildMainMenu(TowerDefenseMin2 app) {
+        // Clear level-select chapter memory on return to main menu
+        java.util.Arrays.fill(TdLevelList.CHAPTER_MEMORY, 0);
+        TdGameWorld.level = null;
+
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
         TdSaveData.saveSettings();
         Panel root = app.ui.getRoot();
@@ -230,14 +235,26 @@ static final class TdFlow {
 
         // Staggered slide-up + fade-in (start after title begins moving)
         float btnDelay = 0.3f;
-        tm.toY(btnStart, 60, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
-        tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay).start();
+        btnStart.incrementTweenCount();
+        tm.toY(btnStart, 60, 0.6f).ease(Ease::outBack).delay(btnDelay)
+          .onComplete(() -> btnStart.decrementTweenCount()).start();
+        btnStart.incrementTweenCount();
+        tm.toAlpha(btnStart, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay)
+          .onComplete(() -> btnStart.decrementTweenCount()).start();
 
-        tm.toY(btnSettings, 130, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
-        tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f).start();
+        btnSettings.incrementTweenCount();
+        tm.toY(btnSettings, 130, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f)
+          .onComplete(() -> btnSettings.decrementTweenCount()).start();
+        btnSettings.incrementTweenCount();
+        tm.toAlpha(btnSettings, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.15f)
+          .onComplete(() -> btnSettings.decrementTweenCount()).start();
 
-        tm.toY(btnQuit, 200, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
-        tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f).start();
+        btnQuit.incrementTweenCount();
+        tm.toY(btnQuit, 200, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f)
+          .onComplete(() -> btnQuit.decrementTweenCount()).start();
+        btnQuit.incrementTweenCount();
+        tm.toAlpha(btnQuit, 1f, 0.6f).ease(Ease::outBack).delay(btnDelay + 0.30f)
+          .onComplete(() -> btnQuit.decrementTweenCount()).start();
 
         // println("[DEBUG] buildMainMenu done, titleProgress=" + TdMenuBg.titleProgress);
         app.state = TdState.MENU;
@@ -246,13 +263,14 @@ static final class TdFlow {
     }
 
     static void showLevelSelect(TowerDefenseMin2 app) {
-        difficultySelectLevelId = -1;
-        resumeDialogLevelId = -1;
+        difficultySelectLevelId = null;
+        resumeDialogLevelId = null;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
+        TdSound.playBgmMenu();
 
         // Main window: larger, centered, no title bar
         Window win = new Window("level_win");
@@ -277,14 +295,25 @@ static final class TdFlow {
         // Level list (declare before chapter buttons so lambda can capture it)
         int listY = 120;
         int listH = 290;
+
+        // If returning from a level, preserve the last played level in chapter memory
+        if (!skipChapterMemoryRestore && TdGameWorld.level != null) {
+            ArrayList<String> ids = getLevelIdsForChapter(levelSelectChapter);
+            int idx = ids.indexOf(TdGameWorld.level.id);
+            if (idx >= 0) {
+                TdLevelList.CHAPTER_MEMORY[levelSelectChapter] = idx;
+            }
+        }
+        skipChapterMemoryRestore = false;
+
         TdLevelList levelList = new TdLevelList("level_list", app);
         levelList.setBounds(100, listY, 700, listH);
         levelList.loadLevels(levelSelectChapter);
         levelList.setAlpha(0);
         levelList.appear(0.3f, 20f, 0.5f);
         levelList.onEnterAction = () -> {
-            int lid = levelList.getSelectedLevelId();
-            if (lid < 0) return;
+            String lid = levelList.getSelectedLevelId();
+            if (lid == null) return;
             if (!levelList.isSelectedUnlocked()) return;
             if (TdSaveLoad.hasSave(app, lid)) {
                 TdFlow.showLevelResumeDialog(app, lid);
@@ -295,15 +324,15 @@ static final class TdFlow {
         win.add(levelList);
 
         // Chapter tabs
-        String[] chapterKeys = {"chapter.1", "chapter.2", "chapter.3"};
+        String[] chapterKeys = {"chapter.1", "chapter.2", "chapter.3", "chapter.custom"};
         int chBtnW = 140;
         int chBtnH = 38;
         int chGap = 16;
-        int chTotalW = 3 * chBtnW + 2 * chGap;
+        int chTotalW = 4 * chBtnW + 3 * chGap;
         int chStartX = (900 - chTotalW) / 2;
-        TdChapterButton[] chBtnRefs = new TdChapterButton[3];
+        TdChapterButton[] chBtnRefs = new TdChapterButton[4];
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             final int chIdx = i;
             TdChapterButton btn = new TdChapterButton("btn_ch" + i);
             btn.setLabel(TdAssets.i18n(chapterKeys[i]));
@@ -312,9 +341,10 @@ static final class TdFlow {
             btn.setAlpha(0);
             btn.setAction(() -> {
                 if (levelSelectChapter == chIdx) return;
+                levelList.saveChapterMemory(levelSelectChapter);
                 levelSelectChapter = chIdx;
                 levelList.loadLevels(levelSelectChapter);
-                for (int j = 0; j < 3; j++) {
+                for (int j = 0; j < 4; j++) {
                     chBtnRefs[j].selected = (j == levelSelectChapter);
                 }
             });
@@ -366,8 +396,8 @@ static final class TdFlow {
         btnEnter.setBounds(botStartX + botBtnW + botGap, botY, botBtnW, botBtnH);
         btnEnter.setAlpha(0);
         btnEnter.setAction(() -> {
-            int lid = levelList.getSelectedLevelId();
-            if (lid < 0) return;
+            String lid = levelList.getSelectedLevelId();
+            if (lid == null) return;
             if (!levelList.isSelectedUnlocked()) return;
             if (TdSaveLoad.hasSave(app, lid)) {
                 TdFlow.showLevelResumeDialog(app, lid);
@@ -675,12 +705,23 @@ static final class TdFlow {
             TdSaveData.saveSettings();
             TdFlow.buildMainMenu(app);
         });
+        if (animated) btnBack.appear(rowDelay);
         panel.add(btnBack);
     }
 
-    static void showDifficultySelect(TowerDefenseMin2 app, int levelId) {
+    static String formatLevelTitle(String levelId) {
+        int idx = getLevelIndex(levelId);
+        String name = TdAssets.i18n("level." + levelId + ".name");
+        if (name == null || name.startsWith("level.")) name = levelId;
+        if (idx > 0) {
+            return "第" + toChineseNumber(idx) + "关 - " + name;
+        }
+        return name;
+    }
+
+    static void showDifficultySelect(TowerDefenseMin2 app, String levelId) {
         difficultySelectLevelId = levelId;
-        resumeDialogLevelId = -1;
+        resumeDialogLevelId = null;
         app.state = TdState.LEVEL_SELECT;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -705,7 +746,7 @@ static final class TdFlow {
 
         // Title
         TdLabel lblTitle = new TdLabel("lbl_diff_title");
-        lblTitle.setText(TdAssets.i18n("difficulty.selectTitle"));
+        lblTitle.setText(formatLevelTitle(levelId));
         lblTitle.setBounds(0, 20, 400, 40);
         lblTitle.setTextAlign(PApplet.CENTER);
         lblTitle.setLabelStyle(TdLabel.Style.TITLE);
@@ -748,7 +789,7 @@ static final class TdFlow {
         panel.add(btnBack);
     }
 
-    static void showBriefing(TowerDefenseMin2 app, int levelId, String difficultyKey) {
+    static void showBriefing(TowerDefenseMin2 app, String levelId, String difficultyKey) {
         briefingLevelId = levelId;
         app.state = TdState.BRIEFING;
         Panel root = app.ui.getRoot();
@@ -793,9 +834,8 @@ static final class TdFlow {
         win.add(panel);
 
         // Title: level name
-        String levelName = TdAssets.i18n("level." + levelId + ".name");
         TdLabel lblTitle = new TdLabel("lbl_briefing_title");
-        lblTitle.setText(levelName);
+        lblTitle.setText(formatLevelTitle(levelId));
         lblTitle.setBounds(0, 4, winW, 32);
         lblTitle.setTextAlign(PApplet.CENTER);
         lblTitle.setLabelStyle(TdLabel.Style.TITLE);
@@ -863,11 +903,11 @@ static final class TdFlow {
         root.add(btnStart);
     }
 
-    static void startLevel(TowerDefenseMin2 app, int levelId) {
+    static void startLevel(TowerDefenseMin2 app, String levelId) {
         startLevel(app, levelId, "normal");
     }
 
-    static void startLevel(TowerDefenseMin2 app, int levelId, String difficultyKey) {
+    static void startLevel(TowerDefenseMin2 app, String levelId, String difficultyKey) {
         TdSaveData.incGamesPlayed();
         app.state = TdState.PLAYING;
         app.ui.getRoot().removeAllChildren();
@@ -920,10 +960,25 @@ static final class TdFlow {
         btnNext.setLabel(TdAssets.i18n("game.nextLevel"));
         btnNext.setBounds(150, 60, 200, 44);
         btnNext.setAction(() -> {
-        btnNext.setSfxPath(TdSound.SFX_CLICK);
-            int next = TdGameWorld.level != null ? TdGameWorld.level.id + 1 : 1;
-            if (next <= TdAssets.getLevelCount()) showDifficultySelect(app, next);
-            else buildMainMenu(app);
+            btnNext.setSfxPath(TdSound.SFX_CLICK);
+            String currentId = TdGameWorld.level != null ? TdGameWorld.level.id : null;
+            boolean foundNext = false;
+            for (int ch = 0; ch < 4; ch++) {
+                ArrayList<String> ids = getLevelIdsForChapter(ch);
+                int idx = ids.indexOf(currentId);
+                if (idx >= 0 && idx + 1 < ids.size()) {
+                    levelSelectChapter = ch;
+                    TdLevelList.CHAPTER_MEMORY[ch] = idx + 1;
+                    foundNext = true;
+                    break;
+                }
+            }
+            if (foundNext) {
+                skipChapterMemoryRestore = true;
+                showLevelSelect(app);
+            } else {
+                buildMainMenu(app);
+            }
         });
         btnNext.appear(0.1f);
         panel.add(btnNext);
@@ -942,11 +997,17 @@ static final class TdFlow {
     static void showWin(TowerDefenseMin2 app) {
         TdTutorial.stop();
         TdSaveData.saveSettings();
-        // Update max level reached
-        int currentMax = TdSaveData.getMaxLevelReached();
-        if (TdGameWorld.level != null && TdGameWorld.level.id >= currentMax) {
-            TdSaveData.setMaxLevelReached(TdGameWorld.level.id + 1);
-            TdSaveData.saveSettings();
+        // Update max level reached (only for chapter-1 numeric level IDs)
+        if (TdGameWorld.level != null) {
+            int currentIdx = getLevelIndex(TdGameWorld.level.id);
+            if (currentIdx > 0) {
+                int currentMax = TdSaveData.getMaxLevelReached();
+                if (currentIdx >= currentMax) {
+                    TdSaveData.setMaxLevelReached(currentIdx + 1);
+                    TdSaveData.saveSettings();
+                }
+            }
+            // custom levels (idx <= 0) don't affect maxLevelReached
         }
         // Record completion for this level & difficulty
         if (TdGameWorld.level != null && TdGameWorld.currentDifficultyKey != null) {
@@ -957,12 +1018,20 @@ static final class TdFlow {
         app.engine.getTweenManager().killAll();
         app.engine.getTweenManager().setUseUnscaledTime(true);
         // Check if there is a next level; if not, skip win menu and go straight to main menu
-        int nextId = (TdGameWorld.level != null) ? TdGameWorld.level.id + 1 : 1;
-        boolean hasNextLevel = nextId <= TdAssets.getLevelCount();
+        String currentId = TdGameWorld.level != null ? TdGameWorld.level.id : null;
+        final boolean[] hasNextLevel = new boolean[]{false};
+        for (int ch = 0; ch < 4; ch++) {
+            ArrayList<String> ids = getLevelIdsForChapter(ch);
+            int idx = ids.indexOf(currentId);
+            if (idx >= 0 && idx + 1 < ids.size()) {
+                hasNextLevel[0] = true;
+                break;
+            }
+        }
         winLoseAnimator = new WinLoseTextAnimator(TdAssets.i18n("game.win"), () -> {
             Panel root = app.ui.getRoot();
             root.removeAllChildren();
-            if (hasNextLevel) {
+            if (hasNextLevel[0]) {
                 buildWinMenu(app);
             } else {
                 buildMainMenu(app);
@@ -1027,7 +1096,7 @@ static final class TdFlow {
 
         Window win = new Window("pause_win");
         win.setAnchor(UIComponent.ANCHOR_HCENTER | UIComponent.ANCHOR_VCENTER);
-        win.setBounds(0, 0, 400, 300);
+        win.setBounds(0, 0, 400, 350);
         win.setTitle(TdAssets.i18n("game.pause"));
         win.setMovable(false);
         win.setResizable(false);
@@ -1037,15 +1106,25 @@ static final class TdFlow {
         root.add(win);
 
         Panel panel = new Panel("pause_panel");
-        panel.setBounds(0, 0, 400, 300);
+        panel.setBounds(0, 0, 400, 350);
         panel.setLayoutManager(new AbsoluteLayout());
         panel.setPaintBackground(false);
         panel.fadeIn(0f);
         win.add(panel);
 
         // Level + difficulty info label above buttons
-        String levelText = (TdGameWorld.level != null)
-            ? TdAssets.i18n("levelSelect.level", TdGameWorld.level.id) : "";
+        String levelText = "";
+        if (TdGameWorld.level != null) {
+            int idx = getLevelIndex(TdGameWorld.level.id);
+            if (idx > 0) {
+                levelText = "第" + toChineseNumber(idx) + "关";
+            } else {
+                levelText = TdAssets.i18n("level." + TdGameWorld.level.id + ".name");
+                if (levelText == null || levelText.startsWith("level.")) {
+                    levelText = TdGameWorld.level.id;
+                }
+            }
+        }
         DifficultyDef diff = TdAssets.getDifficulty(TdGameWorld.currentDifficultyKey);
         String diffText = (diff != null && diff.nameKey != null) ? TdAssets.i18n(diff.nameKey) : "";
         TdLabel lblInfo = new TdLabel("lbl_pause_info");
@@ -1163,6 +1242,18 @@ static final class TdFlow {
         panel.add(btnRetry);
         y += btnH + gap;
 
+        Button btnSelectLevel = new Button("btn_select_level");
+        btnSelectLevel.setLabel(TdAssets.i18n("game.levelSelect"));
+        btnSelectLevel.setBounds(btnX, y, btnW, btnH);
+        btnSelectLevel.setAction(() -> {
+            btnSelectLevel.setSfxPath(TdSound.SFX_CLICK);
+            hidePauseMenu(app);
+            showLevelSelect(app);
+        });
+        btnSelectLevel.appear(0.21f);
+        panel.add(btnSelectLevel);
+        y += btnH + gap;
+
         Button btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
         btnMenu.setBounds(btnX, y, btnW, btnH);
@@ -1180,7 +1271,7 @@ static final class TdFlow {
                 buildMainMenu(app);
             });
         });
-        btnMenu.appear(0.22f);
+        btnMenu.appear(0.24f);
         panel.add(btnMenu);
     }
 
@@ -1200,9 +1291,9 @@ static final class TdFlow {
         app.state = TdState.PLAYING;
     }
 
-    static void showLevelResumeDialog(TowerDefenseMin2 app, int levelId) {
+    static void showLevelResumeDialog(TowerDefenseMin2 app, String levelId) {
         app.state = TdState.LEVEL_SELECT;
-        difficultySelectLevelId = -1;
+        difficultySelectLevelId = null;
         resumeDialogLevelId = levelId;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -1225,7 +1316,17 @@ static final class TdFlow {
         win.add(panel);
 
         Label lblTitle = new Label("lbl_resume_title");
-        lblTitle.setText(TdAssets.i18n("levelSelect.level", levelId));
+        String resumeTitle = "";
+        int rIdx = getLevelIndex(levelId);
+        if (rIdx > 0) {
+            resumeTitle = "第" + toChineseNumber(rIdx) + "关";
+        } else {
+            resumeTitle = TdAssets.i18n("level." + levelId + ".name");
+            if (resumeTitle == null || resumeTitle.startsWith("level.")) {
+                resumeTitle = levelId;
+            }
+        }
+        lblTitle.setText(resumeTitle);
         lblTitle.setBounds(0, 20, 400, 40);
         lblTitle.setTextAlign(PApplet.CENTER);
         panel.add(lblTitle);
@@ -1401,7 +1502,7 @@ static final class TdFlow {
         root.add(win);
 
         Panel panel = new Panel("lose_panel");
-        panel.setBounds(0, 0, 500, 240);
+        panel.setBounds(0, 0, 500, 280);
         panel.setLayoutManager(new AbsoluteLayout());
         panel.fadeIn(0f);
         win.add(panel);
@@ -1411,15 +1512,25 @@ static final class TdFlow {
         btnRetry.setBounds(150, 60, 200, 44);
         btnRetry.setAction(() -> {
         btnRetry.setSfxPath(TdSound.SFX_CLICK);
-            int id = TdGameWorld.level != null ? TdGameWorld.level.id : 1;
+            String id = TdGameWorld.level != null ? TdGameWorld.level.id : "11";
             showDifficultySelect(app, id);
         });
         btnRetry.appear(0.1f);
         panel.add(btnRetry);
 
+        Button btnSelectLevel = new Button("btn_select_level");
+        btnSelectLevel.setLabel(TdAssets.i18n("game.levelSelect"));
+        btnSelectLevel.setBounds(150, 120, 200, 44);
+        btnSelectLevel.setAction(() -> {
+            btnSelectLevel.setSfxPath(TdSound.SFX_CLICK);
+            showLevelSelect(app);
+        });
+        btnSelectLevel.appear(0.15f);
+        panel.add(btnSelectLevel);
+
         Button btnMenu = new Button("btn_menu");
         btnMenu.setLabel(TdAssets.i18n("game.mainMenu"));
-        btnMenu.setBounds(150, 120, 200, 44);
+        btnMenu.setBounds(150, 180, 200, 44);
         btnMenu.setAction(() -> {
         btnMenu.setSfxPath(TdSound.SFX_CLICK);
             TdFlow.buildMainMenu(app);

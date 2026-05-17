@@ -51,6 +51,9 @@ public abstract class UIComponent {
 
     // Slide-up animation state
     private boolean slideUpPending = false;
+
+    // Animation-in-progress tracking
+    private int activeTweenCount = 0;
     private float slideUpDelay = 0f;
     private float slideUpOffsetY = 20f;
     private float slideUpDuration = 0.5f;
@@ -280,6 +283,18 @@ public abstract class UIComponent {
 
     public void clearSlideUpPending() {
         this.slideUpPending = false;
+    }
+
+    public boolean isAnimating() {
+        return activeTweenCount > 0;
+    }
+
+    public void incrementTweenCount() {
+        activeTweenCount++;
+    }
+
+    public void decrementTweenCount() {
+        activeTweenCount = Math.max(0, activeTweenCount - 1);
     }
 
     public float getSlideUpDelay() {

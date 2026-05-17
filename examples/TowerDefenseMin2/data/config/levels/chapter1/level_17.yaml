@@ -1,12 +1,12 @@
-id: 7
-nameKey: level.7.name
-subtitleKey: level.7.subtitle
-briefingKey: level.7.briefing
+id: "17"
+nameKey: level.17.name
+subtitleKey: level.17.subtitle
+briefingKey: level.17.briefing
 levelType: SURVIVAL
 mapTheme: STARFIELD
 initialMoney: 2000
 maxEscapeCount: 8
-enemyHpBase: 130
+enemyHpBase: 110
 earnMoneyOnKill: false
 
 worldWidth: 2000
@@ -194,29 +194,29 @@ waves:
         count: 14
         interval: 0.9
         route: west_route
-      - type: level4
+      - type: level5
         count: 3
         interval: 2.0
         route: south_route
   - delay: 10.0
     parallel: true
     spawns:
-      - type: level4
+      - type: level5
         count: 5
         interval: 1.5
         route: west_route
-      - type: level4
+      - type: level5
         count: 5
         interval: 1.5
         route: south_route
   - delay: 10.0
     parallel: true
     spawns:
-      - type: level4
+      - type: level5
         count: 8
         interval: 1.2
         route: west_route
-      - type: level4
+      - type: level5
         count: 8
         interval: 1.2
         route: south_route

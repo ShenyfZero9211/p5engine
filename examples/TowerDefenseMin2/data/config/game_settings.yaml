@@ -64,9 +64,9 @@ difficulties:
     nameKey: "difficulty.hard"
     enemyHpMultiplier: 1.1
     killRewardMultiplier: 1.0
-    startingMoneyMultiplier: 0.9
+    startingMoneyMultiplier: 1.0
   challenge:
     nameKey: "difficulty.challenge"
     enemyHpMultiplier: 1.2
-    killRewardMultiplier: 0.9
-    startingMoneyMultiplier: 0.85
+    killRewardMultiplier: 1.0
+    startingMoneyMultiplier: 0.95

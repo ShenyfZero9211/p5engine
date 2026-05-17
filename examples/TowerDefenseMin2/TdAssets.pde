@@ -268,7 +268,15 @@ static final class TdAssets {
             parseKillBonus(t, "killBonusMin"),
             parseKillBonus(t, "killBonusMax"),
             t.containsKey("burnDamage") ? ((Number) t.get("burnDamage")).floatValue() : 0f,
-            t.containsKey("burnDuration") ? ((Number) t.get("burnDuration")).floatValue() : 0f
+            t.containsKey("burnDuration") ? ((Number) t.get("burnDuration")).floatValue() : 0f,
+            t.containsKey("chainCount") ? ((Number) t.get("chainCount")).intValue() : 3,
+            t.containsKey("chainRange") ? ((Number) t.get("chainRange")).floatValue() : 100f,
+            t.containsKey("chainDecay") ? ((Number) t.get("chainDecay")).floatValue() : 0.2f,
+            u != null && u.containsKey("chainCount") ? ((Number) u.get("chainCount")).intValue() : 3,
+            u != null && u.containsKey("chainDecay") ? ((Number) u.get("chainDecay")).floatValue() : 0.2f,
+            u2 != null && u2.containsKey("chainCount") ? ((Number) u2.get("chainCount")).intValue() : 3,
+            u2 != null && u2.containsKey("chainDecay") ? ((Number) u2.get("chainDecay")).floatValue() : 0.2f,
+            t.containsKey("missileSpeed") ? ((Number) t.get("missileSpeed")).floatValue() : 600f
         );
     }
 
@@ -282,17 +290,18 @@ static final class TdAssets {
         return arr;
     }
 
-    static LevelDef loadLevel(int levelId) {
+    static LevelDef loadLevel(String levelId) {
         return loadLevel(levelId, null);
     }
 
-    static LevelDef loadLevel(int levelId, String difficultyKey) {
+    static LevelDef loadLevel(String levelId, String difficultyKey) {
         // Verify level exists in index
         boolean found = false;
         for (Object obj : levelYamlList) {
             java.util.Map meta = (java.util.Map) obj;
-            int id = ((Number) meta.get("id")).intValue();
-            if (id == levelId) {
+            Object idObj = meta.get("id");
+            String id = idObj != null ? String.valueOf(idObj) : "";
+            if (id.equals(levelId)) {
                 found = true;
                 break;
             }
@@ -301,9 +310,20 @@ static final class TdAssets {
 
         // Load detailed level data from individual file
         org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
-        java.io.InputStream levelIs = P5Engine.getInstance().getApplet().createInput("config/levels/level_" + levelId + ".yaml");
+        PApplet applet = P5Engine.getInstance().getApplet();
+        String[] levelPaths = {
+            "config/levels/level_" + levelId + ".yaml",
+            "config/levels/chapter1/level_" + levelId + ".yaml"
+        };
+        java.io.InputStream levelIs = null;
+        String tried = "";
+        for (String path : levelPaths) {
+            levelIs = applet.createInput(path);
+            if (levelIs != null) break;
+            tried += path + " ";
+        }
         if (levelIs == null) {
-            throw new RuntimeException("Cannot load config/levels/level_" + levelId + ".yaml");
+            throw new RuntimeException("Cannot load level file for " + levelId + " (tried: " + tried.trim() + ")");
         }
         java.util.Map lvl = (java.util.Map) yaml.load(levelIs);
         LevelDef level = parseLevel(lvl);
@@ -571,10 +591,17 @@ static final class TdAssets {
         return levelYamlList != null ? levelYamlList.size() : 0;
     }
 
-    static String loadBriefingText(int levelId, String locale) {
-        String briefPath = "config/levels/brief/level_" + levelId + "_" + locale + ".txt";
+    static String loadBriefingText(String levelId, String locale) {
+        String[] briefPaths = {
+            "config/levels/brief/level_" + levelId + "_" + locale + ".txt",
+            "config/levels/brief/chapter1/level_" + levelId + "_" + locale + ".txt"
+        };
         try {
-            java.io.InputStream is = P5Engine.getInstance().getApplet().createInput(briefPath);
+            java.io.InputStream is = null;
+            for (String path : briefPaths) {
+                is = P5Engine.getInstance().getApplet().createInput(path);
+                if (is != null) break;
+            }
             if (is == null) return "\u8bfb\u53d6\u5931\u8d25";
             java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(is, "UTF-8"));
             StringBuilder sb = new StringBuilder();
@@ -607,9 +634,11 @@ static final class TdAssets {
                            '\u2026', '\u00b7', '\u300a', '\u300b'};
         for (char c : cjkPunct) chars.add(c);
 
-        int levelCount = getLevelCount();
         String[] locales = {"zh", "en"};
-        for (int levelId = 1; levelId <= levelCount; levelId++) {
+        for (Object obj : levelYamlList) {
+            java.util.Map meta = (java.util.Map) obj;
+            Object idObj = meta.get("id");
+            String levelId = idObj != null ? String.valueOf(idObj) : "";
             for (String locale : locales) {
                 String text = loadBriefingText(levelId, locale);
                 if (text != null && !text.isEmpty() && !text.equals("\u8bfb\u53d6\u5931\u8d25")) {
@@ -636,6 +665,7 @@ static final class TdAssets {
         String sfxDeath = (String) e.get("sfxDeath");
         if (sfxDeath == null) sfxDeath = TdSound.SFX_DEATH;
         int killReward = e.containsKey("killReward") ? ((Number) e.get("killReward")).intValue() : 10;
+        float armor = e.containsKey("armor") ? ((Number) e.get("armor")).floatValue() : 0f;
         return new EnemyDef(
             typeKey,
             (String) e.get("nameKey"),
@@ -644,7 +674,8 @@ static final class TdAssets {
             ((Number) e.get("orbCapacity")).intValue(),
             ((Number) e.get("radius")).floatValue(),
             killReward,
-            sfxDeath
+            sfxDeath,
+            armor
         );
     }
 
@@ -678,7 +709,8 @@ static final class TdAssets {
 
     private static LevelDef parseLevel(java.util.Map lvl) {
         LevelDef ld = new LevelDef();
-        ld.id = ((Number) lvl.get("id")).intValue();
+        Object idObj = lvl.get("id");
+        ld.id = idObj != null ? String.valueOf(idObj) : "";
         ld.nameKey = (String) lvl.get("nameKey");
         ld.subtitleKey = (String) lvl.get("subtitleKey");
         String lt = (String) lvl.get("levelType");
@@ -774,10 +806,11 @@ static final class TdAssets {
         java.util.List waveList = (java.util.List) lvl.get("waves");
         ld.waves = parseWaves(waveList);
 
-        // Difficulty wave overrides
+        // Difficulty wave overrides and multipliers
         java.util.Map lvlDiffMap = (java.util.Map) lvl.get("difficulties");
         if (lvlDiffMap != null) {
             ld.difficultyWaves = new java.util.HashMap<>();
+            ld.difficultyMultipliers = new java.util.HashMap<>();
             for (Object diffKeyObj : lvlDiffMap.keySet()) {
                 String diffKey = (String) diffKeyObj;
                 java.util.Map diffData = (java.util.Map) lvlDiffMap.get(diffKeyObj);
@@ -785,6 +818,16 @@ static final class TdAssets {
                 WaveDef[] diffWaves = parseWaves(diffWaveList);
                 if (diffWaves != null) {
                     ld.difficultyWaves.put(diffKey, diffWaves);
+                }
+                float hpMulti = diffData.containsKey("enemyHpMultiplier") ? ((Number) diffData.get("enemyHpMultiplier")).floatValue() : Float.NaN;
+                float rewardMulti = diffData.containsKey("killRewardMultiplier") ? ((Number) diffData.get("killRewardMultiplier")).floatValue() : Float.NaN;
+                float moneyMulti = diffData.containsKey("startingMoneyMultiplier") ? ((Number) diffData.get("startingMoneyMultiplier")).floatValue() : Float.NaN;
+                if (!Float.isNaN(hpMulti) || !Float.isNaN(rewardMulti) || !Float.isNaN(moneyMulti)) {
+                    ld.difficultyMultipliers.put(diffKey, new float[]{
+                        Float.isNaN(hpMulti) ? 1.0f : hpMulti,
+                        Float.isNaN(rewardMulti) ? 1.0f : rewardMulti,
+                        Float.isNaN(moneyMulti) ? 1.0f : moneyMulti
+                    });
                 }
             }
         }

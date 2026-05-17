@@ -1,0 +1,62 @@
+Stellar Perimeter -- Mission Briefing
+
+================================
+
+[Background: The Spiral Nexus]
+
+In the year 2851, four years after the initial Swarm incursion, Federation scientists made a terrifying discovery at the edge of the KX-7 system. Deep-scan harmonic analysis revealed that the spatial rifts were not random tears in space-time — they were part of a deliberate pattern, converging toward a single coordinate.
+
+That coordinate is the Spiral Nexus.
+
+The Nexus is not a natural formation. It is a vast, ancient structure — possibly a remnant of a pre-Federation civilization — consisting of a central stellar core surrounded by a spiraling labyrinth of alloy platforms suspended in the void. The platforms range from massive continental plates to tiny drifting fragments, all interconnected by a network of energy conduits that pulse with an eerie violet light.
+
+Federation Command has designated the Spiral Nexus as Priority Alpha. If the Swarm captures the central stellar core, they will gain the ability to open rifts anywhere in Federation space. The war will be lost in a single day.
+
+================================
+
+[Swarm Adaptation: The Spiral Pattern]
+
+Swarm intelligence has evolved dramatically since the initial encounters at KX-7. Harmonic data from the Nexus perimeter shows that the Swarm has learned to exploit the spiral platform layout, using the curved paths for high-speed flanking maneuvers that bypass traditional defensive formations.
+
+More disturbing still, the Swarm has developed a new behavior pattern: instead of retreating through separate exit rifts, they are now returning to their entry points after stealing energy cores. This suggests a coordinated withdrawal strategy — they are not just raiding; they are systematically extracting resources and funneling them back to their origin point.
+
+================================
+
+[Tactical Challenge: The Spiral Labyrinth]
+
+The Spiral Nexus presents an unprecedented defensive challenge. The platform layout forces a spiral deployment pattern — towers must be placed on widely separated platforms, with large gaps between defensive positions. The Swarm can exploit these gaps by using the curved paths to approach from unexpected angles.
+
+The central stellar core contains 10 Stellar Core Orbs — the largest concentration ever discovered. If even one orb is extracted, the Swarm will gain enough energy to begin rift expansion. All 10 orbs must be protected at all costs.
+
+Engineering has deployed emergency platform stabilizers, but the ancient structure is unstable. Some platforms are too small for heavy tower deployment, while others are large enough for multiple installations. The key to victory is understanding the spiral flow and placing defenses where the paths converge.
+
+================================
+
+[Recommended Defense Pattern]
+
+- Machine Gun towers at path convergence points for sustained fire coverage
+- Missile towers on large platforms to counter armored Swarm units
+- Slow towers at spiral choke points to disrupt high-speed flanking
+- Laser towers on elevated platforms for long-range precision strikes
+- Poison towers along curved path segments for area denial
+- Command towers near the central core for kill bonuses and coordination
+
+================================
+
+[Mission Objectives]
+
+- Protect all 10 Stellar Core Orbs at the central stellar core
+- Eliminate all Swarm units attempting to extract energy
+- Hold the Spiral Nexus until the Federation main fleet arrives
+
+================================
+
+[Operational Notes]
+
+The Swarm has committed their full force to this operation. Expect waves of increasing intensity, with heavy armored units supported by fast flanking elements. The spiral path means enemies will approach from multiple angles simultaneously — static defensive lines will fail.
+
+Use the platform layout to your advantage. Place towers on platforms that cover multiple path segments. The curved nature of the spiral means that a single well-placed tower can cover enemies approaching from two different directions.
+
+Do not let them reach the core. The fate of the Federation depends on holding the Spiral Nexus.
+
+================================

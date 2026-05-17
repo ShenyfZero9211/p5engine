@@ -262,6 +262,16 @@ final class TdAppSetup {
         hudMinimap.setSize(TdMinimapComponent.MW, TdMinimapComponent.MH);
         hudMinimap.setZOrder(10);
         root.add(hudMinimap);
+
+        // Dev mode wave info label (world viewport top-left)
+        devWaveLabel = new TdLabel("dev_wave_label");
+        devWaveLabel.setBounds(4, TdConfig.TOP_HUD + 4, 200, 60);
+        devWaveLabel.setLabelStyle(TdLabel.Style.STATUS);
+        devWaveLabel.setCustomTextSize(12);
+        devWaveLabel.setTextAlign(PApplet.LEFT);
+        devWaveLabel.setVisible(false);
+        devWaveLabel.setZOrder(20);
+        root.add(devWaveLabel);
     }
 }
 
@@ -318,6 +328,11 @@ static final class TdAppLoop {
                 break;
         }
 
+        // Sell menu only exists during PLAYING state
+        if (app.state != TdState.PLAYING && app.sellMenuPanel != null) {
+            TdAppUtils.closeSellMenu(app);
+        }
+
         TdAppInput.handleMouseInput(app, im);
         TowerButton.postUpdateTooltipTimer(dtReal);
 
@@ -366,6 +381,30 @@ static final class TdAppLoop {
         app.pushMatrix();
         app.translate(dm.getOffsetX(), dm.getOffsetY());
         app.scale(dm.getUniformScale(), dm.getUniformScale());
+
+        // Update dev mode wave info
+        if (app.devWaveLabel != null) {
+            boolean showDev = app.devMode && (app.state == TdState.PLAYING || app.state == TdState.PAUSED);
+            app.devWaveLabel.setVisible(showDev);
+            if (showDev && TdGameWorld.level != null && TdGameWorld.level.waves != null) {
+                int totalWaves = TdGameWorld.level.waves.length;
+                int cw = TdGameWorld.currentWave;
+                int si = TdGameWorld.waveSpawnIndex + 1;
+                int sc = TdGameWorld.waveSpawnCount;
+                int totalInSpawn = 0;
+                int remaining = 0;
+                if (!TdGameWorld.activeSpawns.isEmpty()) {
+                    TdGameWorld.ActiveSpawn first = TdGameWorld.activeSpawns.get(0);
+                    totalInSpawn = first.spawn.count;
+                    remaining = first.remaining;
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append("Wave: ").append(cw).append(" / ").append(totalWaves).append("\n");
+                sb.append("Spawn: ").append(si).append("  Total: ").append(totalInSpawn).append("\n");
+                sb.append("Spawned: ").append(sc).append("  Remain: ").append(remaining);
+                app.devWaveLabel.setText(sb.toString());
+            }
+        }
 
         app.sketchUi.updateFrame(dtReal);
         app.sketchUi.renderFrame();
@@ -426,6 +465,10 @@ static final class TdAppLoop {
 //  TdAppInput — 输入处理（static）
 // ============================================
 static final class TdAppInput {
+    static boolean isDraggingCamera = false;
+    static boolean dragConsumedClick = false;
+    static float dragAnchorScreenX, dragAnchorScreenY;
+    static float dragAnchorCameraX, dragAnchorCameraY;
 
     static void keyPressed(TowerDefenseMin2 app) {
         // ESC is a system-level shortcut: always handle pause/menu first,
@@ -461,11 +504,11 @@ static final class TdAppInput {
             } else if (app.state == TdState.SETTINGS) {
                 TdFlow.buildMainMenu(app);
             } else if (app.state == TdState.LEVEL_SELECT) {
-                if (TdFlow.resumeDialogLevelId >= 0) {
+                if (TdFlow.resumeDialogLevelId != null) {
                     // In level-resume dialog → back to level select
                     TdFlow.showLevelSelect(app);
-                } else if (TdFlow.difficultySelectLevelId >= 0) {
-                    int lid = TdFlow.difficultySelectLevelId;
+                } else if (TdFlow.difficultySelectLevelId != null) {
+                    String lid = TdFlow.difficultySelectLevelId;
                     if (TdSaveLoad.hasSave(app, lid)) {
                         TdFlow.showLevelResumeDialog(app, lid);
                     } else {
@@ -505,11 +548,31 @@ static final class TdAppInput {
                 case '4': app.engine.getGameTime().setTargetTimeScale(2.0f); break;
                 case '5': app.engine.getGameTime().setTargetTimeScale(5.0f); break;
             }
+
+            if (app.devMode) {
+                float ts = app.engine.getGameTime().getTimeScale();
+                float[] speeds = {0.05f, 0.1f, 0.2f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 20.0f};
+                if (app.key == '+' || app.key == '=') {
+                    for (int i = 0; i < speeds.length; i++) {
+                        if (ts < speeds[i] - 0.01f) {
+                            app.engine.getGameTime().setTargetTimeScale(speeds[i]);
+                            break;
+                        }
+                    }
+                } else if (app.key == '-' || app.key == '_') {
+                    for (int i = speeds.length - 1; i >= 0; i--) {
+                        if (ts > speeds[i] + 0.01f) {
+                            app.engine.getGameTime().setTargetTimeScale(speeds[i]);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // Level select keyboard navigation
         if (app.state == TdState.LEVEL_SELECT) {
-            if (TdFlow.resumeDialogLevelId < 0 && TdFlow.difficultySelectLevelId < 0) {
+            if (TdFlow.resumeDialogLevelId == null && TdFlow.difficultySelectLevelId == null) {
                 if (app.keyCode == PApplet.LEFT) {
                     if (TdFlow.levelCarouselRef != null) {
                         TdFlow.levelCarouselRef.prev();
@@ -520,8 +583,8 @@ static final class TdAppInput {
                     }
                 } else if (app.keyCode == PApplet.ENTER || app.key == ' ') {
                     if (TdFlow.levelCarouselRef != null) {
-                        int lid = TdFlow.levelCarouselRef.getSelectedLevelId();
-                        if (lid >= 0 && TdFlow.levelCarouselRef.isSelectedUnlocked()) {
+                        String lid = TdFlow.levelCarouselRef.getSelectedLevelId();
+                        if (lid != null && TdFlow.levelCarouselRef.isSelectedUnlocked()) {
                             if (TdSaveLoad.hasSave(app, lid)) {
                                 TdFlow.showLevelResumeDialog(app, lid);
                             } else {
@@ -580,6 +643,24 @@ static final class TdAppInput {
             }
         }
         app.wasKeyCtrl = isCtrl;
+
+        // Dev mode: Alt + build mode to batch-place in 5x5 area
+        boolean isAlt = im.isKeyDown(java.awt.event.KeyEvent.VK_ALT);
+        if (isAlt && !app.wasKeyAlt && app.devMode && app.state == TdState.PLAYING
+                && app.buildMode != TdBuildMode.NONE && TdGhost.isValid) {
+            int cx = TdGhost.gridX;
+            int cy = TdGhost.gridY;
+            for (int dy = -2; dy <= 2; dy++) {
+                for (int dx = -2; dx <= 2; dx++) {
+                    int gx = cx + dx;
+                    int gy = cy + dy;
+                    if (TdGameWorld.canPlaceTower(gx, gy)) {
+                        TdGameWorld.tryPlaceTower(app.buildMode, gx, gy);
+                    }
+                }
+            }
+        }
+        app.wasKeyAlt = isAlt;
 
         // Build hotkeys (Q/W/E/R/T) — check money before entering build mode (skip in dev mode)
         boolean isQ = im.isKeyDown(java.awt.event.KeyEvent.VK_Q);
@@ -653,11 +734,36 @@ static final class TdAppInput {
             }
         }
         app.wasKeyY = isY;
+
+        boolean isU = im.isKeyDown(java.awt.event.KeyEvent.VK_U);
+        if (isU && !app.wasKeyU && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.TESLA)) {
+            TowerDef defU = TdAssets.loadTowerDef(TowerType.TESLA);
+            if (defU != null && (app.devMode || TdGameWorld.money >= defU.cost)) {
+                app.buildMode = TdBuildMode.TESLA;
+                TdSound.playTowerSelect();
+            } else if (defU != null) {
+                app.hudBuildPanel.flashButton(TowerType.TESLA);
+            }
+        }
+        app.wasKeyU = isU;
+
+        boolean isI = im.isKeyDown(java.awt.event.KeyEvent.VK_I);
+        if (isI && !app.wasKeyI && app.state == TdState.PLAYING && app.hudBuildPanel != null && TdAppUtils.isTowerAllowed(app, TdBuildMode.PIERCER)) {
+            TowerDef defI = TdAssets.loadTowerDef(TowerType.PIERCER);
+            if (defI != null && (app.devMode || TdGameWorld.money >= defI.cost)) {
+                app.buildMode = TdBuildMode.PIERCER;
+                TdSound.playTowerSelect();
+            } else if (defI != null) {
+                app.hudBuildPanel.flashButton(TowerType.PIERCER);
+            }
+        }
+        app.wasKeyI = isI;
     }
 
     static void handleMouseInput(TowerDefenseMin2 app, InputManager im) {
         if (app.state != TdState.PLAYING || app.camera == null) return;
         handleMouseWheelZoom(app, im);
+        handleMouseDragPan(app, im);
         handleMouseClick(app, im);
     }
 
@@ -685,20 +791,48 @@ static final class TdAppInput {
     }
 
     static void handleMouseDragPan(TowerDefenseMin2 app, InputManager im) {
-        if (!im.isMousePressed() || im.getMouseButton() != PApplet.LEFT) return;
-        if (!TdCamera.isMouseInViewport()) return;
+        if (!im.isMousePressed() || im.getMouseButton() != PApplet.LEFT) {
+            isDraggingCamera = false;
+            return;
+        }
+        if (!TdCamera.isMouseInViewport()) {
+            isDraggingCamera = false;
+            return;
+        }
+
         float ddx = im.getMouseDragDX();
         float ddy = im.getMouseDragDY();
-        if (ddx != 0 || ddy != 0) {
-            app.camera.getTransform().translate(-ddx / app.camera.getZoom(), -ddy / app.camera.getZoom());
-            app.camera.clampToBounds();
+
+        if (!isDraggingCamera) {
+            if (PApplet.abs(ddx) < 3f && PApplet.abs(ddy) < 3f) return;
+            isDraggingCamera = true;
+            dragConsumedClick = true;
+            // Anchor at mouse position before this frame's drag delta
+            dragAnchorScreenX = im.getMouseX() - ddx;
+            dragAnchorScreenY = im.getMouseY() - ddy;
+            Vector2 camPos = app.camera.getTransform().getPosition();
+            dragAnchorCameraX = camPos.x;
+            dragAnchorCameraY = camPos.y;
         }
+
+        float mx = im.getMouseX();
+        float my = im.getMouseY();
+        float idealX = dragAnchorCameraX - (mx - dragAnchorScreenX) / app.camera.getZoom();
+        float idealY = dragAnchorCameraY - (my - dragAnchorScreenY) / app.camera.getZoom();
+        app.camera.getTransform().setPosition(idealX, idealY);
+        app.camera.clampToBounds();
+
+        // If clamping moved the camera, adjust the anchor so the mouse-to-camera
+        // relationship stays correct on subsequent frames.
+        Vector2 clamped = app.camera.getTransform().getPosition();
+        dragAnchorCameraX = clamped.x + (mx - dragAnchorScreenX) / app.camera.getZoom();
+        dragAnchorCameraY = clamped.y + (my - dragAnchorScreenY) / app.camera.getZoom();
     }
 
     static void handleMouseClick(TowerDefenseMin2 app, InputManager im) {
         Vector2 dm = TdAppUtils.getActualMousePos(app, im);
 
-        // Place tower on world viewport click
+        // Left press: place tower or close sell menu
         if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.LEFT) {
             if (app.sellMenuPanel != null) {
                 Vector2 designMouse = app.engine.getDisplayManager().actualToDesign(new Vector2(app.mouseX, app.mouseY));
@@ -713,20 +847,31 @@ static final class TdAppInput {
                     app.buildMode = TdBuildMode.NONE;
                     TdGhost.cleanup(app);
                 }
-            } else if (app.buildMode == TdBuildMode.NONE && app.sellMenuPanel == null && !TdAppUtils.isMouseOverHud(app)) {
+            }
+        }
+
+        // Left release: open sell menu if no drag occurred
+        if (im.isMouseJustReleased() && im.getMouseButton() == PApplet.LEFT) {
+            if (!dragConsumedClick && app.buildMode == TdBuildMode.NONE && app.sellMenuPanel == null && !TdAppUtils.isMouseOverHud(app)) {
                 Tower clicked = TdAppUtils.getTowerAtMouse(app, im);
                 if (clicked != null && clicked.built) {
                     TdAppUtils.showSellMenu(app, clicked);
                 }
             }
+            dragConsumedClick = false;
         }
 
-        // Right-click: cancel build or show sell menu
+        // Right press: cancel build mode
         if (im.isMouseJustPressed() && im.getMouseButton() == PApplet.RIGHT) {
             if (app.buildMode != TdBuildMode.NONE) {
                 app.buildMode = TdBuildMode.NONE;
                 TdGhost.cleanup(app);
-            } else if (!TdAppUtils.isMouseOverHud(app)) {
+            }
+        }
+
+        // Right release: open/close sell menu
+        if (im.isMouseJustReleased() && im.getMouseButton() == PApplet.RIGHT) {
+            if (!dragConsumedClick && app.buildMode == TdBuildMode.NONE && !TdAppUtils.isMouseOverHud(app)) {
                 Tower clicked = TdAppUtils.getTowerAtMouse(app, im);
                 if (clicked != null && clicked.built) {
                     TdAppUtils.showSellMenu(app, clicked);
@@ -734,6 +879,7 @@ static final class TdAppInput {
                     TdAppUtils.closeSellMenu(app);
                 }
             }
+            dragConsumedClick = false;
         }
     }
 }
@@ -846,7 +992,7 @@ static final class TdAppUtils {
         tooltip.setZOrder(1000);
         app.sellMenuPanel.add(tooltip);
 
-        Label lblTooltip = new Label("upgrade_tooltip_text");
+        TdUpgradeLabel lblTooltip = new TdUpgradeLabel("upgrade_tooltip_text");
         lblTooltip.setBounds(6, 4, 148, 72);
         lblTooltip.setTextColor(0xFFE0E6F0);
         lblTooltip.setWrapWidth(148);
@@ -996,6 +1142,14 @@ static final class TdAppUtils {
                     int bmax = def.commandKillBonusMax[1];
                     if (bmax > 0) sb.append("击杀奖金 ").append(bmin).append("~").append(bmax).append("金币");
                 }
+                if (def.type == TowerType.TESLA) {
+                    sb.append("弹射次数 ").append(def.chainCount).append("→").append(def.upgradeChainCount).append("\n");
+                    sb.append("衰减 ").append(Math.round(def.chainDecay * 100f)).append("%→").append(Math.round(def.upgradeChainDecay * 100f)).append("%");
+                }
+                if (def.type == TowerType.PIERCER) {
+                    sb.append("伤害 ").append(def.damage).append("→").append(Math.round(def.damage * def.upgradeDamageMult)).append("\n");
+                    sb.append("攻速 ").append(String.format("%.1f", def.firePeriod)).append("s");
+                }
                 if (def.type == TowerType.POISON) {
                     float effDps = def.poisonDamage * ((tower.upgradeLevel >= 1) ? def.upgradePoisonMult : 1f);
                     sb.append("毒素 ").append(Math.round(effDps)).append("/秒，").append(Math.round(def.poisonDuration)).append("秒");
@@ -1027,6 +1181,14 @@ static final class TdAppUtils {
                         int bmin2 = def.commandKillBonusMin[2];
                         int bmax2 = def.commandKillBonusMax[2];
                         if (bmax2 > 0) sb.append("击杀奖金 ").append(bmin2).append("~").append(bmax2).append("金币");
+                        break;
+                    case TESLA:
+                        sb.append("弹射次数 ").append(def.upgradeChainCount).append("→").append(def.upgrade2ChainCount).append("\n");
+                        sb.append("衰减 ").append(Math.round(def.upgradeChainDecay * 100f)).append("%→").append(Math.round(def.upgrade2ChainDecay * 100f)).append("%");
+                        break;
+                    case PIERCER:
+                        sb.append("伤害 ").append(Math.round(def.damage * def.upgradeDamageMult)).append("\n");
+                        sb.append("攻速 +30%");
                         break;
                 }
             }

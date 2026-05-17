@@ -33,6 +33,9 @@ static class Tower {
     }
 
     float getFirePeriod() {
+        if (def.type == TowerType.PIERCER && upgradeLevel >= 2) {
+            return def.firePeriod * 0.7f;
+        }
         if (upgradeLevel >= 1) return def.firePeriod * def.upgradeSpeedMult;
         return def.firePeriod;
     }
@@ -157,6 +160,12 @@ static class Tower {
             case COMMAND:
                 fireCommand();
                 break;
+            case TESLA:
+                fireTesla(target);
+                break;
+            case PIERCER:
+                firePiercer(target);
+                break;
         }
     }
 
@@ -194,8 +203,7 @@ static class Tower {
         float dmgMult = (upgradeLevel >= 1) ? def.upgradeDamageMult : 1f;
         if (upgradeLevel >= 2) dmgMult = 2.0f;
         float dmg = def.damage * dmgMult * getCommandDamageMult();
-        target.hp -= dmg;
-        target.hitFlashTimer = 0.15f;
+        target.takeDamage(dmg, TowerType.MG);
         // Visual tracer
         float tracerMult = (upgradeLevel >= 1) ? def.upgradeBulletSizeMult : 1f;
         TdGameWorld.effects.add(new MgTracerEffect(worldX, worldY, target.pos.x, target.pos.y, tracerMult));
@@ -237,7 +245,11 @@ static class Tower {
     }
 
     Vector2 calcInterceptDir(Enemy target) {
-        float vm = 400f;
+        return calcInterceptDir(target, 400f);
+    }
+
+    Vector2 calcInterceptDir(Enemy target, float missileSpeed) {
+        float vm = missileSpeed;
         Vector2 d = target.pos.copy().sub(worldX, worldY);
 
         // Get enemy velocity vector
@@ -338,5 +350,51 @@ static class Tower {
         TdGameWorld.effects.add(new PoisonCloudEffect(worldX, worldY, def.range, facingAngle, halfAngle * 2));
         TdAssets.playSfx(def.sfxFire);
         TdLightingSystem.addFireFlash(this);
+    }
+
+    void fireTesla(Enemy target) {
+        if (target == null) return;
+        int effChainCount = def.chainCount;
+        float effChainDecay = def.chainDecay;
+        if (upgradeLevel >= 1) {
+            effChainCount = def.upgradeChainCount;
+            effChainDecay = def.upgradeChainDecay;
+        }
+        if (upgradeLevel >= 2) {
+            effChainCount = def.upgrade2ChainCount;
+            effChainDecay = def.upgrade2ChainDecay;
+        }
+        java.util.HashSet<Enemy> visited = new java.util.HashSet<>();
+        java.util.ArrayList<Enemy> chain = new java.util.ArrayList<>();
+        Enemy current = target;
+        while (current != null && chain.size() <= effChainCount) {
+            visited.add(current);
+            chain.add(current);
+            // find next target: random alive unvisited enemy within chainRange
+            java.util.ArrayList<Enemy> candidates = new java.util.ArrayList<>();
+            for (Enemy e : TdGameWorld.enemies) {
+                if (e.hp <= 0 || visited.contains(e)) continue;
+                if (e.pos.distance(current.pos) <= def.chainRange) {
+                    candidates.add(e);
+                }
+            }
+            if (!candidates.isEmpty()) {
+                java.util.Random rng = new java.util.Random(System.nanoTime());
+                current = candidates.get(rng.nextInt(candidates.size()));
+            } else {
+                current = null;
+            }
+        }
+        TdGameWorld.effects.add(new TeslaArcEffect(worldX, worldY, chain, def.damage, effChainDecay, getCommandDamageMult()));
+        TdAssets.playSfx(def.sfxFire);
+        TdLightingSystem.addFireFlash(this);
+    }
+
+    void firePiercer(Enemy target) {
+        if (target == null) return;
+        float dmgMult = (upgradeLevel >= 1) ? def.upgradeDamageMult : 1f;
+        float dmg = def.damage * dmgMult * getCommandDamageMult();
+        // Intercept is calculated at launch moment (inside PiercerFireball), not here
+        TdGameWorld.effects.add(new PiercerBeamEffect(worldX, worldY, target, dmg, def.sfxFire, this));
     }
 }

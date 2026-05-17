@@ -1,0 +1,436 @@
+id: "110"
+nameKey: level.110.name
+subtitleKey: level.110.subtitle
+levelType: DEFEND_BASE
+initialMoney: 1600
+baseOrbs: 10
+enemyHpBase: 120
+
+worldWidth: 3500
+worldHeight: 3500
+
+basePos: { x: 2100, y: 1500 }
+exitPos: { x: 1750, y: 1750 }
+spawnPos: { x: 1750, y: 1750 }
+
+pathPoints:
+  - { x: 1750, y: 1750 }
+  - { x: 1900, y: 1650 }
+  - { x: 2100, y: 1500 }
+  - { x: 2350, y: 1380 }
+  - { x: 2620, y: 1320 }
+  - { x: 2900, y: 1380 }
+  - { x: 3150, y: 1550 }
+  - { x: 3320, y: 1820 }
+  - { x: 3400, y: 2150 }
+  - { x: 3380, y: 2500 }
+  - { x: 3260, y: 2820 }
+  - { x: 3050, y: 3100 }
+  - { x: 2760, y: 3300 }
+  - { x: 2420, y: 3420 }
+  - { x: 2050, y: 3460 }
+  - { x: 1680, y: 3400 }
+  - { x: 1340, y: 3260 }
+  - { x: 1060, y: 3040 }
+  - { x: 850, y: 2760 }
+  - { x: 700, y: 2440 }
+  - { x: 620, y: 2100 }
+  - { x: 600, y: 1750 }
+  - { x: 640, y: 1420 }
+  - { x: 740, y: 1120 }
+  - { x: 900, y: 880 }
+  - { x: 1120, y: 720 }
+  - { x: 1380, y: 620 }
+  - { x: 1660, y: 580 }
+  - { x: 1940, y: 600 }
+  - { x: 2200, y: 680 }
+  - { x: 2420, y: 820 }
+  - { x: 2580, y: 1000 }
+  - { x: 2680, y: 1220 }
+  - { x: 2720, y: 1460 }
+  - { x: 2700, y: 1700 }
+  - { x: 2620, y: 1920 }
+  - { x: 2480, y: 2100 }
+  - { x: 2300, y: 2220 }
+  - { x: 2100, y: 2280 }
+  - { x: 1900, y: 2260 }
+  - { x: 1720, y: 2180 }
+  - { x: 1580, y: 2040 }
+  - { x: 1480, y: 1860 }
+  - { x: 1420, y: 1660 }
+  - { x: 1400, y: 1460 }
+  - { x: 1420, y: 1280 }
+  - { x: 1480, y: 1120 }
+  - { x: 1580, y: 980 }
+  - { x: 1720, y: 880 }
+  - { x: 1880, y: 820 }
+  - { x: 2050, y: 790 }
+  - { x: 2220, y: 800 }
+  - { x: 2360, y: 850 }
+  - { x: 2460, y: 940 }
+  - { x: 2520, y: 1050 }
+  - { x: 2540, y: 1170 }
+  - { x: 2500, y: 1280 }
+  - { x: 2400, y: 1370 }
+  - { x: 2260, y: 1430 }
+  - { x: 2100, y: 1460 }
+  - { x: 1950, y: 1520 }
+  - { x: 1850, y: 1620 }
+  - { x: 1780, y: 1720 }
+  - { x: 1750, y: 1750 }
+
+platforms:
+  # P1: 中央基地平台（大，绿色边缘）
+  - points:
+      - { x: 1550, y: 1550 }
+      - { x: 1950, y: 1550 }
+      - { x: 2000, y: 1750 }
+      - { x: 1950, y: 1950 }
+      - { x: 1550, y: 1950 }
+      - { x: 1500, y: 1750 }
+    edgeColor: [40, 199, 111]
+    fillColor: [22, 35, 30]
+
+  # P2: 左下大平台
+  - points:
+      - { x: 200, y: 2600 }
+      - { x: 700, y: 2550 }
+      - { x: 800, y: 2900 }
+      - { x: 600, y: 3200 }
+      - { x: 250, y: 3150 }
+      - { x: 100, y: 2900 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P3: 右下大平台
+  - points:
+      - { x: 2800, y: 2600 }
+      - { x: 3300, y: 2650 }
+      - { x: 3400, y: 3000 }
+      - { x: 3200, y: 3300 }
+      - { x: 2850, y: 3250 }
+      - { x: 2700, y: 2950 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P4: 左上大平台
+  - points:
+      - { x: 300, y: 400 }
+      - { x: 800, y: 350 }
+      - { x: 900, y: 700 }
+      - { x: 700, y: 950 }
+      - { x: 350, y: 900 }
+      - { x: 200, y: 650 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P5: 右上大平台
+  - points:
+      - { x: 2700, y: 350 }
+      - { x: 3200, y: 400 }
+      - { x: 3350, y: 700 }
+      - { x: 3100, y: 950 }
+      - { x: 2750, y: 900 }
+      - { x: 2600, y: 650 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P6: 左侧中平台
+  - points:
+      - { x: 450, y: 1400 }
+      - { x: 750, y: 1350 }
+      - { x: 850, y: 1650 }
+      - { x: 650, y: 1850 }
+      - { x: 400, y: 1750 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P7: 右侧中平台
+  - points:
+      - { x: 2750, y: 1400 }
+      - { x: 3050, y: 1350 }
+      - { x: 3150, y: 1650 }
+      - { x: 2950, y: 1850 }
+      - { x: 2700, y: 1750 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P8: 下方中平台
+  - points:
+      - { x: 1450, y: 2800 }
+      - { x: 2050, y: 2750 }
+      - { x: 2150, y: 3050 }
+      - { x: 1950, y: 3300 }
+      - { x: 1550, y: 3250 }
+      - { x: 1350, y: 3050 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P9: 上方中平台
+  - points:
+      - { x: 1450, y: 300 }
+      - { x: 2050, y: 350 }
+      - { x: 2150, y: 600 }
+      - { x: 1950, y: 850 }
+      - { x: 1550, y: 800 }
+      - { x: 1350, y: 600 }
+    edgeColor: [74, 158, 255]
+    fillColor: [26, 31, 43]
+
+  # P10: 左下小平台
+  - points:
+      - { x: 600, y: 2200 }
+      - { x: 850, y: 2150 }
+      - { x: 900, y: 2400 }
+      - { x: 700, y: 2550 }
+      - { x: 500, y: 2450 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P11: 右下小平台
+  - points:
+      - { x: 2650, y: 2200 }
+      - { x: 2900, y: 2150 }
+      - { x: 3000, y: 2400 }
+      - { x: 2800, y: 2550 }
+      - { x: 2600, y: 2450 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P12: 左上小平台
+  - points:
+      - { x: 600, y: 1100 }
+      - { x: 850, y: 1050 }
+      - { x: 900, y: 1300 }
+      - { x: 700, y: 1450 }
+      - { x: 500, y: 1350 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P13: 右上小平台
+  - points:
+      - { x: 2650, y: 1100 }
+      - { x: 2900, y: 1050 }
+      - { x: 3000, y: 1300 }
+      - { x: 2800, y: 1450 }
+      - { x: 2600, y: 1350 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P14: 中心偏右小平台
+  - points:
+      - { x: 2000, y: 1600 }
+      - { x: 2200, y: 1550 }
+      - { x: 2250, y: 1750 }
+      - { x: 2100, y: 1900 }
+      - { x: 1900, y: 1850 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P15: 中心偏左小平台
+  - points:
+      - { x: 1300, y: 1600 }
+      - { x: 1500, y: 1550 }
+      - { x: 1550, y: 1750 }
+      - { x: 1400, y: 1900 }
+      - { x: 1200, y: 1850 }
+    edgeColor: [100, 130, 180]
+    fillColor: [26, 31, 43]
+
+  # P16: 边缘微型平台（左上远角）
+  - points:
+      - { x: 100, y: 100 }
+      - { x: 300, y: 80 }
+      - { x: 320, y: 250 }
+      - { x: 150, y: 300 }
+      - { x: 50, y: 200 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+  # P17: 边缘微型平台（右上远角）
+  - points:
+      - { x: 3200, y: 100 }
+      - { x: 3400, y: 120 }
+      - { x: 3450, y: 280 }
+      - { x: 3300, y: 350 }
+      - { x: 3150, y: 250 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+  # P18: 边缘微型平台（左下远角）
+  - points:
+      - { x: 80, y: 3200 }
+      - { x: 280, y: 3180 }
+      - { x: 350, y: 3350 }
+      - { x: 200, y: 3420 }
+      - { x: 50, y: 3350 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+  # P19: 边缘微型平台（右下远角）
+  - points:
+      - { x: 3220, y: 3200 }
+      - { x: 3420, y: 3180 }
+      - { x: 3450, y: 3350 }
+      - { x: 3300, y: 3450 }
+      - { x: 3180, y: 3350 }
+    edgeColor: [255, 140, 66]
+    fillColor: [35, 28, 22]
+
+blockedZones:
+  # 平台间漂浮岩石
+  - type: circle
+    cx: 1100
+    cy: 900
+    radius: 60
+    visual: asteroid
+  - type: circle
+    cx: 2400
+    cy: 900
+    radius: 55
+    visual: asteroid
+  - type: circle
+    cx: 1100
+    cy: 2600
+    radius: 65
+    visual: asteroid
+  - type: circle
+    cx: 2400
+    cy: 2600
+    radius: 50
+    visual: asteroid
+  - type: rect
+    x: 1600
+    y: 1200
+    w: 100
+    h: 80
+    visual: asteroid
+  - type: rect
+    x: 1800
+    y: 2200
+    w: 90
+    h: 70
+    visual: asteroid
+  - type: circle
+    cx: 500
+    cy: 1750
+    radius: 45
+    visual: asteroid
+  - type: circle
+    cx: 3000
+    cy: 1750
+    radius: 50
+    visual: asteroid
+  # 能量湍流
+  - type: circle
+    cx: 1750
+    cy: 1200
+    radius: 70
+    visual: energy
+  - type: circle
+    cx: 1750
+    cy: 2300
+    radius: 70
+    visual: energy
+  # 残骸区
+  - type: rect
+    x: 400
+    y: 400
+    w: 90
+    h: 70
+    visual: ruins
+  - type: rect
+    x: 3000
+    y: 400
+    w: 80
+    h: 60
+    visual: ruins
+  - type: rect
+    x: 400
+    y: 3000
+    w: 85
+    h: 65
+    visual: ruins
+  - type: rect
+    x: 3000
+    y: 3000
+    w: 90
+    h: 70
+    visual: ruins
+  - type: rect
+    x: 900
+    y: 1750
+    w: 75
+    h: 55
+    visual: ruins
+  - type: rect
+    x: 2600
+    y: 1750
+    w: 80
+    h: 60
+    visual: ruins
+
+waves:
+  - delay: 18.0
+    spawns:
+      - type: level1
+        count: 35
+        interval: 1.1
+  - delay: 16.0
+    spawns:
+      - type: level2
+        count: 25
+        interval: 1.1
+      - type: level1
+        count: 15
+        interval: 1.0
+        attach:
+          - type: level1
+            delay: 0.5
+  - delay: 14.0
+    spawns:
+      - type: level3
+        count: 20
+        interval: 1.1
+      - type: level2
+        count: 12
+        interval: 1.0
+        attach:
+          - type: level1
+            delay: 0.5
+  - delay: 14.0
+    spawns:
+      - type: level3
+        count: 18
+        interval: 1.0
+        attach:
+          - type: level2
+            delay: 0.5
+      - type: level5
+        count: 6
+        interval: 2.5
+  - delay: 12.0
+    spawns:
+      - type: level5
+        count: 8
+        interval: 2.0
+        attach:
+          - type: level3
+            delay: 0.5
+            attach:
+              - type: level2
+                delay: 0.5
+  - delay: 10.0
+    spawns:
+      - type: level5
+        count: 10
+        interval: 6
+        attach:
+          - type: level3
+            delay: 3
+            attach:
+              - type: level3
+                delay: 1
+                attach:
+                  - type: level2
+                    delay: 0.4

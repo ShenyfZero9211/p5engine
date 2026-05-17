@@ -76,7 +76,7 @@ public class Button extends UIComponent {
 
     @Override
     public void update(PApplet applet, float dt) {
-        hover = isEnabled() && isVisible() && containsPoint(UIManager.getDesignMouseX(), UIManager.getDesignMouseY());
+        hover = isEnabled() && isVisible() && !isAnimating() && containsPoint(UIManager.getDesignMouseX(), UIManager.getDesignMouseY());
     }
 
     @Override
@@ -90,7 +90,7 @@ public class Button extends UIComponent {
 
     @Override
     public boolean onEvent(UIEvent event, float absMouseX, float absMouseY) {
-        if (!isEnabled()) return false;
+        if (!isEnabled() || isAnimating()) return false;
         switch (event.getType()) {
             case MOUSE_PRESSED:
                 if ((event.getMouseButton() == PApplet.LEFT || event.getMouseButton() == PApplet.RIGHT)

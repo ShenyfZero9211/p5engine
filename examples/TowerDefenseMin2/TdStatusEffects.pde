@@ -178,8 +178,7 @@ static class BurnStatusEffect extends EnemyStatusEffect {
             // Find the enemy this effect is attached to and apply damage
             for (Enemy e : TdGameWorld.enemies) {
                 if (e.statusEffects.contains(this)) {
-                    e.hp -= dps * 0.5f;
-                    e.hitFlashTimer = 0.05f;
+                    e.takeDamage(dps * 0.5f, TowerType.MISSILE);
                     break;
                 }
             }
@@ -218,6 +217,24 @@ static class BurnStatusEffect extends EnemyStatusEffect {
         // Hot center
         g.fill(0xFFFFDD00, (int)(160 * t * (0.5f + 0.5f * pulse)));
         drawPolyCircle(g, x, y - r * 0.05f, r * 0.12f, 6);
+    }
+}
+
+/**
+ * Tesla chain lightning hit mark: cyan cross flash on enemy.
+ */
+static class TeslaHitMark extends EnemyStatusEffect {
+    TeslaHitMark() { super(0.15f); }
+
+    void render(PGraphics g, float x, float y, float r) {
+        float t = timer / maxTimer;
+        int alpha = (int)(255 * t);
+        g.noFill();
+        g.stroke(0xFF00E5FF, alpha);
+        g.strokeWeight(2);
+        float arm = r * 0.5f;
+        g.line(x - arm, y - arm, x + arm, y + arm);
+        g.line(x - arm, y + arm, x + arm, y - arm);
     }
 }
 

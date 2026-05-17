@@ -58,7 +58,9 @@ enum TowerType {
     LASER,    // Laser — continuous beam, armor piercing
     SLOW,     // Slow — no dmg, slows enemies in range
     POISON,   // Poison —扇形毒雾, DoT
-    COMMAND;  // Command — 被动光环: 击杀奖金 + 攻击力加成
+    COMMAND,  // Command — 被动光环: 击杀奖金 + 攻击力加成
+    TESLA,    // Tesla — chain lightning, devastating clusters
+    PIERCER;  // Piercer — ultra high single-target damage, armor-breaking
 
     static TowerType fromBuildMode(TdBuildMode mode) {
         switch (mode) {
@@ -68,6 +70,8 @@ enum TowerType {
             case SLOW: return SLOW;
             case POISON: return POISON;
             case COMMAND: return COMMAND;
+            case TESLA: return TESLA;
+            case PIERCER: return PIERCER;
             default: return null;
         }
     }
@@ -80,6 +84,8 @@ enum TowerType {
             case SLOW: return TdBuildMode.SLOW;
             case POISON: return TdBuildMode.POISON;
             case COMMAND: return TdBuildMode.COMMAND;
+            case TESLA: return TdBuildMode.TESLA;
+            case PIERCER: return TdBuildMode.PIERCER;
             default: return TdBuildMode.NONE;
         }
     }
@@ -156,9 +162,10 @@ static final class EnemyDef {
     final float radius;
     final int killReward;
     final String sfxDeath;
+    final float armor;
 
     EnemyDef(String key, String nameKey, float speedMultiplier, float hpMultiplier,
-             int orbCapacity, float radius, int killReward, String sfxDeath) {
+             int orbCapacity, float radius, int killReward, String sfxDeath, float armor) {
         this.key = key;
         this.nameKey = nameKey;
         this.speedMultiplier = speedMultiplier;
@@ -167,6 +174,7 @@ static final class EnemyDef {
         this.radius = radius;
         this.killReward = killReward;
         this.sfxDeath = sfxDeath;
+        this.armor = armor;
     }
 }
 
@@ -273,6 +281,14 @@ static final class TowerDef {
     final int[] commandKillBonusMax;
     final float burnDamage;
     final float burnDuration;
+    final int chainCount;
+    final float chainRange;
+    final float chainDecay;
+    final int upgradeChainCount;
+    final float upgradeChainDecay;
+    final int upgrade2ChainCount;
+    final float upgrade2ChainDecay;
+    final float missileSpeed;
 
     TowerDef(TowerType type, String nameKey, String descKey, int cost, float range,
              float firePeriod, float damage, float aoeRadius, float laserBonus,
@@ -285,7 +301,11 @@ static final class TowerDef {
              float commandBonus, float upgradeCommandMult,
              int upgrade2Cost, float upgrade2BuildTime,
              float upgrade2CommandMult, int[] commandKillBonusMin, int[] commandKillBonusMax,
-             float burnDamage, float burnDuration) {
+             float burnDamage, float burnDuration,
+             int chainCount, float chainRange, float chainDecay,
+             int upgradeChainCount, float upgradeChainDecay,
+             int upgrade2ChainCount, float upgrade2ChainDecay,
+             float missileSpeed) {
         this.type = type;
         this.nameKey = nameKey;
         this.descKey = descKey;
@@ -324,6 +344,14 @@ static final class TowerDef {
         this.commandKillBonusMax = commandKillBonusMax;
         this.burnDamage = burnDamage;
         this.burnDuration = burnDuration;
+        this.chainCount = chainCount;
+        this.chainRange = chainRange;
+        this.chainDecay = chainDecay;
+        this.upgradeChainCount = upgradeChainCount;
+        this.upgradeChainDecay = upgradeChainDecay;
+        this.upgrade2ChainCount = upgrade2ChainCount;
+        this.upgrade2ChainDecay = upgrade2ChainDecay;
+        this.missileSpeed = missileSpeed;
     }
 
 }
@@ -408,7 +436,7 @@ static final class DifficultyDef {
  * Level definition loaded from levels.yaml.
  */
 static final class LevelDef {
-    int id;
+    String id;
     String nameKey;
     String subtitleKey;
     LevelType levelType;
@@ -425,6 +453,7 @@ static final class LevelDef {
     int worldH;
     WaveDef[] waves;
     java.util.Map<String, WaveDef[]> difficultyWaves; // difficulty key -> wave override
+    java.util.Map<String, float[]> difficultyMultipliers; // difficulty key -> [hpMulti, rewardMulti, moneyMulti]
     TowerType[] allowedTowers; // null = all towers allowed
     TowerType[] allowedUpgrades; // null = all towers upgradable
     boolean earnMoneyOnKill;   // default true
@@ -434,16 +463,55 @@ static final class LevelDef {
     MapTheme mapTheme = MapTheme.STARFIELD; // 地图视觉主题，默认星星背景
 }
 
-static ArrayList<Integer> getLevelIdsForChapter(int chapter) {
-    ArrayList<Integer> ids = new ArrayList<>();
+static ArrayList<String> getLevelIdsForChapter(int chapter) {
+    ArrayList<String> ids = new ArrayList<>();
     if (chapter == 0) {
-        // Chapter 1: all existing levels (1~10)
-        int count = TdAssets.getLevelCount();
-        for (int i = 1; i <= count; i++) ids.add(i);
+        // Chapter 1: levels 11~19, 110
+        for (int i = 1; i <= 9; i++) ids.add("1" + i);
+        ids.add("110");
+    } else if (chapter == 3) {
+        // Custom chapter: test maze level
+        ids.add("test");
     }
     // Chapter 2 and 3 are empty for now
+    // Sort numeric IDs numerically
+    ids.sort((a, b) -> {
+        boolean aNum = a.matches("\\d+");
+        boolean bNum = b.matches("\\d+");
+        if (aNum && bNum) {
+            return Integer.compare(Integer.parseInt(a), Integer.parseInt(b));
+        }
+        return a.compareTo(b);
+    });
     return ids;
 }
 
+/**
+ * Convert chapter-1 level ID to 1-based index (11→1, 12→2, …, 19→9, 110→10).
+ * Returns -1 for non-numeric IDs or IDs outside chapter 1 range.
+ */
+static int getLevelIndex(String levelId) {
+    if (levelId == null) return -1;
+    try {
+        return Integer.parseInt(levelId.substring(1));
+    } catch (NumberFormatException e) {
+        return -1;
+    } catch (StringIndexOutOfBoundsException e) {
+        return -1;
+    }
+}
+
+/** Convert 1~99 integer to Chinese number string (e.g. 5 → "五", 10 → "十", 15 → "十五"). */
+static String toChineseNumber(int n) {
+    if (n <= 0) return String.valueOf(n);
+    String[] digits = {"零", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
+    if (n < 10) return digits[n];
+    if (n < 20) return "十" + (n == 10 ? "" : digits[n % 10]);
+    if (n < 100) {
+        return digits[n / 10] + "十" + (n % 10 == 0 ? "" : digits[n % 10]);
+    }
+    return String.valueOf(n);
+}
+
 enum TdState { INTRO, MENU, LEVEL_SELECT, SETTINGS, BRIEFING, PLAYING, PAUSED, WIN, LOSE }
-enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW, POISON, COMMAND }
+enum TdBuildMode { NONE, MG, MISSILE, LASER, SLOW, POISON, COMMAND, TESLA, PIERCER }
