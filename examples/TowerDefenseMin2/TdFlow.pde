@@ -142,7 +142,10 @@ static final class TdFlow {
     static void buildMainMenu(TowerDefenseMin2 app) {
         // Clear level-select chapter memory on return to main menu
         java.util.Arrays.fill(TdLevelList.CHAPTER_MEMORY, 0);
-        TdGameWorld.level = null;
+        TdGameWorld.reset();
+        app.buildMode = TdBuildMode.NONE;
+        app.showTowerRanges = false;
+        app.engine.getGameTime().setTargetTimeScale(1.0f);
 
         // println("[DEBUG] buildMainMenu called, current state=" + app.state);
         TdSaveData.saveSettings();
@@ -263,6 +266,10 @@ static final class TdFlow {
     }
 
     static void showLevelSelect(TowerDefenseMin2 app) {
+        TdGameWorld.reset();
+        app.buildMode = TdBuildMode.NONE;
+        app.showTowerRanges = false;
+        app.engine.getGameTime().setTargetTimeScale(1.0f);
         difficultySelectLevelId = null;
         resumeDialogLevelId = null;
         app.state = TdState.LEVEL_SELECT;
@@ -411,6 +418,10 @@ static final class TdFlow {
     }
 
     static void showSettings(TowerDefenseMin2 app, boolean animated) {
+        TdGameWorld.reset();
+        app.buildMode = TdBuildMode.NONE;
+        app.showTowerRanges = false;
+        app.engine.getGameTime().setTargetTimeScale(1.0f);
         app.state = TdState.SETTINGS;
         Panel root = app.ui.getRoot();
         root.removeAllChildren();
@@ -1051,6 +1062,13 @@ static final class TdFlow {
     static void showPauseMenu(TowerDefenseMin2 app) {
         app.state = TdState.PAUSED;
         Panel root = app.ui.getRoot();
+        // Force-remove any lingering sell menu panel (closeSellMenu tween was killed by killAll)
+        for (UIComponent c : new java.util.ArrayList<>(root.getChildren())) {
+            if ("sell_menu".equals(c.getId())) {
+                root.remove(c);
+            }
+        }
+        app.sellMenuPanel = null;
         // Remove any load-success toast before killing tweens (prevents orphaned label)
         for (UIComponent c : new java.util.ArrayList<>(root.getChildren())) {
             if ("lbl_load_success".equals(c.getId())) {

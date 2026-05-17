@@ -37,6 +37,10 @@ static class TdTutorial {
             currentKey = null;
         });
 
+        overlay.setOnNextButtonClick(() -> {
+            TdSound.playClick();
+        });
+
         sequence.setOnStepChanged(() -> {
             overlay.refreshTarget();
             refreshWorldRenderer();
@@ -156,6 +160,9 @@ static class TdTutorial {
                     break;
                 case "key":
                     s.advanceMode = shenyf.p5engine.ui.tutorial.TutorialStep.AdvanceMode.KEY;
+                    break;
+                case "button":
+                    s.advanceMode = shenyf.p5engine.ui.tutorial.TutorialStep.AdvanceMode.BUTTON;
                     break;
                 default:
                     s.advanceMode = shenyf.p5engine.ui.tutorial.TutorialStep.AdvanceMode.CLICK;

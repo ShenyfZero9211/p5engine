@@ -40,7 +40,7 @@ static class LevelCarousel extends Panel {
         super(id);
         this.appRef = app;
         setPaintBackground(false);
-        this.defaultPreview = app.loadImage("textures/thumbnails/chapter1_0.jpg");
+        this.defaultPreview = shenyf.p5engine.resource.ppak.PPak.getInstance().image("textures/thumbnails/chapter1_0.jpg");
     }
 
     void loadLevels(int chapter) {
@@ -55,7 +55,7 @@ static class LevelCarousel extends Panel {
             if (name == null || name.startsWith("level.")) {
                 name = TdAssets.i18n("levelSelect.level", lid);
             }
-            PImage img = appRef.loadImage("previews/level_" + lid + ".png");
+            PImage img = shenyf.p5engine.resource.ppak.PPak.getInstance().image("previews/level_" + lid + ".png");
             cards.add(new LevelCard(lid, name, img));
         }
     }
@@ -199,7 +199,7 @@ static class LevelCarousel extends Panel {
             g.noStroke();
             int bgColor = isPressed ? 0xFF151B2E : 0xFF1A2035;
             g.fill(bgColor);
-            g.rect(0, 0, cardW, cardH, 4);
+            g.rect(0, 0, cardW, cardH, 4 * scale);
 
             // Preview image or placeholder
             float previewMargin = 6 * scale;
@@ -238,18 +238,18 @@ static class LevelCarousel extends Panel {
             if (isSelected) {
                 // Accent glow border
                 g.stroke(0xFF4A9EFF);
-                g.strokeWeight(2);
+                g.strokeWeight(2 * scale);
                 g.noFill();
-                g.rect(1, 1, cardW - 2, cardH - 2, 4);
+                g.rect(1 * scale, 1 * scale, cardW - 2 * scale, cardH - 2 * scale, 4 * scale);
                 // Subtle inner glow
                 g.stroke(0x404A9EFF);
-                g.strokeWeight(1);
-                g.rect(2, 2, cardW - 4, cardH - 4, 3);
+                g.strokeWeight(1 * scale);
+                g.rect(2 * scale, 2 * scale, cardW - 4 * scale, cardH - 4 * scale, 3 * scale);
             } else {
                 g.stroke(0xFF2A3A55);
-                g.strokeWeight(1);
+                g.strokeWeight(1 * scale);
                 g.noFill();
-                g.rect(0.5f, 0.5f, cardW - 1, cardH - 1, 4);
+                g.rect(0.5f * scale, 0.5f * scale, cardW - 1 * scale, cardH - 1 * scale, 4 * scale);
             }
 
             // Lock overlay
@@ -290,7 +290,7 @@ static class LevelCarousel extends Panel {
         g.fill(0xFF4ADE80);
         g.ellipse(cx, cy, 8 * scale, 8 * scale);
         g.stroke(0xFFFFFFFF);
-        g.strokeWeight(1.5f);
+        g.strokeWeight(1.5f * scale);
         g.strokeCap(PApplet.ROUND);
         g.line(cx - 2 * scale, cy, cx, cy + 2 * scale);
         g.line(cx, cy + 2 * scale, cx + 3 * scale, cy - 2 * scale);

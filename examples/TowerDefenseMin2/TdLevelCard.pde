@@ -73,23 +73,25 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
         float h = getHeight();
         float alpha = getEffectiveAlpha();
 
-        float scale = pressedVisual ? 0.96f : 1.0f;
+        float cardScale = w / 220f;
+
+        float pressScale = pressedVisual ? 0.96f : 1.0f;
         float cx = x + w * 0.5f;
         float cy = y + h * 0.5f;
 
         g.pushMatrix();
         g.translate(cx, cy);
-        g.scale(scale);
+        g.scale(pressScale);
         g.translate(-cx, -cy);
 
         // Background
         int bg = !unlocked ? BG_NORMAL : (pressedVisual ? BG_PRESS : (hover ? BG_HOVER : BG_NORMAL));
         g.noStroke();
         g.fill(applyAlpha(bg, alpha));
-        g.rect(x, y, w, h, 4);
+        g.rect(x, y, w, h, 4 * cardScale);
 
         // Preview image area (top 55%, 6px margin)
-        float margin = 6f;
+        float margin = 6f * cardScale;
         float previewH = h * 0.55f;
         float px = x + margin;
         float py = y + margin;
@@ -108,13 +110,13 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
         } else {
             g.noStroke();
             g.fill(applyAlpha(0xFF111827, alpha));
-            g.rect(px, py, pw, ph, 2);
+            g.rect(px, py, pw, ph, 2 * cardScale);
             g.stroke(applyAlpha(BORDER, alpha));
-            g.strokeWeight(1);
+            g.strokeWeight(1 * cardScale);
             float cx2 = px + pw / 2;
             float cy2 = py + ph / 2;
-            g.line(cx2 - 10, cy2, cx2 + 10, cy2);
-            g.line(cx2, cy2 - 10, cx2, cy2 + 10);
+            g.line(cx2 - 10 * cardScale, cy2, cx2 + 10 * cardScale, cy2);
+            g.line(cx2, cy2 - 10 * cardScale, cx2, cy2 + 10 * cardScale);
         }
 
         // Level name (two lines: chinese number + name)
@@ -126,7 +128,7 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
             PFont f = ((TdTheme) theme).getFont();
             if (f != null) g.textFont(f);
         }
-        float textSize = Math.max(12, getHeight() * 0.075f);
+        float textSize = Math.max(12 * cardScale, h * 0.075f);
         g.textSize(textSize);
         float textAreaTop = y + previewH;
         float textAreaH = h - previewH - margin;
@@ -147,39 +149,39 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
             g.noFill();
             // Outer glow layers
             g.stroke(applyAlpha(ACCENT, alpha * (0.04f + pulse * 0.08f)));
-            g.strokeWeight(8f + pulse * 10f);
-            g.rect(x - 4, y - 4, w + 8, h + 8, 6);
+            g.strokeWeight((6f + pulse * 7.5f) * cardScale);
+            g.rect(x - 3 * cardScale, y - 3 * cardScale, w + 6 * cardScale, h + 6 * cardScale, 4 * cardScale);
             g.stroke(applyAlpha(ACCENT, alpha * (0.10f + pulse * 0.15f)));
-            g.strokeWeight(4f + pulse * 5f);
-            g.rect(x - 1, y - 1, w + 2, h + 2, 5);
+            g.strokeWeight((3f + pulse * 3.75f) * cardScale);
+            g.rect(x - 1 * cardScale, y - 1 * cardScale, w + 2 * cardScale, h + 2 * cardScale, 4 * cardScale);
             // Main border
             g.stroke(applyAlpha(ACCENT, alpha));
-            g.strokeWeight(2.5f + pulse * 2.5f);
-            g.rect(x + 1, y + 1, w - 2, h - 2, 4);
+            g.strokeWeight((2f + pulse * 2f) * cardScale);
+            g.rect(x + 1 * cardScale, y + 1 * cardScale, w - 2 * cardScale, h - 2 * cardScale, 3 * cardScale);
             // Inner accent line
             g.stroke(applyAlpha(ACCENT & 0x60FFFFFF, alpha * (0.5f + pulse * 0.5f)));
-            g.strokeWeight(1.5f + pulse * 1.5f);
-            g.rect(x + 3, y + 3, w - 6, h - 6, 3);
+            g.strokeWeight((1f + pulse * 1f) * cardScale);
+            g.rect(x + 2 * cardScale, y + 2 * cardScale, w - 4 * cardScale, h - 4 * cardScale, 2 * cardScale);
         } else {
             if (hover) {
                 g.stroke(applyAlpha(ACCENT, alpha * 0.8f));
-                g.strokeWeight(1.5f);
+                g.strokeWeight(1.5f * cardScale);
             } else {
                 g.stroke(applyAlpha(BORDER, alpha));
-                g.strokeWeight(1);
+                g.strokeWeight(1 * cardScale);
             }
             g.noFill();
-            g.rect(x + 0.5f, y + 0.5f, w - 1, h - 1, 4);
+            g.rect(x + 0.5f * cardScale, y + 0.5f * cardScale, w - 1 * cardScale, h - 1 * cardScale, 4 * cardScale);
         }
 
         // Lock overlay
         if (!unlocked) {
             g.noStroke();
             g.fill(applyAlpha(0xB0000000, alpha));
-            g.rect(x, y, w, h, 4);
-            drawLock(g, x + w / 2f, y + h / 2f, alpha);
+            g.rect(x, y, w, h, 4 * cardScale);
+            drawLock(g, x + w / 2f, y + h / 2f, alpha, cardScale);
         } else if (cleared) {
-            drawClearedBadge(g, x + w - 40, y + 36, alpha);
+            drawClearedBadge(g, x + w - 28 * cardScale, y + 22 * cardScale, alpha, cardScale);
         }
 
         g.popMatrix();
@@ -190,34 +192,34 @@ static public class TdLevelCard extends shenyf.p5engine.ui.Button {
         }
     }
 
-    private void drawLock(PApplet g, float cx, float cy, float alpha) {
+    private void drawLock(PApplet g, float cx, float cy, float alpha, float scale) {
         g.pushStyle();
         g.noFill();
         g.stroke(applyAlpha(LOCK_COLOR, alpha));
-        g.strokeWeight(2.0f);
+        g.strokeWeight(2.0f * scale);
         g.strokeCap(PApplet.ROUND);
-        float r = 5f;
-        g.arc(cx, cy - 1, r * 2, r * 2, PApplet.PI, PApplet.TWO_PI);
+        float r = 5f * scale;
+        g.arc(cx, cy - 1 * scale, r * 2, r * 2, PApplet.PI, PApplet.TWO_PI);
         g.noStroke();
         g.fill(applyAlpha(LOCK_COLOR, alpha));
-        g.rect(cx - r, cy - 1, r * 2, r + 2, 1.5f);
+        g.rect(cx - r, cy - 1 * scale, r * 2, r + 2 * scale, 1.5f * scale);
         g.fill(applyAlpha(0xFF444444, alpha));
-        g.ellipse(cx, cy + 2, 2, 2);
+        g.ellipse(cx, cy + 2 * scale, 2 * scale, 2 * scale);
         g.popStyle();
     }
 
-    private void drawClearedBadge(PApplet g, float cx, float cy, float alpha) {
+    private void drawClearedBadge(PApplet g, float cx, float cy, float alpha, float scale) {
         g.pushStyle();
         g.noStroke();
         g.fill(applyAlpha(0x404ADE80, alpha));
-        drawPolyCircle(g.g, cx, cy, 24, 16);
+        drawPolyCircle(g.g, cx, cy, 18 * scale, 16);
         g.fill(applyAlpha(0xFF4ADE80, alpha));
-        drawPolyCircle(g.g, cx, cy, 15, 16);
+        drawPolyCircle(g.g, cx, cy, 11 * scale, 16);
         g.stroke(applyAlpha(0xFFFFFFFF, alpha));
-        g.strokeWeight(4);
+        g.strokeWeight(3 * scale);
         g.strokeCap(PApplet.ROUND);
-        g.line(cx - 9, cy, cx, cy + 9);
-        g.line(cx, cy + 9, cx + 12, cy - 9);
+        g.line(cx - 7 * scale, cy, cx, cy + 7 * scale);
+        g.line(cx, cy + 7 * scale, cx + 9 * scale, cy - 7 * scale);
         g.popStyle();
     }
 

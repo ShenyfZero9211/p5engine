@@ -217,6 +217,7 @@ static final class TdSaveLoad {
       o.setInt("gridX", t.gridX);
       o.setInt("gridY", t.gridY);
       o.setBoolean("built", t.built);
+      o.setFloat("buildProgress", t.buildProgress);
       o.setInt("upgradeLevel", t.upgradeLevel);
       o.setBoolean("isUpgrading", t.isUpgrading);
       o.setFloat("upgradeProgress", t.upgradeProgress);
@@ -229,7 +230,7 @@ static final class TdSaveLoad {
   static JSONArray serializeEnemies() {
     JSONArray arr = new JSONArray();
     for (Enemy e : TdGameWorld.enemies) {
-      if (e.hp <= 0) continue;
+      if (e.hp <= 0 || e.reachedEnd) continue;
       JSONObject o = new JSONObject();
       o.setString("type", e.enemyDef.key);
       o.setFloat("hp", e.hp);
@@ -238,6 +239,8 @@ static final class TdSaveLoad {
       o.setFloat("slowFactor", e.slowFactor);
       o.setFloat("targetSlowFactor", e.targetSlowFactor);
       o.setFloat("slowTimer", e.slowTimer);
+      o.setFloat("armor", e.armor);
+      o.setFloat("maxArmor", e.maxArmor);
       o.setFloat("routeProgress", e.routeProgress);
       o.setString("state", e.state.name());
       o.setBoolean("hasStolen", e.hasStolen);
@@ -309,6 +312,7 @@ static final class TdSaveLoad {
 
       Tower t = new Tower(def, o.getInt("gridX"), o.getInt("gridY"));
       t.built = o.getBoolean("built", false);
+      t.buildProgress = o.getFloat("buildProgress", 0f);
       t.upgradeLevel = o.getInt("upgradeLevel", 0);
       t.isUpgrading = o.getBoolean("isUpgrading", false);
       t.upgradeProgress = o.getFloat("upgradeProgress", 0f);
@@ -341,6 +345,8 @@ static final class TdSaveLoad {
       e.slowFactor = o.getFloat("slowFactor", 1f);
       e.targetSlowFactor = o.getFloat("targetSlowFactor", 1f);
       e.slowTimer = o.getFloat("slowTimer", 0f);
+      e.armor = o.getFloat("armor", def.armor);
+      e.maxArmor = o.getFloat("maxArmor", e.armor);
       e.routeProgress = o.getFloat("routeProgress", 0f);
       String stateStr = o.getString("state", "MOVE_TO_BASE");
       try {

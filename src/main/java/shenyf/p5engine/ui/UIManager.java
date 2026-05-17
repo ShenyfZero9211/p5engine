@@ -668,6 +668,17 @@ public final class UIManager {
         return mouseOverComponent;
     }
 
+    /** Returns true if the deepest component under the mouse is {@code ancestor} or one of its descendants. */
+    public boolean isMouseOverDescendantOf(UIComponent ancestor) {
+        if (ancestor == null || mouseOverComponent == null) return false;
+        UIComponent c = mouseOverComponent;
+        while (c != null) {
+            if (c == ancestor) return true;
+            c = c.getParent();
+        }
+        return false;
+    }
+
     /**
      * Closes any open MenuBar popups if the given coordinates are outside the popup and menu titles.
      * Returns true if a popup was closed.

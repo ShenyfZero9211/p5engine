@@ -215,7 +215,7 @@ if ($UsePpak) {
     # Collect all resource directories at sketch root
     $ppakDirs = @()
     $ppakDirNames = @()
-    foreach ($dirName in @("data", "music", "sounds", "textures", "images", "fonts", "assets", "resources", "videos", "maps", "levels")) {
+    foreach ($dirName in @("data", "music", "sounds", "textures", "images", "fonts", "assets", "resources", "videos", "maps", "levels", "cur")) {
         $dirPath = Join-Path $SketchDir $dirName
         if (Test-Path $dirPath) {
             $ppakDirs += $dirPath

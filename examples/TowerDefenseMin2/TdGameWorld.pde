@@ -42,7 +42,7 @@ static final class TdGameWorld {
     }
     static ArrayList<ActiveSpawn> activeSpawns = new ArrayList<>();
 
-    static boolean startLevel(TowerDefenseMin2 app, String levelId, String difficultyKey) {
+    static void reset() {
         // Clean up old entities
         for (Enemy e : enemies) {
             if (e.gameObject != null) e.gameObject.markForDestroy();
@@ -64,11 +64,35 @@ static final class TdGameWorld {
         effects.clear();
         pendingLaserHits.clear();
         pendingAttaches.clear();
-        TowerDefenseMin2.inst.lighting.clear();
+        activeSpawns.clear();
+        blockedGrids.clear();
+        zoneBlockedGrids.clear();
+        if (TowerDefenseMin2.inst != null && TowerDefenseMin2.inst.lighting != null) {
+            TowerDefenseMin2.inst.lighting.clear();
+        }
         winLoseDelay = 0;
         pendingWin = false;
-        activeSpawns.clear();
-        activeSpawns.clear();
+        level = null;
+        money = 0;
+        orbits = 0;
+        currentWave = 0;
+        escapedEnemies = 0;
+        waveTimer = 0;
+        spawnTimer = 0;
+        waveInProgress = false;
+        firstTowerPlaced = false;
+        levelStartTotalTime = 0;
+        levelPlayTime = 0;
+        waveSpawnIndex = 0;
+        waveSpawnCount = 0;
+        baseIncomeAccumulator = 0;
+        difficultyHpMulti = 1.0f;
+        difficultyRewardMulti = 1.0f;
+        currentDifficultyKey = "normal";
+    }
+
+    static boolean startLevel(TowerDefenseMin2 app, String levelId, String difficultyKey) {
+        reset();
 
         level = TdAssets.loadLevel(levelId, difficultyKey);
         if (level == null) {

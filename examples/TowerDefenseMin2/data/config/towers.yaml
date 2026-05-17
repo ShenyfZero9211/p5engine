@@ -152,7 +152,7 @@ towers:
     upgrade2:                       # 毒素再+30%，喷射角度 +50%
       cost: 120
       buildTime: 3.0
-    poisonDamage: 5                 # 毒素每秒伤害（DPS）
+    poisonDamage: 15                 # 毒素每秒伤害（DPS）
     poisonDuration: 4.0             # 毒素持续时间（秒），可叠加
     poisonFanAngle: 90              # 扇形喷射角度（度），例如 90=直角，120=更宽，60=更窄
     sfx:
@@ -197,10 +197,10 @@ towers:
     # 特斯拉塔 — 连锁闪电，对密集敌群效率极高
     nameKey: tower.tesla.name
     descKey: tower.tesla.desc
-    cost: 120                       # 建造花费（金币）
+    cost: 280                       # 建造花费（金币）
     range: 160                      # 攻击射程（像素）
     firePeriod: 2.5                 # 发射冷却间隔（秒）
-    damage: 25                      # 基础伤害
+    damage: 50                      # 基础伤害
     aoeRadius: 0                    # 爆炸/范围即时伤害半径（不使用）
     laserBonus: 0                   # 激光额外伤害（不使用）
     slowFactor: 0                   # 减速系数（不使用）

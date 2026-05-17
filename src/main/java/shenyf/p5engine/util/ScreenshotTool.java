@@ -50,16 +50,26 @@ public class ScreenshotTool {
         // PImage pixels are stored in ARGB format (32-bit int)
         int w = pimg.width;
         int h = pimg.height;
-        BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        // Use TYPE_INT_RGB for Windows clipboard compatibility.
+        // TYPE_INT_ARGB's DirectColorModel can cause imageToStandardBytes
+        // to fail inside WDataTransferer on Windows + OpenJDK 17.
+        BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         pimg.loadPixels();
         bi.setRGB(0, 0, w, h, pimg.pixels, 0, w);
         return bi;
     }
 
     private static void copyToClipboard(BufferedImage image) {
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-            new TransferableImage(image), null
-        );
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                new TransferableImage(image), null
+            );
+        } catch (IllegalStateException e) {
+            // Clipboard may be locked by another application
+            Logger.warn("Screenshot clipboard copy skipped: clipboard unavailable");
+        } catch (Exception e) {
+            Logger.warn("Screenshot clipboard copy failed: " + e.getClass().getSimpleName());
+        }
     }
 
     private static void saveToFile(PApplet applet, BufferedImage image, String outputDir) {

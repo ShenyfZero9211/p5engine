@@ -95,6 +95,7 @@ public class TutorialSequence {
                 nextStep();
             }
         }
+        // BUTTON mode: do not auto-advance; wait for user to click the next button
     }
 
     public boolean isActive() {

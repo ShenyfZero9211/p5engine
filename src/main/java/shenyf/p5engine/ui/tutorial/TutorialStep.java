@@ -26,7 +26,9 @@ public class TutorialStep {
         /** Advance automatically after {@link #autoDuration} seconds. */
         AUTO,
         /** Advance when user presses any key or clicks. */
-        KEY
+        KEY,
+        /** Advance when user clicks the "Next" button inside the speech bubble. */
+        BUTTON
     }
 
     public enum BorderEffect {

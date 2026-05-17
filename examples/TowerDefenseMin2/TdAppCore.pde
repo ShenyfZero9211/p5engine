@@ -58,8 +58,8 @@ final class TdAppSetup {
         ui.setTheme(theme);
         TdTutorial.init(ui);
 
-        // Load custom cursor
-        PImage cursorImg = loadImage("cur/cursor_optimized.png");
+        // Load custom cursor (PPak-compatible for EXE, auto-fallback to filesystem in dev mode)
+        PImage cursorImg = shenyf.p5engine.resource.ppak.PPak.getInstance().image("cur/cursor_optimized.png");
         if (cursorImg != null) {
             ui.setCustomCursor(cursorImg);
             float cursorScale = engine.getSketchConfig().getFloat(SketchConfig.SECTION_UI, SketchConfig.KEY_CURSOR_SCALE, 0.65f);
@@ -309,6 +309,24 @@ static final class TdAppLoop {
         InputManager im = app.engine.getInput();
         TdAppInput.handleKeyboardInput(app, im);
 
+        // Debug overlay shortcuts via AsyncInput (bypasses IDE/NEWT interception of F-keys).
+        // Processing IDE intercepts F2-F4; NEWT may drop F9. GetAsyncKeyState polls raw HW state.
+        boolean f2Down = im.getAsyncInput().isDown(java.awt.event.KeyEvent.VK_F2);
+        boolean f3Down = im.getAsyncInput().isDown(java.awt.event.KeyEvent.VK_F3);
+        boolean f4Down = im.getAsyncInput().isDown(java.awt.event.KeyEvent.VK_F4);
+        boolean f5Down = im.getAsyncInput().isDown(java.awt.event.KeyEvent.VK_F5);
+        boolean f9Down = im.getAsyncInput().isDown(java.awt.event.KeyEvent.VK_F9);
+        if (f2Down && !TdAppInput.wasF2Down) app.engine.getDebugOverlay().toggleGizmos();
+        if (f3Down && !TdAppInput.wasF3Down) app.engine.getDebugOverlay().toggleTree();
+        if (f4Down && !TdAppInput.wasF4Down) app.engine.getDebugOverlay().toggleHud();
+        if (f5Down && !TdAppInput.wasF5Down) shenyf.p5engine.util.Logger.cycleLevel();
+        if (f9Down && !TdAppInput.wasF9Down) TdAppInput.saveScreenshotToFile(app);
+        TdAppInput.wasF2Down = f2Down;
+        TdAppInput.wasF3Down = f3Down;
+        TdAppInput.wasF4Down = f4Down;
+        TdAppInput.wasF5Down = f5Down;
+        TdAppInput.wasF9Down = f9Down;
+
         // During gameplay, navigation keys control camera scroll, not UI focus
         app.ui.setGameInputActive(app.state == TdState.PLAYING);
 
@@ -469,12 +487,21 @@ static final class TdAppInput {
     static boolean dragConsumedClick = false;
     static float dragAnchorScreenX, dragAnchorScreenY;
     static float dragAnchorCameraX, dragAnchorCameraY;
+    static boolean wasF9Down = false;
+    static boolean wasF2Down = false;
+    static boolean wasF3Down = false;
+    static boolean wasF4Down = false;
+    static boolean wasF5Down = false;
 
     static void keyPressed(TowerDefenseMin2 app) {
         // ESC is a system-level shortcut: always handle pause/menu first,
         // then let the tutorial skip itself if active.
         if (app.key == PApplet.ESC) {
             app.key = 0; // Block Processing default quit behavior
+            // Close sell menu if open before popping any menu
+            if (app.sellMenuPanel != null) {
+                TdAppUtils.closeSellMenu(app);
+            }
             // Check if exit-save dialog is open — close it first
             boolean hasExitDialog = false;
             for (UIComponent c : app.ui.getRoot().getChildren()) {
@@ -490,11 +517,6 @@ static final class TdAppInput {
                     }
                 }
                 TdFlow.showPauseMenu(app);
-            } else if (app.sellMenuPanel != null) {
-                TdAppUtils.closeSellMenu(app);
-                if (app.state == TdState.PLAYING) {
-                    TdFlow.showPauseMenu(app);
-                }
             } else if (app.state == TdState.BRIEFING) {
                 TdFlow.showDifficultySelect(app, TdFlow.briefingLevelId);
             } else if (app.state == TdState.PLAYING) {
@@ -524,6 +546,9 @@ static final class TdAppInput {
             }
             return;
         }
+
+        // F9 screenshot is handled in TdAppLoop.run() via AsyncInput polling
+        // because Processing P2D mode (JOGL/NEWT) does not deliver F9 via keyPressed().
 
         // Non-ESC keys: tutorial has first dibs
         if (TdTutorial.isActive()) {
@@ -594,6 +619,23 @@ static final class TdAppInput {
                     }
                 }
             }
+        }
+    }
+
+    static void saveScreenshotToFile(TowerDefenseMin2 app) {
+        try {
+            String dir = app.sketchPath("screenshots");
+            java.io.File d = new java.io.File(dir);
+            if (!d.exists()) d.mkdirs();
+            String ts = app.year() + "-" + nf(app.month(), 2) + "-" + nf(app.day(), 2)
+                      + "_" + nf(app.hour(), 2) + "-" + nf(app.minute(), 2) + "-" + nf(app.second(), 2)
+                      + "-" + nf(app.millis() % 1000, 3);
+            String path = dir + "/screenshot_" + ts + ".png";
+            app.g.get().save(path);
+            println("[Screenshot] Saved: " + path);
+        } catch (Exception e) {
+            println("[Screenshot] Save failed: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -1055,7 +1097,7 @@ static final class TdAppUtils {
             int state;
             if (tower.upgradeLevel >= 2 || tower.isUpgrading) state = 0;
             else if (!TdAppUtils.isUpgradeAllowed(tower)) state = 1;
-            else if (TdGameWorld.money < cost) state = 2;
+            else if (TdGameWorld.money < cost && !appRef.devMode) state = 2;
             else if (tower.upgradeLevel == 0) state = 3;
             else state = 4;
 
@@ -1085,7 +1127,7 @@ static final class TdAppUtils {
                     setLabel(TdAssets.i18n("tower.upgrade") + " ($" + cost + ")");
                     setEnabled(true);
                     setAction(() -> {
-                        TdGameWorld.money -= cost;
+                        if (!appRef.devMode) TdGameWorld.money -= cost;
                         tower.isUpgrading = true;
                         tower.upgradeProgress = 0;
                         TowerDefenseMin2 app = TowerDefenseMin2.inst;
@@ -1096,7 +1138,7 @@ static final class TdAppUtils {
                     setLabel(TdAssets.i18n("tower.upgrade") + " II ($" + cost + ")");
                     setEnabled(true);
                     setAction(() -> {
-                        TdGameWorld.money -= cost;
+                        if (!appRef.devMode) TdGameWorld.money -= cost;
                         tower.isUpgrading = true;
                         tower.upgradeProgress = 0;
                         TowerDefenseMin2 app = TowerDefenseMin2.inst;

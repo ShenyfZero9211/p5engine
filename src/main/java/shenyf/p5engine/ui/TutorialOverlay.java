@@ -43,6 +43,13 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
     private float bubbleMaxW = 420;
     private float bubbleCorner = 4;
 
+    // Next button area (design-resolution coords, updated during paintBubble)
+    private float nextButtonX, nextButtonY, nextButtonW, nextButtonH;
+    private boolean hasNextButton = false;
+    private boolean nextButtonHover = false;
+    private boolean nextButtonPressed = false;
+    private Runnable onNextButtonClick;
+
     public TutorialOverlay(String id, UIManager uiManager) {
         super(id);
         this.uiManager = uiManager;
@@ -55,12 +62,17 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
         refreshTarget();
     }
 
+    public void setOnNextButtonClick(Runnable callback) {
+        this.onNextButtonClick = callback;
+    }
+
     public TutorialSequence getSequence() {
         return sequence;
     }
 
     public void refreshTarget() {
         hasTarget = false;
+        hasNextButton = false;
         extraTargets.clear();
         if (sequence == null || !sequence.isActive()) return;
         TutorialStep step = sequence.getCurrentStep();
@@ -176,6 +188,19 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
             rejectShakeTimer -= dt * 5.0f;
             if (rejectShakeTimer < 0) rejectShakeTimer = 0;
         }
+        // Update next button hover / pressed state
+        if (hasNextButton) {
+            float mx = UIManager.getDesignMouseX();
+            float my = UIManager.getDesignMouseY();
+            nextButtonHover = mx >= nextButtonX && mx <= nextButtonX + nextButtonW
+                           && my >= nextButtonY && my <= nextButtonY + nextButtonH;
+            if (nextButtonPressed && !nextButtonHover) {
+                nextButtonPressed = false; // cancel press if mouse drags out
+            }
+        } else {
+            nextButtonHover = false;
+            nextButtonPressed = false;
+        }
         if (sequence != null) {
             sequence.update(dt);
             // If step changed, refresh target
@@ -288,7 +313,8 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
         float lineH = g.textAscent() + g.textDescent();
         float textH = lines.length * lineH;
         float bubbleW = bubbleMaxW;
-        float bubbleH = textH + bubblePad * 2 + 20; // +20 for hint text
+        boolean isButtonMode = (step.advanceMode == TutorialStep.AdvanceMode.BUTTON);
+        float bubbleH = textH + bubblePad * 2 + (isButtonMode ? 52 : 20); // +52 for button row, +20 for hint text
 
         boolean isGlobal = (step.targetType == TutorialStep.TargetType.GLOBAL)
                         || (step.targetType == TutorialStep.TargetType.FULL_SCREEN_NO_MASK);
@@ -386,14 +412,56 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
             textY += lineH;
         }
 
-        // Draw hint text (click to continue)
-        g.textSize(12);
-        g.fill(HINT_COLOR);
-        String hint = step.advanceMode == TutorialStep.AdvanceMode.AUTO
-                ? "" : shenyf.p5engine.core.P5Engine.getInstance().getI18n().get("tutorial.click.continue");
-        if (!hint.isEmpty() && !hint.equals("tutorial.click.continue")) {
-            g.textAlign(PApplet.CENTER, PApplet.BOTTOM);
-            g.text(hint, bubbleX + bubbleW / 2, bubbleY + bubbleH - bubblePad / 2);
+        // Draw hint text (click to continue) — only for CLICK/KEY modes
+        if (step.advanceMode != TutorialStep.AdvanceMode.BUTTON) {
+            g.textSize(12);
+            g.fill(HINT_COLOR);
+            String hint = step.advanceMode == TutorialStep.AdvanceMode.AUTO
+                    ? "" : shenyf.p5engine.core.P5Engine.getInstance().getI18n().get("tutorial.click.continue");
+            if (!hint.isEmpty() && !hint.equals("tutorial.click.continue")) {
+                g.textAlign(PApplet.CENTER, PApplet.BOTTOM);
+                g.text(hint, bubbleX + bubbleW / 2, bubbleY + bubbleH - bubblePad / 2);
+            }
+        }
+
+        // Draw "Next" button for BUTTON advance mode
+        if (step.advanceMode == TutorialStep.AdvanceMode.BUTTON) {
+            float btnW = 90;
+            float btnH = 32;
+            float btnX = bubbleX + (bubbleW - btnW) / 2;
+            float btnY = bubbleY + bubbleH - btnH - bubblePad;
+
+            nextButtonX = btnX;
+            nextButtonY = btnY;
+            nextButtonW = btnW;
+            nextButtonH = btnH;
+            hasNextButton = true;
+
+            // Button background (interactive states)
+            g.noStroke();
+            if (nextButtonPressed) {
+                g.fill(0xFF151B2E);
+            } else if (nextButtonHover) {
+                g.fill(0xFF3F4D6A);
+            } else {
+                g.fill(0xFF2A3A55);
+            }
+            g.rect(btnX, btnY, btnW, btnH, 4);
+
+            // Button border
+            g.noFill();
+            g.stroke(nextButtonHover ? 0xFF6AB2FF : 0xFF4A9EFF);
+            g.strokeWeight(nextButtonHover ? 2f : 1.5f);
+            g.rect(btnX + 0.5f, btnY + 0.5f, btnW - 1, btnH - 1, 4);
+
+            // Button text
+            g.noStroke();
+            g.fill(TEXT_COLOR);
+            g.textAlign(PApplet.CENTER, PApplet.CENTER);
+            g.textSize(14);
+            String nextText = shenyf.p5engine.core.P5Engine.getInstance().getI18n().get("tutorial.next");
+            if (nextText == null || nextText.equals("tutorial.next")) nextText = "下一步";
+            g.text(nextText, btnX + btnW / 2, btnY + btnH / 2);
         }
 
         g.popStyle();
@@ -456,6 +524,24 @@ public class TutorialOverlay extends Panel implements EventInterceptor {
             float us = dm.getUniformScale();
             mx = (mx - dm.getOffsetX()) / us;
             my = (my - dm.getOffsetY()) / us;
+        }
+
+        // Check "Next" button hit for BUTTON advance mode
+        if (step != null && step.advanceMode == TutorialStep.AdvanceMode.BUTTON && hasNextButton) {
+            boolean onButton = mx >= nextButtonX && mx <= nextButtonX + nextButtonW
+                            && my >= nextButtonY && my <= nextButtonY + nextButtonH;
+            if (onButton) {
+                if (act == MouseEvent.PRESS) {
+                    nextButtonPressed = true;
+                } else if (act == MouseEvent.RELEASE && nextButtonPressed) {
+                    nextButtonPressed = false;
+                    sequence.nextStep();
+                    if (onNextButtonClick != null) {
+                        onNextButtonClick.run();
+                    }
+                }
+                return true; // intercept: do not pass to underlying components
+            }
         }
 
         boolean inside = mx >= targetX && mx <= targetX + targetW

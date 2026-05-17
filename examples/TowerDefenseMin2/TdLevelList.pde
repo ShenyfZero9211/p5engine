@@ -48,7 +48,7 @@ static class TdLevelList extends Panel {
         ArrayList<String> ids = getLevelIdsForChapter(chapter);
         int maxReached = TdSaveData.getMaxLevelReached();
 
-        PImage defaultPreview = appRef.loadImage("textures/thumbnails/chapter1_0.jpg");
+        PImage defaultPreview = shenyf.p5engine.resource.ppak.PPak.getInstance().image("textures/thumbnails/chapter1_0.jpg");
 
         if (emptyLabel == null) {
             emptyLabel = new TdLabel("lbl_empty");
@@ -148,10 +148,12 @@ static class TdLevelList extends Panel {
         layoutCards();
 
         // Sync hover state after children update (children are disabled, so Button.update won't set hover)
+        // Skip if mouse is over a sibling component (e.g. arrow buttons)
+        boolean overSelf = appRef.ui.isMouseOverDescendantOf(this);
         float mx = UIManager.getDesignMouseX();
         float my = UIManager.getDesignMouseY();
         for (TdLevelCard card : cards) {
-            card.setHover(card.isVisible() && !card.isAnimating() && card.containsPoint(mx, my));
+            card.setHover(overSelf && card.isVisible() && !card.isAnimating() && card.containsPoint(mx, my));
         }
     }
 
@@ -209,31 +211,6 @@ static class TdLevelList extends Panel {
             }
         }
 
-        // Save original positions and temporarily scale children for high-res rendering
-        int n = cards.size();
-        float[] savedX = new float[n];
-        float[] savedY = new float[n];
-        float[] savedW = new float[n];
-        float[] savedH = new float[n];
-        for (int i = 0; i < n; i++) {
-            TdLevelCard card = cards.get(i);
-            savedX[i] = card.getX();
-            savedY[i] = card.getY();
-            savedW[i] = card.getWidth();
-            savedH[i] = card.getHeight();
-            card.setPosition(savedX[i] * scale, savedY[i] * scale);
-            card.setSize(savedW[i] * scale, savedH[i] * scale);
-        }
-
-        float emptySavedW = 0, emptySavedH = 0, emptySavedTextSize = 0;
-        if (emptyLabel != null && emptyLabel.isVisible()) {
-            emptySavedW = emptyLabel.getWidth();
-            emptySavedH = emptyLabel.getHeight();
-            emptySavedTextSize = emptyLabel.getCustomTextSize();
-            emptyLabel.setSize(emptySavedW * scale, emptySavedH * scale);
-            emptyLabel.setCustomTextSize(emptySavedTextSize * scale);
-        }
-
         // Temporarily offset position so children paint at buffer-local coordinates
         float origX = getX();
         float origY = getY();
@@ -245,22 +222,12 @@ static class TdLevelList extends Panel {
             applet.g = buffer;
             buffer.beginDraw();
             buffer.background(0, 0);
+            buffer.scale(scale);  // Restore FIT scaling inside buffer
             paintChildren(applet, theme);
             buffer.endDraw();
         } finally {
             applet.g = originalG;
             setPosition(origX, origY);
-        }
-
-        // Restore children to logical sizes
-        for (int i = 0; i < n; i++) {
-            TdLevelCard card = cards.get(i);
-            card.setPosition(savedX[i], savedY[i]);
-            card.setSize(savedW[i], savedH[i]);
-        }
-        if (emptyLabel != null && emptyLabel.isVisible()) {
-            emptyLabel.setSize(emptySavedW, emptySavedH);
-            emptyLabel.setCustomTextSize(emptySavedTextSize);
         }
 
         // Snapshot and apply edge-fade shader
@@ -286,6 +253,8 @@ static class TdLevelList extends Panel {
     @Override
     public boolean onEvent(UIEvent event, float absMouseX, float absMouseY) {
         if (!isEnabled()) return false;
+        // Ignore events when mouse is over a sibling component (e.g. arrow buttons)
+        if (!appRef.ui.isMouseOverDescendantOf(this)) return false;
 
         switch (event.getType()) {
             case MOUSE_PRESSED:

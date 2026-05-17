@@ -59,7 +59,7 @@ static final class TdAssets {
             if (all != null) {
                 for (String entry : all) {
                     String norm = entry.replace("\\", "/");
-                    if (norm.startsWith("textures/")) {
+                    if (norm.startsWith("textures/ruins/")) {
                         String name = new java.io.File(entry).getName();
                         if (name.startsWith("ruins_") && name.endsWith(".png")) {
                             names.add(name);
@@ -70,7 +70,7 @@ static final class TdAssets {
             java.util.Collections.sort(names);
             for (String name : names) {
                 shenyf.p5engine.rendering.Texture tex =
-                    images.load("textures/" + name);
+                    images.load("textures/ruins/" + name);
                 if (tex != null) list.add(tex);
             }
         }
@@ -78,7 +78,7 @@ static final class TdAssets {
         // Fallback to file system
         if (list.isEmpty()) {
             java.io.File dir = new java.io.File(
-                P5Engine.getInstance().getApplet().sketchPath("textures"));
+                P5Engine.getInstance().getApplet().sketchPath("textures"), "ruins");
             if (dir.exists()) {
                 java.io.File[] files = dir.listFiles(new java.io.FilenameFilter() {
                     public boolean accept(java.io.File d, String name) {
@@ -90,7 +90,7 @@ static final class TdAssets {
                         (a, b) -> a.getName().compareTo(b.getName()));
                     for (java.io.File f : files) {
                         shenyf.p5engine.rendering.Texture tex =
-                            images.load("textures/" + f.getName());
+                            images.load("textures/ruins/" + f.getName());
                         if (tex != null) list.add(tex);
                     }
                 }

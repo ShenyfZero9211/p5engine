@@ -17,9 +17,8 @@
         "targetType": "ui",
         "targetId": "lbl_status",
         "textKey": "tutorial.hud.status",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 3.5,
         "borderEffect": "pulse"
       },
       {
@@ -27,9 +26,8 @@
         "targetType": "ui",
         "targetId": "lbl_time",
         "textKey": "tutorial.hud.time",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 3.5,
         "borderEffect": "pulse"
       },
       {
@@ -37,9 +35,8 @@
         "targetType": "ui",
         "targetId": "lbl_speed",
         "textKey": "tutorial.hud.speed",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 5.0,
         "borderEffect": "pulse"
       },
       {
@@ -47,9 +44,8 @@
         "targetType": "ui",
         "targetId": "hud_build",
         "textKey": "tutorial.hud.rightPanel",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 3.5,
         "borderEffect": "pulse"
       },
       {
@@ -57,9 +53,8 @@
         "targetType": "ui",
         "targetId": "hud_build",
         "textKey": "tutorial.hud.buildButtons",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 3.5,
         "borderEffect": "pulse"
       },
       {
@@ -67,9 +62,8 @@
         "targetType": "ui",
         "targetId": "hud_minimap",
         "textKey": "tutorial.hud.minimap",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 3.5,
         "borderEffect": "pulse"
       },
       {
@@ -80,9 +74,8 @@
         "targetW": 1040,
         "targetH": 672,
         "textKey": "tutorial.hud.viewport",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 5.0,
         "borderEffect": "pulse"
       },
       {
@@ -119,9 +112,8 @@
         "targetType": "ui",
         "targetId": "lbl_nextwave",
         "textKey": "tutorial.hud.nextwave",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 4.0,
         "borderEffect": "pulse"
       },
       {
@@ -129,9 +121,8 @@
         "targetType": "ui",
         "targetId": "btn_range",
         "textKey": "tutorial.hud.rangeButton",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 4.0,
         "borderEffect": "pulse"
       },
       {
@@ -162,9 +153,8 @@
         "step": 15,
         "targetType": "global",
         "textKey": "tutorial.hud.towerMenu",
-        "advance": "auto",
+        "advance": "button",
         "delay": 1.0,
-        "autoDuration": 4.0,
         "borderEffect": "none",
         "bubbleAnchor": "top_center"
       },
